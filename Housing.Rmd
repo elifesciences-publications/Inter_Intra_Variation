@@ -1,0 +1,187 @@
+---
+title: "Housing"
+author: "Matt Nolan"
+date: "09/04/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lme4)
+library(MuMIn)
+library(tidyverse)
+library(ggpubr)
+library(corrplot)
+library(modelr)
+```
+
+## Goals
+
+To evaluate effects of housing on properties of L2SCs.
+
+Specific properties for filtering data. Include animals ≥ 28 days.
+```{r}
+min_age <- 28
+```
+
+
+
+Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
+```{r import data, message = FALSE}
+# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+data.import <- read_tsv(fname.sc)
+
+# Strip out rows from data where locations are unknown (are NaN)
+data.sc <- data.import %>% drop_na(dvloc)
+
+# Keep animals ≥ min_age
+data.sc.old <- filter(data.sc, age >= min_age)
+
+# Calculate total number of observations, and number in each environment
+length(data.sc.old$housing)
+count(data.sc.old, housing)
+
+# Calculate number of observations per animal
+counts.old <- data.sc.old %>% count(id)
+summary(counts.old)
+```
+
+Set up storage for model comparison p-values, pseudo r2 values and slopes
+```{r setup storage}
+results_model_housing <- tibble(measure = c("vm","ir","sag","tau","resf","resmag","spkthr","spkmax","spkhlf","rheo","ahp","fi"), p.val.comp = NaN, marginal.r2 = NaN, conditional.r2 = NaN, gradient.slopes = NaN, AIC_vsris = NaN, AIC_vsris_housing = NaN)
+```
+
+
+Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+```{r}
+data.sc.old <- mutate(data.sc, dvlocmm = dvloc/1000)
+```
+
+
+
+
+We want to compare the 'standard model' in which in which dorsoventral location is the fixed effect and animal identity is the random effect, with the intercept and slope treated as random and independent, with a model in which housing is also included as a fixed effect.
+
+Loop through the data.
+1. Create a model for each measured parameter.
+2. Store the slopes for each model.
+3. Calculate and store the marginal and conditional R2 values. Marginal R_GLMM² represents the variance explained by fixed factors. Conditional R_GLMM² is interpreted as variance explained by both fixed and random factors (i.e. the entire model).
+4. Compare the models.
+
+
+```{r}
+for (i in 1:12) {
+  data.sc_subset <- select(data.sc.old, i, dvlocmm, housing, id)
+  data.sc_subset <- filter(data.sc_subset, !is.na(data.sc_subset[[1]]))
+  # Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
+  model_vsris <- lmer(data.sc_subset[[1]] ~ data.sc_subset$dvlocmm +(1+data.sc_subset$dvlocmm||data.sc_subset$id), REML = FALSE)
+  # Test model with housing included as a fixed effect
+  model_vsris_housing <- lmer(data.sc_subset[[1]] ~ data.sc_subset$dvlocmm + data.sc_subset$housing + (1+data.sc_subset$dvlocmm||data.sc_subset$id), REML = FALSE)
+ 
+
+  results_model_housing$gradient.slopes[i] <- summary(model_vsris_housing)$"coefficients"[2]
+  results_model_housing$marginal.r2[i] <- r.squaredGLMM(model_vsris_housing)[1]
+  results_model_housing$conditional.r2[i] <- r.squaredGLMM(model_vsris_housing)[2]
+
+  # Compare models with and without housing as a fixed effect
+  mdl.comp <- anova(model_vsris, model_vsris_housing)
+  results_model_housing$p.val.comp[i] <- mdl.comp$"Pr(>Chisq)"[2]
+
+  # Store AIC for all models
+  results_model_housing$AIC_vsris[i] <- summary(model_vsris)$"AIC"[1]
+  results_model_housing$AIC_vsris_housing[i] <- summary(model_vsris_housing)$"AIC"[1]
+  
+
+}
+```
+
+Show model fitting results as a table.
+```{r}
+knitr::kable(
+  results_model_housing[c(1, 2, 6, 7)],
+  caption = "Fit of measured membrane properties as a function of location"
+)
+# write_csv(results_model[c(1, 5, 6, 8)], "results_model_table.csv")
+```
+
+Plot sag as a function of location for each housing group.
+```{r}
+sagplot_a <- ggplot(data.sc.old, aes(x = dvlocmm, y = sag, colour = housing)) +
+  geom_point(size = 2) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+sagplot_b <- ggplot(data.sc.old, aes(x = id, y = sag, colour = housing)) +
+  geom_boxplot() +
+  coord_flip()
+
+sagplot_c <- ggplot(data.sc, aes(x = dvlocmm, y = sag, colour = housing)) +
+  geom_point(size = 2) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+sagplot_d <- ggplot(data.sc, aes(x = id, y = sag, colour = housing)) +
+  geom_boxplot() +
+  coord_flip()
+
+ggarrange(sagplot_a, sagplot_b, sagplot_c, sagplot_d)
+```
+
+Look more closely at models for sag.
+```{r}
+# Model vs random intercept and slope.
+model_vsris <- lmer(sag ~ dvlocmm +(1+dvlocmm||id), data = data.sc.old, REML = FALSE)
+# Test model with housing included as a fixed effect
+model_vsris_housing <- lmer(sag ~ dvlocmm + housing + (1+dvlocmm||id), data = data.sc.old, REML = FALSE)
+# Test model with housing included as a fixed effect that interacts with dorsoventral location
+model_vsris_housing_i <- lmer(sag ~ dvlocmm * housing + (1+dvlocmm||id), data = data.sc.old, REML = FALSE)
+
+ # Compare models with and without housing as a fixed effect
+mdl.comp_1 <- anova(model_vsris, model_vsris_housing)
+
+# Compare models with and without interaction
+mdl.comp_2 <- anova(model_vsris_housing, model_vsris_housing_i)
+  
+```
+
+Model comparison suggest an effect of housing, but no interaction between housing and location.
+
+Make seperate models for standard and large housing.
+```{r}
+# Model vs random intercept and slope.
+model_vsris_standard <- lmer(sag ~ dvlocmm +(1+dvlocmm||id), data = filter(data.sc.old, housing == "Standard"), REML = FALSE)
+
+model_vsris_large <- lmer(sag ~ dvlocmm +(1+dvlocmm||id), data = filter(data.sc.old, housing == "Large"), REML = FALSE)
+```
+
+Plot each model over the data. Look at model residuals too.
+```{r}
+
+data.sc.old$fit <- predict(model_vsris_housing)
+sagplot <- ggplot(data.sc.old, aes(x = dvlocmm, y = sag, group = interaction(id, housing), colour = housing)) +
+  geom_line(aes(y=fit, colour = housing), size=0.8, alpha = 0.5) +
+  geom_point(alpha = 0.3) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+sagplot <- sagplot +
+  geom_abline(intercept = summary(model_vsris_standard)[[10]][[1]], slope = summary(model_vsris_large)[[10]][[2]], colour = "blue")
+
+sagplot <- sagplot +
+  geom_abline(intercept = summary(model_vsris_large)[[10]][[1]], slope = summary(model_vsris_large)[[10]][[2]], colour = "red")
+
+sagplot
+
+```
+
+Check linearity, homogeneity of variance, normality of residuals.
+```{r}
+plot(resid(model_vsris_housing),data.sc.old$sag)
+
+plot(model_vsris_housing)
+
+lattice::qqmath(model_vsris_housing)
+```

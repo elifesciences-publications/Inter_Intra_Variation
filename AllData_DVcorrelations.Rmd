@@ -1,0 +1,250 @@
+---
+title: "AllData_DVcorrelations"
+author: "Matt Nolan"
+date: "28/03/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lme4)
+library(MuMIn)
+library(tidyverse)
+library(ggpubr)
+library(corrplot)
+```
+
+## Goals
+
+We next asked if the dorsoventral organisation of L2SC properties in our dataset is consistent with previous studies and whether the additional statistical power given by the large number of recorded neurons reveals previously unknown dependence of neuronal properties on dorsoventral location. When we considered mice for which recorded neurons spanned > 1000 µm of the dorsoventral extent of the MEC (n = 785, 10 < n/mouse ≤ 55, N = 25), we found substantial dorsoventral gradients in input resistance, sag, membrane time constant, resonant frequency, rheobase and the current-frequency (I-F) relationship (Table 1 and Figure 2G). 
+
+Import the data, remove rows with unknown locations and summarise numbers of observations and animals.
+```{r import data, message = FALSE}
+# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+data.import <- read_tsv(fname.sc)
+
+# Strip out rows from data where locations are unknown (are NaN)
+data.sc <- data.import %>% drop_na(dvloc)
+
+# Calculate total number of observations, and number in each environment
+length(data.sc$housing)
+count(data.sc, housing)
+
+# Calculate number of observations per animal
+counts <- data.sc %>% count(id)
+summary(counts)
+```
+
+Set up storage for model comparison p-values, pseudo r2 values and slopes
+```{r setup storage}
+results_model <- tibble(measure = c("vm","ir","sag","tau","resf","resmag","spkthr","spkmax","spkhlf","rheo","ahp","fi"), p.val.comp = NaN, marginal.r2 = NaN, conditional.r2 = NaN, gradient.slopes = NaN, modelslope_min = NaN, modelslope_median = NaN, modelslope_max = NaN, AIC_vsris = NaN, AIC_null = NaN, AIC_vsri = NaN, AIC_vscris = NaN)
+```
+Set up storage for coefficients from the linear mixed effect model
+```{r}
+results_model_slopes <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+results_model_offsets <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+```
+Set up storage for coefficients from fitting data from each mouse
+```{r}
+indfit_slopes <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+indfit_offsets <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+indfit_R2 <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+indfit_adjR2 <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+indfit_p <- tibble(mouse = counts[[1]], vm = NaN, ir = NaN, sag = NaN, tau = NaN, resf = NaN, resmag = NaN, spkthr = NaN , spkmax = NaN, spkhlf = NaN, rheo = NaN, ahp = NaN, fi = NaN)
+
+```
+
+
+Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+```{r}
+data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+```
+
+Calculate dorsoventral extent for each mouse
+```{r}
+dvextent <- data.sc %>%
+  group_by(id) %>%
+  summarise(dvrange = max(dvlocmm) - min(dvlocmm))
+```
+
+
+Loop through the data.
+1. Create a model for each measured parameter. We use linear mixed effect models in which dorsoventral location is the fixed effect and animal identity is the random effect, with the intercept and slope treated as random and independent.
+2. Store the slopes for each model.
+3. Calculate and store the marginal and conditional R2 values. Marginal R_GLMM² represents the variance explained by fixed factors. Conditional R_GLMM² is interpreted as variance explained by both fixed and random factors (i.e. the entire model).
+4. Compare the model to a null model.
+
+```{r}
+for (i in 1:12) {
+  data.sc_subset <- select(data.sc, i, dvlocmm, id)
+  data.sc_subset <- filter(data.sc_subset, !is.na(data.sc_subset[[1]]))
+  # Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
+  model_vsris <- lmer(data.sc_subset[[1]] ~ data.sc_subset$dvlocmm +(1+data.sc_subset$dvlocmm||data.sc_subset$id), REML = FALSE)
+  # Null model for random intercept and slope
+  model_null <- lmer(data.sc_subset[[1]] ~ (1+data.sc_subset$dvlocmm||data.sc_subset$id), REML = FALSE)
+  # Model vs random intercept. Use this model only to comapre AIC with other models.
+  model_vsri <- lmer(data.sc_subset[[1]] ~ data.sc_subset$dvlocmm +(1|data.sc_subset$id), REML = FALSE)
+  # Model vs correlated random intercept and slope. Use this model only to comapre AIC with other models.
+  model_vscris <- lmer(data.sc_subset[[1]] ~ data.sc_subset$dvlocmm +(1+data.sc_subset$dvlocmm|data.sc_subset$id), REML = FALSE)
+
+
+  results_model$gradient.slopes[i] <- summary(model_vsris)$"coefficients"[2]
+  results_model$marginal.r2[i] <- r.squaredGLMM(model_vsris)[1]
+  results_model$conditional.r2[i] <- r.squaredGLMM(model_vsris)[2]
+
+  # Compare models with and without location as a fixed effect
+  mdl.comp <- anova(model_vsris, model_null)
+  results_model$p.val.comp[i] <- mdl.comp$"Pr(>Chisq)"[2]
+
+  # Store model coefficients
+  results_model_offsets[[i+1]] <- coef(model_vsris)[[1]][[1]]
+  results_model_slopes[[i+1]] <- coef(model_vsris)[[1]][[2]]
+
+  # Store model slopes
+  summary_coefs <- summary(results_model_slopes[[i+1]])
+  results_model$modelslope_min[i] <- summary_coefs[[1]]
+  results_model$modelslope_median[i] <- summary_coefs[[3]]
+  results_model$modelslope_max[i] <- summary_coefs[[5]]
+  
+  # Store AIC for all models
+  results_model$AIC_vsris[i] <- summary(model_vsris)$"AIC"[1]
+  results_model$AIC_null[i] <- summary(model_null)$"AIC"[1]
+  results_model$AIC_vsri[i] <- summary(model_vsri)$"AIC"[1]
+  results_model$AIC_vscris[i] <- summary(model_vscris)$"AIC"[1]
+
+
+  # Fit linear models for each mouse
+  indreg <- data.sc_subset %>%
+    group_by(id) %>%
+    nest()
+  indmodel <- function(df){
+    lm(df[[1]] ~ dvlocmm, data = df)
+  }
+  indreg <- indreg %>%
+    mutate(model = map(data, indmodel))
+  # Extract fit params
+  glance_ind <- indreg %>% 
+    mutate(glance = map(model, broom::glance)) %>% 
+    unnest(glance)
+  # Extract model coefficients
+  tidy_ind <- indreg %>% 
+    mutate(tidy = map(model, broom::tidy)) %>% 
+    unnest(tidy)
+  tidy_ind_slope <- filter(tidy_ind, term == 'dvlocmm')
+  tidy_ind_intercept <- filter(tidy_ind, term == '(Intercept)')
+  # Keep R2, adjusted R2, p, slope
+  indfit_R2[[i+1]] <- glance_ind[[4]]
+  indfit_adjR2[[i+1]] <- glance_ind[[5]]
+  indfit_slopes[[i+1]] <- tidy_ind_slope[[3]]
+  indfit_offsets[[i+1]] <- tidy_ind_intercept[[3]]
+  indfit_p[[i+1]] <- glance_ind[[8]]
+
+}
+```
+
+Show model fitting results as a table.
+```{r}
+knitr::kable(
+  results_model[c(1, 5, 2:4, 6, 8)], 
+  caption = "Fit of measured membrane properties as a function of location"
+)
+# write_csv(results_model[c(1, 5, 2:4, 6, 8)], "results_model_table.csv")
+```
+
+Look at inter-animal variablitiy in sampled locations.
+```{r}
+ggplot(data.sc, aes(x = id, y = dvlocmm)) +
+  geom_boxplot() +
+  coord_flip()
+
+data.sc %>% 
+  group_by(id) %>%
+  summarise(dvspread = max(dvlocmm) - min(dvlocmm)) %>%
+  summary()
+```
+
+Plot input resistance as an example of dorsoventrally organised data.
+```{r}
+irplot_a <- ggplot(data.sc, aes(x = dvlocmm, y = ir, colour = id)) +
+  geom_point(size = 2) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+irplot_b <- ggplot(data.sc, aes(x = id, y = ir, colour = housing)) +
+  geom_boxplot() +
+  coord_flip()
+
+ggarrange(irplot_a, irplot_b)
+```
+
+Plot spike half-width as an example of data without dorsoventral organisation.
+```{r}
+spkhlfplot_a <- ggplot(data.sc, aes(x = dvlocmm, y = spkhlf, colour = housing)) +
+  geom_point(size = 2) +
+  theme_classic() +
+  theme(legend.position = "none")
+
+spkhlfplot_b <- ggplot(data.sc, aes(x = id, y = spkhlf, colour = housing)) +
+  geom_boxplot() +
+  coord_flip()
+
+ggarrange(spkhlfplot_a, spkhlfplot_b)
+
+```
+
+
+
+Look at the distribution of the slope coefficients for the linear mixed effect model.
+```{r}
+summary(results_model_slopes)
+results_model_slopes %>%
+  gather("measure", "value", 2:13) %>%
+  ggplot(.,aes(value, group = measure)) + geom_histogram(bins = 20) + facet_wrap(~ measure, scales = "free_x")
+```
+
+Look at the distribution of the slope coefficients for the individual model fits.
+.
+```{r}
+summary(indfit_slopes)
+summary(indfit_slopes)
+indfit_slopes %>%
+  gather("measure", "value", 2:13) %>%
+  ggplot(.,aes(value, group = measure)) + geom_histogram(bins = 20) + facet_wrap(~ measure, scales = "free_x")
+```
+
+The coefficients from individual animals have greater variability than those from the mixed effects model. Continue analysis using the estimates from the mixed effects model - suppressed variance is related to Stein's paradox.
+
+
+Is there a relationship between slopes within an animal?
+```{r}
+GGally::ggpairs(results_model_slopes, columns = 2:13)
+M <- cor(results_model_slopes[2:13])
+corrplot::corrplot.mixed(M, order = "AOE")
+M2 <- corrplot::cor.mtest(results_model_slopes[2:13], method = "spearman")
+M_2 <- M*M
+corrplot::corrplot.mixed(M_2, p.mat = M2$p, sig.level = 0.01, insig = "blank", order = "hclust", cl.lim = c(0,1))
+```
+
+Is there a relationship between intercepts within an animal?
+```{r}
+GGally::ggpairs(results_model_offsets, columns = 2:13)
+M3 <- cor(results_model_offsets[2:13])
+corrplot::corrplot.mixed(M3, order = "AOE")
+M4 <- corrplot::cor.mtest(results_model_offsets[2:13], method = "spearman")
+M3_2 <- M3*M3
+corrplot::corrplot.mixed(M3_2, p.mat = M4$p, sig.level = 0.01, insig = "blank", order = "hclust", cl.lim = c(0,1))
+```
+
+Do offsets of one parameter predict slopes of any others?
+```{r}
+results_model_all <- bind_cols(results_model_slopes, results_model_offsets[2:13])
+M5 <- cor(results_model_all[2:25])
+corrplot::corrplot.mixed(M5)
+M6 <- corrplot::cor.mtest(results_model_all[2:25], method = "spearman")
+M5_2 <- M5*M5
+corrplot::corrplot.mixed(M5_2, p.mat = M6$p, sig.level = 0.05, insig = "blank", cl.lim = c(0,1))
+```
+
