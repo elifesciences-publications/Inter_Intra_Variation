@@ -35,6 +35,9 @@ data.import <- read_tsv(fname.sc)
 # Strip out rows from data where locations are unknown (are NaN)
 data.sc <- data.import %>% drop_na(dvloc)
 
+# Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
 # Keep animals ≥ min_age
 data.sc.old <- filter(data.sc, age >= min_age)
 
@@ -47,16 +50,57 @@ counts.old <- data.sc.old %>% count(id)
 summary(counts.old)
 ```
 
-Set up storage for model comparison p-values, pseudo r2 values and slopes
-```{r setup storage}
-results_model_housing <- tibble(measure = c("vm","ir","sag","tau","resf","resmag","spkthr","spkmax","spkhlf","rheo","ahp","fi"), p.val.comp = NaN, marginal.r2 = NaN, conditional.r2 = NaN, gradient.slopes = NaN, AIC_vsris = NaN, AIC_vsris_housing = NaN)
-```
-
-
-Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+Reformat data for use with map and othe rtidy tidyverse functions.
 ```{r}
-data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+data.sc_r <- data.sc %>%
+  select(vm:fi, dvlocmm, id) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
 ```
+
+Fit mixed models to all measured properties using lmer
+```{r}
+model_to_fit <- function(df) {
+  lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel = map(data, model_to_fit))
+```
+
+Add model predictions. Using predict adds a prediction for each location, using broom::augment adds predictions (.mu) and residuals (.wtres).
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(fit = map(mixedmodel, predict))
+
+data.sc_r <- data.sc_r %>%
+  mutate(fits = map(mixedmodel, broom::augment))
+```
+
+Add model metrics. Not used to make the figures below, but useful.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(glance = map(mixedmodel, broom::glance))
+
+```
+
+Convert data from the nested format so that we can make plots.
+```{r}
+data.sc_r_fit <- data.sc_r %>%
+  unnest(data, fit)
+```
+
+Make plots
+```{r}
+ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value)) +
+  geom_point(alpha = 0.05) +
+  geom_line(aes(y=fit, group = id), size=0.8, alpha = 0.5) +
+  facet_wrap(~property, scales = "free")
+```
+
+
+
+Now repeat with normalised data.
 
 Normalise property measurements.
 ```{r}
@@ -64,28 +108,26 @@ normalize<-function(m){
    (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
 }
 
-data.sc.norm <- as.data.frame(lapply(data.sc.old[1:12], normalize))
+data.sc.norm <- as.data.frame(lapply(data.sc[1:12], normalize))
 data.sc.norm$dvlocmm <- data.sc$dvlocmm
 data.sc.norm$id <- data.sc$id
 
 ```
 
-Loop through the data.
+Analysis is as above. Loop through the data.
 1. Create a model for each measured parameter.
 2. Store plots for fitted slopes for each mouse.
-
-
 ```{r}
 # reformat data
 data.sc.norm_r <- data.sc.norm %>%
-  select(vm:ahp, dvlocmm, id) %>%
-  gather("property", "value", vm:ahp) %>%
+  select(vm:fi, dvlocmm, id) %>%
+  gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
 
 # apply lmer to all measurements
 model_to_fit <- function(df) {
-  lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE)
+  lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 data.sc.norm_r <- data.sc.norm_r %>%
   mutate(mixedmodel = map(data, model_to_fit))
@@ -93,12 +135,15 @@ data.sc.norm_r <- data.sc.norm_r %>%
 # add predictions
 data.sc.norm_r <- data.sc.norm_r %>%
   mutate(fit = map(mixedmodel, predict))
+# or this? gives predictions as .mu.
+data.sc.norm_r <- data.sc.norm_r %>%
+  mutate(fits = map(mixedmodel, broom::augment))
 
 # add model metrics
 data.sc.norm_r <- data.sc.norm_r %>%
   mutate(glance = map(mixedmodel, broom::glance))
 
-# extract data and fit values
+# extract data
 data.sc.norm_r_fit <- data.sc.norm_r %>%
   unnest(data, fit)
 
