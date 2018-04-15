@@ -81,10 +81,26 @@ Add model metrics. Not used to make the figures below, but useful.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(glance = map(mixedmodel, broom::glance))
-
 ```
 
-Convert data from the nested format so that we can make plots.
+Add summaries of model output
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(tidy = map(mixedmodel, broom::tidy))
+```
+
+Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest. Not sure how to do this and keep the mouse ids, but this is fine for the analyses we want to do.
+```{r}
+coef_df <- function(model_name) {
+  mod_coef <- coef(model_name)
+  #coef_df <- as.data.frame(coef(model_name)[[1]])
+  tibble(intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
+}
+data.sc_r <- data.sc_r %>%
+  mutate(coefs = map(mixedmodel, coef_df))
+```
+
+Convert data from the nested format so that we can make plots of the fitted data.
 ```{r}
 data.sc_r_fit <- data.sc_r %>%
   unnest(data, fit)
@@ -95,6 +111,45 @@ Make plots
 ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value)) +
   geom_point(alpha = 0.05) +
   geom_line(aes(y=fit, group = id), size=0.8, alpha = 0.5) +
+  facet_wrap(~property, scales = "free")
+```
+
+Extract individual slopes and intercepts from model fits.
+```{r}
+data.sc_r_coefs <- data.sc_r %>%
+  unnest(coefs)
+```
+
+Calculate intercept values with mean substracted so they can be compared to slopes.
+
+
+Plot distributions of intercepts.
+```{r}
+ggplot(data.sc_r_coefs, aes(intercept)) +
+  geom_histogram(bins = 20, colour = "blue") +
+  geom_histogram(aes(slope), bins = 20, colour = "red") +
+  facet_wrap(~property, scales = "free")
+```
+
+Plot intercepts as violin plots
+```{r}
+ggplot(data.sc_r_coefs, aes(x = property, y = intercept)) +
+  geom_violin() +
+  facet_wrap(~property, scales = "free")
+```
+
+
+Plot distributions of slopes.
+```{r}
+ggplot(data.sc_r_coefs, aes(slope)) +
+  geom_density(adjust = 0.1) +
+  facet_wrap(~property, scales = "free")
+```
+
+Plot slopes as violin plots.
+```{r}
+ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
+  geom_violin(adjust = 1) +
   facet_wrap(~property, scales = "free")
 ```
 
