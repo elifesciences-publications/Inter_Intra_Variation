@@ -15,6 +15,7 @@ library(tidyverse)
 library(ggpubr)
 library(corrplot)
 library(modelr)
+library(ggthemes)
 ```
 
 ## Goals
@@ -120,37 +121,80 @@ data.sc_r_coefs <- data.sc_r %>%
   unnest(coefs)
 ```
 
-Calculate intercept values with mean substracted so they can be compared to slopes.
-
 
 Plot distributions of intercepts.
 ```{r}
-ggplot(data.sc_r_coefs, aes(intercept)) +
-  geom_histogram(bins = 20, colour = "blue") +
-  geom_histogram(aes(slope), bins = 20, colour = "red") +
-  facet_wrap(~property, scales = "free")
+labels_intercepts <- c(ahp = "AHP (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res mag", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike half-width (ms)", spkmax = "Spike maximum (mV)", spkthr = "Spike Threshold (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+hist_theme = theme(
+    text = element_text(size=9),
+    strip.background = element_blank(),
+    axis.title.x=element_blank(),
+    axis.title.y=element_blank()
+  )
+
+intercept_histograms <- ggplot(data.sc_r_coefs, aes(intercept)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
+  theme_classic() +
+  hist_theme
+
+intercept_histograms
 ```
 
-Plot intercepts as violin plots
+Plot intercepts as violin plots. Could try using geom_blank here to set the scales.
 ```{r}
-ggplot(data.sc_r_coefs, aes(x = property, y = intercept)) +
+intercept_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = intercept)) +
   geom_violin() +
-  facet_wrap(~property, scales = "free")
+  geom_jitter(height = 0, width = 0.2) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  ) 
+intercept_violins
 ```
 
 
 Plot distributions of slopes.
 ```{r}
-ggplot(data.sc_r_coefs, aes(slope)) +
-  geom_density(adjust = 0.1) +
-  facet_wrap(~property, scales = "free")
+labels_slopes <- c(ahp = "AHP (mV / mm)", fi = "F-I (Hz / pA mm)", ir = "IR (MΩ / mm)", resf = "Res F (Hz / mm)", resmag = "Res mag (/ mm)", rheo = "Rheobase (pA / mm)", sag = "Sag (/ mm)", spkhlf = "Spike half-width (ms / mm)", spkmax = "Spike maximum (mV / mm)", spkthr = "Spike Threshold (mV / mm)", tau = "Tm (ms / mm)", vm = "Vrest (mV / mm)")
+
+slope_histograms <- ggplot(data.sc_r_coefs, aes(slope)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_slopes)) +
+  theme_classic() +
+  hist_theme
+
+slope_histograms
 ```
 
 Plot slopes as violin plots.
 ```{r}
-ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
+slope_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
   geom_violin(adjust = 1) +
-  facet_wrap(~property, scales = "free")
+  geom_jitter(height = 0, width = 0.2) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  )
+slope_violins
+```
+
+Make a multi-panel figure. Draft for figure in manuscript. Could also try using cowplot or patchwork (https://github.com/thomasp85/patchwork) to make this.
+```{r}
+full_figure <- ggarrange(intercept_histograms, sagplot_c, slope_histograms, sagplot, ncol = 2, nrow = 2, widths = c(2, 1))
+full_figure
+```
+
+Save the plots as vector graphics.
+```{r}
+svg(filename = "full_figure.svg", width=6, height=4)
+full_figure
+dev.off()
 ```
 
 
