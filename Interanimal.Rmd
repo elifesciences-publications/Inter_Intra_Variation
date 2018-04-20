@@ -54,7 +54,7 @@ summary(counts.old)
 Reformat data for use with map and othe rtidy tidyverse functions.
 ```{r}
 data.sc_r <- data.sc %>%
-  select(vm:fi, dvlocmm, id) %>%
+  select(vm:fi, dvlocmm, id, housing) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
@@ -90,12 +90,11 @@ data.sc_r <- data.sc_r %>%
   mutate(tidy = map(mixedmodel, broom::tidy))
 ```
 
-Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest. Not sure how to do this and keep the mouse ids, but this is fine for the analyses we want to do.
+Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest.
 ```{r}
 coef_df <- function(model_name) {
   mod_coef <- coef(model_name)
-  #coef_df <- as.data.frame(coef(model_name)[[1]])
-  tibble(intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
+  tibble(id = row.names(tc[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
 }
 data.sc_r <- data.sc_r %>%
   mutate(coefs = map(mixedmodel, coef_df))
@@ -109,7 +108,7 @@ data.sc_r_fit <- data.sc_r %>%
 
 Make plots
 ```{r}
-ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value)) +
+ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.05) +
   geom_line(aes(y=fit, group = id), size=0.8, alpha = 0.5) +
   facet_wrap(~property, scales = "free")
@@ -124,7 +123,7 @@ data.sc_r_coefs <- data.sc_r %>%
 
 Plot distributions of intercepts.
 ```{r}
-labels_intercepts <- c(ahp = "AHP (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res mag", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike half-width (ms)", spkmax = "Spike maximum (mV)", spkthr = "Spike Threshold (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike half-width (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
 hist_theme = theme(
     text = element_text(size=9),
@@ -173,7 +172,6 @@ slope_histograms
 Plot slopes as violin plots.
 ```{r}
 slope_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
-  geom_violin(adjust = 1) +
   geom_jitter(height = 0, width = 0.2) +
   facet_wrap(~property, scales = "free") +
   theme_classic() +
@@ -184,9 +182,82 @@ slope_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
 slope_violins
 ```
 
+Add slope to intercept to predict values at 1 mm for each mouse.
+```{r}
+data.sc_r_coefs$is <- data.sc_r_coefs$intercept + data.sc_r_coefs$slope
+```
+
+To enable plotting of slopes on the same graph, but seperately from the intercepts, make columns containing population intercepts, and population intercept + slope for each mouse.
+```{r}
+pop_intercepts <- unnest(data.sc_r, tidy) %>% filter(term == "(Intercept)") %>% select(property, estimate)
+data.sc_r_coefs_regather <- data.sc_r_coefs %>%
+  select(property, id, slope) %>%
+  spread(key = id, value = slope) %>%
+  left_join(pop_intercepts, by = "property") %>%
+  gather("id", "slope", -estimate, -property) %>%
+  mutate(intercept_slope = estimate + slope) %>%
+  select(property, id, estimate, intercept_slope) %>%
+  gather(measure, value, estimate, intercept_slope)
+```
+
+
+
+Plot predicted values at 0 mm and at 1mm for each mouse.
+```{r}
+data.sc_r_coefs_01 <- data.sc_r_coefs %>%
+  select(id, property, intercept, is) %>%
+  gather(measure, value, intercept, is)
+intercept_slope_plot_a <- ggplot(data.sc_r_coefs_01, aes(x = measure, y = value)) +
+  geom_line(aes(group = id)) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  hist_theme
+intercept_slope_plot_b <- ggplot(data.sc_r_coefs_01, aes(x = measure, y = value)) +
+  geom_jitter(width = 0.2, height = 0) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  hist_theme
+intercept_slope_plot_a
+intercept_slope_plot_b
+```
+
+Make plots of slopes.
+```{r}
+slope_plot <- ggplot(data.sc_r_coefs_regather, aes(x = measure, y = value)) +
+  geom_line(aes(group = id)) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  hist_theme
+
+slope_plot
+```
+
+Combine plots of intercept and slopes. Need to combine data.sc_r_coefs_01 and data.sc_r_coefs_regather. Then make appropriately faceted plots.
+```{r}
+data.sc_r_coefs_regather <- mutate(data.sc_r_coefs_regather, value_1 = value)
+data.sc_r_coefs_01 <- mutate(data.sc_r_coefs_01, value_2 = value)
+combined_intercepts_slopes <- bind_rows(data.sc_r_coefs_regather, data.sc_r_coefs_01)
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
+
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_point(aes(y = value_2)) +
+  scale_x_discrete(limits = c("intercept", "is",  "estimate", "intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure
+```
+
+
+
 Make a multi-panel figure. Draft for figure in manuscript. Could also try using cowplot or patchwork (https://github.com/thomasp85/patchwork) to make this.
 ```{r}
-full_figure <- ggarrange(intercept_histograms, sagplot_c, slope_histograms, sagplot, ncol = 2, nrow = 2, widths = c(2, 1))
+full_figure <- ggarrange(IS_figure, sagplot_c, NULL, sagplot, ncol = 2, nrow = 2, widths = c(3, 1))
 full_figure
 ```
 
