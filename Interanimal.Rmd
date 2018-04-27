@@ -123,7 +123,7 @@ data.sc_r_coefs <- data.sc_r %>%
 
 Plot distributions of intercepts.
 ```{r}
-labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike half-width (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
 hist_theme = theme(
     text = element_text(size=9),
@@ -232,7 +232,7 @@ slope_plot <- ggplot(data.sc_r_coefs_regather, aes(x = measure, y = value)) +
 slope_plot
 ```
 
-Combine plots of intercept and slopes. Need to combine data.sc_r_coefs_01 and data.sc_r_coefs_regather. Then make appropriately faceted plots.
+Combine plots of intercept and slopes. Need to combine data.sc_r_coefs_01 and data.sc_r_coefs_regather and add housing. Make property into factors to enable ordering of plots. Then make appropriately faceted plots.
 ```{r}
 data.sc_r_coefs_regather <- mutate(data.sc_r_coefs_regather, value_1 = value)
 data.sc_r_coefs_01 <- mutate(data.sc_r_coefs_01, value_2 = value)
@@ -241,16 +241,24 @@ combined_intercepts_slopes <- bind_rows(data.sc_r_coefs_regather, data.sc_r_coef
 id_housing <-  distinct(data.sc, id, housing)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
 
+combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
+combined_intercepts_slopes$property_factors = factor(combined_intercepts_slopes$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+
 IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
-  geom_point(aes(y = value_2)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("intercept", "is",  "estimate", "intercept_slope"), label = c("I", "I + S", "", "")) +
-  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
+  facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
   theme_classic() +
   hist_theme +
   theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
 
 IS_figure
+```
+
+Save the figure.
+```{r}
+ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
 ```
 
 
