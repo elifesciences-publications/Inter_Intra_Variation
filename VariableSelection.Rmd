@@ -1,0 +1,112 @@
+---
+title: "VariableSelection"
+author: "Matt Nolan"
+date: "27/04/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lmerTest)
+library(tidyverse)
+library(lme4)
+library(LMERConvenienceFunctions)
+```
+
+## Goals
+
+To identify a minimum set of variables that will predict inuput resistance or dorsoventral location. In the former case, we want to know if we can imporve our estimate of input resistance beyond what we would obtain using dorsoventral location as a sole predictive variable. In the latter case we want to know if any other property of SCs, beyond those that determine input resistance, is helpful in predicting dorsoventral location. If yes, this would imply that additional cell properties have dorosventral tuning. We address these questions separately using the step method in lmerTest.
+
+Specific properties for filtering data. Include animals ≥ 28 days.
+```{r}
+min_age <- 0
+```
+
+Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
+```{r import data, message = FALSE}
+# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+data.import <- read_tsv(fname.sc)
+
+# Strip out rows from data where locations are unknown (are NaN)
+data.sc <- data.import %>% drop_na(dvloc)
+
+# Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
+# Keep animals ≥ min_age
+data.sc.old <- filter(data.sc, age >= min_age)
+
+# Calculate total number of observations, and number in each environment
+length(data.sc.old$housing)
+count(data.sc.old, housing)
+
+# Calculate number of observations per animal
+counts.old <- data.sc.old %>% count(id)
+summary(counts.old)
+```
+
+Recale predictors. Centre at sero and divide by SD.
+```{r}
+normalize<-function(m){
+   (m - mean(m, na.rm = TRUE))/sd(m, na.rm = TRUE)
+}
+
+data.sc.norm <- as.data.frame(lapply(data.sc[1:12], normalize))
+data.sc.norm$dvlocmm <- data.sc$dvlocmm
+data.sc.norm$id <- data.sc$id
+data.sc.norm$housing <- data.sc$housing
+  
+```
+
+Initial strategy is to use step down model building approach from lmerTest.
+
+Fit mixed model for dvloc with all measured parameters as fixed effects
+dvlocmm ~ vm * ir * sag * tau * resf * resmag * spkthr * spkmax * spkhlf * rheo * ahp * fi
+This gives errors, so use only five fixed effects (rheo * ir * fi * tau * sag).
+```{r}
+dvloc_model <- lmer(dvlocmm ~ vm + ir + sag + tau + resf + resmag + spkthr + spkmax + spkhlf + rheo + ahp  + (1|housing) + (1|id), data = data.sc.norm)
+```
+
+Apply step to find model parameters that predict dvlocmm.
+```{r}
+dclov_step <- step(dvloc_model)
+dclov_step
+```
+
+Look at model found.
+```{r}
+summary(lmer(dvlocmm ~ vm + sag + tau + resmag + spkmax + rheo + ahp + (1 | 
+    id), data = data.sc.norm))
+```
+```{r}
+summary(lmer(dvlocmm ~ ir + (1 | id), data = data.sc.norm))
+```
+
+
+As an alternative consider MuMIn::dredge. This is not feasible as it tests all possible combinations, which for a mixed mdoel with 12 predictors is too many.
+
+
+An alternative fitLMER.fnc from LMERConvenienceFunctions.
+Try first with only id as a fixed effect.
+```{r}
+dvloc_model_c1 <- lme4::lmer(dvlocmm ~ vm + ir + sag + tau + resf + resmag + spkthr + spkmax + spkhlf + rheo + ahp + fi + (1|id), data = data.sc.norm)
+dvloc_model_c_f1 <- fitLMER.fnc(dvloc_model_c1)
+summary (dvloc_model_c_f1)
+```
+
+Try next with id and spike half-width as fixed effects.
+```{r}
+dvloc_model_c2 <- lme4::lmer(dvlocmm ~ vm + ir + sag + tau + resf + resmag + spkmax + rheo + ahp + spkthr + (1|spkhlf) + (1|id), data = data.sc.norm)
+dvloc_model_c_f2 <- fitLMER.fnc(dvloc_model_c2)
+summary (dvloc_model_c_f2)
+```
+
+Try next with housing, id and spike half-width as fixed effects.
+```{r}
+dvloc_model_c3 <- lme4::lmer(dvlocmm ~ vm + ir + sag + tau + resf + resmag + spkmax + spkhlf + rheo + ahp + fi + (1|housing) + (1|id), data = data.sc.norm)
+dvloc_model_c_f3 <- fitLMER.fnc(dvloc_model_c3)
+summary (dvloc_model_c_f3)
+```

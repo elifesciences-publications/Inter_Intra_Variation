@@ -1,0 +1,62 @@
+---
+title: "LoadData"
+author: "Matt Nolan"
+date: "02/05/2018"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lmerTest)
+library(tidyverse)
+library(lme4)
+library(LMERConvenienceFunctions)
+```
+
+## Goals
+
+To load and preporocess data used for other analyses.
+
+
+Specific properties for filtering data. Include animals ≥ 28 days.
+```{r}
+min_age <- 0
+```
+
+Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
+```{r import data, message = FALSE}
+# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+data.import <- read_tsv(fname.sc)
+
+# Strip out rows from data where locations are unknown (are NaN)
+data.sc <- data.import %>% drop_na(dvloc)
+
+# Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
+# Keep animals ≥ min_age
+data.sc.old <- filter(data.sc, age >= min_age)
+
+# Calculate total number of observations, and number in each environment
+length(data.sc.old$housing)
+count(data.sc.old, housing)
+
+# Calculate number of observations per animal
+counts.old <- data.sc.old %>% count(id)
+summary(counts.old)
+```
+
+Recale predictors. Centre at sero and divide by SD.
+```{r}
+normalize<-function(m){
+   (m - mean(m, na.rm = TRUE))/sd(m, na.rm = TRUE)
+}
+
+data.sc.norm <- as.data.frame(lapply(data.sc[1:12], normalize))
+data.sc.norm$dvlocmm <- data.sc$dvlocmm
+data.sc.norm$id <- data.sc$id
+data.sc.norm$housing <- data.sc$housing
+  
+```

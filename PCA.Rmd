@@ -1,0 +1,29 @@
+---
+title: "PCA"
+author: "Matt Nolan"
+date: "02/05/2018"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(tidyverse)
+```
+
+## Goals
+
+To reduce the dimensionality of the dataset. To test explore how dorsoventral location and mouse identity map onto each dimension. To evaluate linear models generated using the principal components.
+
+Carry out PCA.
+
+
+
+
+Plot components vs dosrosventral location. Colour code mouse ID.
+
+
+
+
+
+Plot components seperately for each mouse.
