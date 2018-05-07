@@ -1,0 +1,36 @@
+---
+title: "ConceptualFigures"
+author: "Matt Nolan"
+date: "07/05/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(tidyverse)
+```
+
+## Goals
+
+To generate schematic diagrams to illustrate the ideas to be tested by the analyses.
+
+First generate simulated data. Imagine a dataset describing individual cells using two quantifiable features (x and y). In this scenario different cell class could be separated using these features. Each cell class is modeled as having variance for each feature.
+
+The distribution of features of cell class A has a simple structure in which the variance is around a point.
+
+For cell class B the distribution of features is along a line.
+```{r}
+CellFeatures <- tibble(A_x = rnorm(100, 20, 1), A_y = rnorm(100, 20, 1), B_x = runif(100, min = 30, max = 40) + rnorm(100,0,1), B_y = rnorm(100, 25, 1))
+```
+
+Plot features.
+```{r}
+ggplot(CellFeatures) +
+  geom_point(aes(A_x, A_y), colour = "blue") +
+  geom_point(aes(B_x, B_y), colour = "red") + 
+  xlim(0,50) +
+  ylim(0,50)
+```
+

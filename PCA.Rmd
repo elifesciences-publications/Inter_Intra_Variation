@@ -9,6 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Ensure access to libraries
 library(tidyverse)
+library (pls)
+library(GGally)
 ```
 
 ## Goals
@@ -16,14 +18,64 @@ library(tidyverse)
 To reduce the dimensionality of the dataset. To test explore how dorsoventral location and mouse identity map onto each dimension. To evaluate linear models generated using the principal components.
 
 Carry out PCA.
+```{r}
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id)
+cols.pca <- 1:11
 
+out.pca <- prcomp(data.pca[cols.pca],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(out.pca)
+summary(out.pca)
+biplot(out.pca)
+```
 
 
 
 Plot components vs dosrosventral location. Colour code mouse ID.
+```{r}
+out.pca.x <- as_tibble(out.pca$x)
+out.pca.x$dvlocmm <- data.pca$dvlocmm
+out.pca.x$id <- data.pca$id
 
+out.pca.x <- out.pca.x %>%
+  gather("component", "value", 1:11)
 
-
+ggplot(data = out.pca.x, aes(x = dvlocmm, y = value)) +
+  geom_point(aes(colour = id)) +
+  facet_wrap(~ component)
+```
 
 
 Plot components seperately for each mouse.
+```{r}
+ggplot(data = out.pca.x, aes(x = id, y = value)) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~ component, scales = "free_x")
+```
+
+Plot components against one another.
+```{r}
+out.pca.x_2 <- as_tibble(out.pca$x)
+out.pca.x_2$dvlocmm <- data.pca$dvlocmm
+out.pca.x_2$id <- data.pca$id
+ggpairs(out.pca.x_2[1:11], ggplot2::aes(colour=id))
+```
+
+
+
+
+A slightly different approach, directly fitting model to PCR output.
+```{r}
+data.pca <- dplyr::select(data.sc.norm, vm:ahp, dvlocmm)
+pcr.fit=pcr(dvlocmm~., data=data.pca,scale=TRUE , validation ="CV")
+summary(pcr.fit)
+```
+
+Evaluate mean squared error of prediction
+```{r}
+validationplot(pcr.fit ,val.type="MSEP")
+```

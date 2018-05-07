@@ -16,6 +16,7 @@ library(ggpubr)
 library(corrplot)
 library(modelr)
 library(ggthemes)
+library(broom)
 ```
 
 ## Goals
@@ -54,7 +55,7 @@ summary(counts.old)
 Reformat data for use with map and othe rtidy tidyverse functions.
 ```{r}
 data.sc_r <- data.sc %>%
-  select(vm:fi, dvlocmm, id, housing) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
@@ -63,7 +64,7 @@ data.sc_r <- data.sc %>%
 Fit mixed models to all measured properties using lmer
 ```{r}
 model_to_fit <- function(df) {
-  lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel = map(data, model_to_fit))
@@ -94,7 +95,7 @@ Extract coefficients for individual mice. The function is to convert the output 
 ```{r}
 coef_df <- function(model_name) {
   mod_coef <- coef(model_name)
-  tibble(id = row.names(tc[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
+  tibble(id = row.names(mod_coef[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
 }
 data.sc_r <- data.sc_r %>%
   mutate(coefs = map(mixedmodel, coef_df))
@@ -189,14 +190,14 @@ data.sc_r_coefs$is <- data.sc_r_coefs$intercept + data.sc_r_coefs$slope
 
 To enable plotting of slopes on the same graph, but seperately from the intercepts, make columns containing population intercepts, and population intercept + slope for each mouse.
 ```{r}
-pop_intercepts <- unnest(data.sc_r, tidy) %>% filter(term == "(Intercept)") %>% select(property, estimate)
+pop_intercepts <- unnest(data.sc_r, tidy) %>% filter(term == "(Intercept)") %>% dplyr::select(property, estimate)
 data.sc_r_coefs_regather <- data.sc_r_coefs %>%
-  select(property, id, slope) %>%
+  dplyr::select(property, id, slope) %>%
   spread(key = id, value = slope) %>%
   left_join(pop_intercepts, by = "property") %>%
   gather("id", "slope", -estimate, -property) %>%
   mutate(intercept_slope = estimate + slope) %>%
-  select(property, id, estimate, intercept_slope) %>%
+  dplyr::select(property, id, estimate, intercept_slope) %>%
   gather(measure, value, estimate, intercept_slope)
 ```
 
@@ -205,7 +206,7 @@ data.sc_r_coefs_regather <- data.sc_r_coefs %>%
 Plot predicted values at 0 mm and at 1mm for each mouse.
 ```{r}
 data.sc_r_coefs_01 <- data.sc_r_coefs %>%
-  select(id, property, intercept, is) %>%
+  dplyr::select(id, property, intercept, is) %>%
   gather(measure, value, intercept, is)
 intercept_slope_plot_a <- ggplot(data.sc_r_coefs_01, aes(x = measure, y = value)) +
   geom_line(aes(group = id)) +
@@ -263,18 +264,42 @@ ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
 
 
 
-Make a multi-panel figure. Draft for figure in manuscript. Could also try using cowplot or patchwork (https://github.com/thomasp85/patchwork) to make this.
-```{r}
-full_figure <- ggarrange(IS_figure, sagplot_c, NULL, sagplot, ncol = 2, nrow = 2, widths = c(3, 1))
-full_figure
-```
-
 Save the plots as vector graphics.
 ```{r}
-svg(filename = "full_figure.svg", width=6, height=4)
-full_figure
+svg(filename = "I_S_figure.png", width=6, height=4)
+IS_figure
 dev.off()
 ```
+
+Look at relationships between the intercepts.
+```{r}
+combined_intercepts_slopes_si <- dplyr::select(data.sc_r_coefs, property, id, intercept)  %>%
+  spread(property, intercept)
+ggpairs(combined_intercepts_slopes_si,columns = c(2:13),
+         lower = list(
+          continuous = "points",
+          mapping = aes(colour = id)
+        ),
+        ggplot2::aes(alpha = 0.1))
+```
+
+Look at relationships between the slopes
+```{r}
+combined_intercepts_slopes_ss <- dplyr::select(data.sc_r_coefs, property, id, slope)  %>%
+  spread(property, slope)
+ggpairs(combined_intercepts_slopes_ss,columns = c(2:13),
+        lower = list(
+          continuous = "points",
+          mapping = aes(colour = id)
+        ),
+        ggplot2::aes(alpha = 0.1))
+```
+
+Look at principle components of intercepts.
+```{r}
+
+```
+
 
 
 
