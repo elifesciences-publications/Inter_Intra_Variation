@@ -55,7 +55,8 @@ CF_plot <- ggplot(CellFeatures, aes(x, y, colour = cell)) +
   theme_classic() +
   theme(legend.position = "bottom",
         axis.ticks = element_blank(),
-        axis.text = element_blank())
+        axis.text = element_blank(),
+        legend.text = element_blank())
 
 CF_plot
 ```
@@ -156,7 +157,8 @@ IntraAnimalPlot <- ggplot(IntraAnimal, aes(x, y, alpha = animal)) +
         axis.ticks = element_blank(),
         axis.text = element_blank()) +
   scale_alpha_discrete(range=c(0.1,1)) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "bottom",
+        legend.text = element_blank())
 
 IntraAnimalPlot
   
@@ -164,11 +166,12 @@ IntraAnimalPlot
 
 
 
-Plot all together.
+Plot all together. Blank columns are to allow white space for insertion of labels.
 ```{r}
 ConceptFigure <- grid.arrange(CF_plot, IntraAnimalPlot,
-             ncol = 2,
-             widths = c(1,1.2))
+             ncol = 4,
+             widths = c(0.1, 1, 0.1, 1.2),
+             layout_matrix = rbind(c(NA, 1, NA, 2)))
 
 ConceptFigure
 ```
