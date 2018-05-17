@@ -63,9 +63,8 @@ data.sc_r <- data.sc %>%
 
 Fit mixed models to all measured properties using lmer
 ```{r}
-model_to_fit <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
-}
+# model_to_fit moved to functions.
+# lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel = map(data, model_to_fit))
 ```
@@ -93,13 +92,11 @@ data.sc_r <- data.sc_r %>%
 
 Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest.
 ```{r}
-coef_df <- function(model_name) {
-  mod_coef <- coef(model_name)
-  tibble(id = row.names(mod_coef[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
-}
+# coef_df is a helper function to return model coefficients in a tidy formt.
 data.sc_r <- data.sc_r %>%
   mutate(coefs = map(mixedmodel, coef_df))
 ```
+
 
 Convert data from the nested format so that we can make plots of the fitted data.
 ```{r}
@@ -107,7 +104,30 @@ data.sc_r_fit <- data.sc_r %>%
   unnest(data, fit)
 ```
 
-Make plots
+
+Compare linear models with mixed models. Does adding random effects lead to a statistically different model? Need to seperate out functions that are repeated elsewhere. Repeat them here with different names to avoid dependencies.
+```{r Compare linear with mixed models}
+# linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+data.sc_r <- data.sc_r %>%
+  mutate(dev_mixed = map(mixedmodel, devcalc)) %>%
+  mutate(dev_linear = map(linearmodel, devcalc)) %>%
+  mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
+  mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
+  mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
+  mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
+  mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
+
+```
+
+
+
+
+
+------------------------ Make plots ----------------------
 ```{r}
 ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.05) +
@@ -126,12 +146,6 @@ Plot distributions of intercepts.
 ```{r}
 labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
-hist_theme = theme(
-    text = element_text(size=9),
-    strip.background = element_blank(),
-    axis.title.x=element_blank(),
-    axis.title.y=element_blank()
-  )
 
 intercept_histograms <- ggplot(data.sc_r_coefs, aes(intercept)) +
   geom_histogram(bins = 20) +

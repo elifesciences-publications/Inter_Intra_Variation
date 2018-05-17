@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library (pls)
 library(GGally)
+library(nlme)
 ```
 
 ## Goals
@@ -19,7 +20,7 @@ To reduce the dimensionality of the dataset. To explore how dorsoventral locatio
 
 Carry out PCA.
 ```{r}
-data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id)
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing)
 cols.pca <- 1:11
 
 out.pca <- prcomp(data.pca[cols.pca],
@@ -39,6 +40,7 @@ Plot components vs dosrosventral location. Colour code mouse ID.
 out.pca.x <- as_tibble(out.pca$x)
 out.pca.x$dvlocmm <- data.pca$dvlocmm
 out.pca.x$id <- data.pca$id
+out.pca.x$housing <- data.pca$housing
 
 out.pca.x <- out.pca.x %>%
   gather("component", "value", 1:11)
@@ -51,7 +53,7 @@ ggplot(data = out.pca.x, aes(x = dvlocmm, y = value)) +
 
 Plot components seperately for each mouse.
 ```{r}
-ggplot(data = out.pca.x, aes(x = id, y = value)) +
+ggplot(data = out.pca.x, aes(x = id, y = value, colour = housing)) +
   geom_boxplot() +
   coord_flip() +
   facet_wrap(~ component, scales = "free_x")
@@ -73,19 +75,19 @@ out.pca.x_g <- group_by(out.pca.x, component) %>%
 ```
 
 Fit mixed model for each principal component as a function of dorsoventral position.
-```{r}
-model_to_fit_PCA <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
-}
+```{r Fit mixed model to PCA}
 out.pca.x_g <- out.pca.x_g %>%
-  mutate(mixedmodel = map(data, model_to_fit_PCA))
+  mutate(mixedmodel = map(data, model_to_fit))
 ```
 
 
-Add model predictions. Using predict adds a prediction for each location, using broom::augment adds predictions (.mu) and residuals (.wtres).
+Add model predictions. Using predict adds a prediction for each location inclusing random effects or at the population level (all random effects set to zero.) Using broom::augment adds predictions (.mu) and residuals (.wtres). Package broom.mixed might be useful in future (https://github.com/bbolker/broom.mixed).
 ```{r}
 out.pca.x_g <- out.pca.x_g %>%
-  mutate(fit = map(mixedmodel, predict))
+  mutate(fit_random = map(mixedmodel, predict))
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(fit_population = map(mixedmodel, re.form = NA, predict))
 
 out.pca.x_g <- out.pca.x_g %>%
   mutate(fits = map(mixedmodel, broom::augment))
@@ -100,25 +102,26 @@ out.pca.x_g <- out.pca.x_g %>%
 
 Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest.
 ```{r}
-coef_df_PCA <- function(model_name) {
-  mod_coef <- coef(model_name)
-  tibble(id = row.names(mod_coef[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
-}
 out.pca.x_g <- out.pca.x_g %>%
-  mutate(coefs = map(mixedmodel, coef_df_PCA))
+  mutate(coefs = map(mixedmodel, coef_df))
 ```
+
+To do:
+Look at variance explained by fixed and random effects.
+
 
 Convert data from the nested format so that we can make plots of the fitted data.
 ```{r}
 out.pca.x_g_fit <- out.pca.x_g %>%
-  unnest(data, fit)
+  unnest(data, fit_random, fit_population)
 ```
 
 Make plots
 ```{r}
-ggplot(out.pca.x_g_fit, aes(x = dvlocmm, y = value)) +
+ggplot(out.pca.x_g_fit, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.05) +
-  geom_line(aes(y=fit, group = id), size=0.8, alpha = 0.5) +
+  geom_line(aes(y=fit_random, group = id), size=0.8, alpha = 0.5) +
+  geom_line(aes(y=fit_population), colour = "black") +
   facet_wrap(~component, scales = "free")
 ```
 
@@ -177,13 +180,13 @@ out.pca.x_g_coefs_regather <- mutate(out.pca.x_g_coefs_regather, value_1 = value
 out.pca.x_g_coefs_01 <- mutate(out.pca.x_g_coefs_01, value_2 = value)
 combined_intercepts_slopes_PCA <- bind_rows(out.pca.x_g_coefs_regather, out.pca.x_g_coefs_01)
 
-#id_housing <-  distinct(out.pca.x, id, housing)
-#combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing, by = "id")
+id_housing <-  distinct(out.pca.x, id, housing)
+combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing, by = "id")
 
 combined_intercepts_slopes_PCA$component_factors <- as.factor(combined_intercepts_slopes_PCA$component)
 combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_slopes_PCA$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
 
-IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1)) +
+IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("intercept", "is",  "estimate", "intercept_slope"), label = c("I", "I + S", "", "")) +
@@ -195,7 +198,101 @@ IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = val
 IS_figure_PCA
 ```
 
+Add housing to the plot above.
 
+To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
+```{r Compare mixed with linear model using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(dev_mixed = map(mixedmodel, devcalc)) %>%
+  mutate(dev_linear = map(linearmodel, devcalc)) %>%
+  mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
+  mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
+  mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
+  mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
+  mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
+
+```
+
+Compare the linear and mixed models using ANOVA and mixed model fit with nlme. 
+```{r}
+# nlmemodel_to_fit: implements lme(value ~ dvlocmm, random = ~1|id, data = df, method = "ML", na.action = na.exclude)
+
+ctrl <- lmeControl(opt='optim')
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(nlmemodel = map(data, nlmemodel_to_fit))
+
+# quickly check first 4 principal components
+anova(out.pca.x_g$nlmemodel[[1]],out.pca.x_g$linearmodel[[1]])
+anova(out.pca.x_g$nlmemodel[[2]],out.pca.x_g$linearmodel[[2]])
+anova(out.pca.x_g$nlmemodel[[3]],out.pca.x_g$linearmodel[[3]])
+anova(out.pca.x_g$nlmemodel[[4]],out.pca.x_g$linearmodel[[4]])
+```
+
+
+Directly compare inter-animal variance with population variance.
+
+Predictions from model coefficients from each mouse are in fit_random and for the global model are in fit_population. Subtract coefficients from datavalues to obtain the residuals.
+```{r}
+out.pca.x_g_fit <- out.pca.x_g_fit %>%
+  mutate(random_resid = fit_random - value) %>%
+  mutate(population_resid = fit_population - value)
+```
+
+Plot residuals for each principal component
+```{r}
+out.pca.x_g_fit$component_factors <- as.factor(out.pca.x_g_fit$component)
+out.pca.x_g_fit$component_factors = factor(out.pca.x_g_fit$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
+
+ggplot(out.pca.x_g_fit, aes(dvlocmm, random_resid)) +
+  geom_point() +
+  facet_wrap(~component_factors)
+```
+
+
+Make plots of distribution of residuals for each principal component.
+```{r Distribution of residuals}
+ggplot(out.pca.x_g_fit, aes(random_resid)) +
+  geom_density(colour = "red") +
+  geom_density(aes(population_resid), colour = "black") +
+  facet_wrap(~component_factors, scales = "free")
+```
+
+Calculate squared errors for each component.
+```{r}
+out.pca.x_g_fit <- out.pca.x_g_fit %>%
+  mutate(random_square = random_resid^2) %>%
+  mutate(population_square = population_resid^2)
+```
+
+Plot distributions of squared errors for each component.
+```{r}
+ggplot(out.pca.x_g_fit, aes(random_square)) +
+  geom_density(colour = "red") +
+  geom_density(aes(population_square), colour = "black") +
+  xlim(0, 10) +
+  facet_wrap(~component_factors, scales = "free")
+```
+
+
+
+Statistical comparison? Manual ANOVA? What's a correct approach for predictions from a mixed model?
+
+Calculate variance as the mean of the squares for each principal component.
+```{r}
+grouped_pca <- group_by(out.pca.x_g_fit, component)
+summarise(grouped_pca, var_PCA = mean(random_square))
+summarise(grouped_pca, var_PCA = mean(population_square))
+```
+
+
+Calculate f from the ratio of between group variance to within group variance.
+
+Calcluate p from f.
 
 
 A slightly different approach, directly fitting model to PCR output.
