@@ -66,35 +66,40 @@ Fit mixed models to all measured properties using lmer
 # model_to_fit moved to functions.
 # lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel = map(data, model_to_fit))
+  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsis = map(data, model_vsris))%>%
+  mutate(mixedmodel_vsis_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
+  mutate(mixedmodel_vscris_null = map(data, model_vscris))
 ```
 
 Add model predictions. Using predict adds a prediction for each location, using broom::augment adds predictions (.mu) and residuals (.wtres).
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(fit = map(mixedmodel, predict))
+  mutate(fit = map(mixedmodel_vsris, predict))
 
 data.sc_r <- data.sc_r %>%
-  mutate(fits = map(mixedmodel, broom::augment))
+  mutate(fits = map(mixedmodel_vsris, broom::augment))
 ```
 
 Add model metrics. Not used to make the figures below, but useful.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(glance = map(mixedmodel, broom::glance))
+  mutate(glance = map(mixedmodel_vsris, broom::glance))
 ```
 
 Add summaries of model output
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(tidy = map(mixedmodel, broom::tidy))
+  mutate(tidy = map(mixedmodel_vsris, broom::tidy))
 ```
 
 Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest.
 ```{r}
 # coef_df is a helper function to return model coefficients in a tidy formt.
 data.sc_r <- data.sc_r %>%
-  mutate(coefs = map(mixedmodel, coef_df))
+  mutate(coefs = map(mixedmodel_vsris, coef_df))
 ```
 
 
@@ -104,23 +109,69 @@ data.sc_r_fit <- data.sc_r %>%
   unnest(data, fit)
 ```
 
+Compare different model with null models.
+```{r}
+extract_coefs <- function(model){as.numeric(summary(model)$"coefficients"[[2]])}
+extract_r2 <- function(model, index){as.numeric(r.squaredGLMM(model)[index])}
+extract_slope <- function(model, index){as.numeric(summary(coef(model)[[1]][[2]])[index])}
 
-Compare linear models with mixed models. Does adding random effects lead to a statistically different model? Need to seperate out functions that are repeated elsewhere. Repeat them here with different names to avoid dependencies.
-```{r Compare linear with mixed models}
-# linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+mdl.comp <- function(a, b){
+  anova(a, b)$"Pr(>Chisq)"[2]
+}
 
+# Store model gradient, marginal and conditional R2 and p-value vs null model.
+data.sc_r <- data.sc_r %>%
+  mutate(gradient_slopes = map(mixedmodel_vsris, extract_coefs)) %>%
+  mutate(marginal.r2 = map2(mixedmodel_vsris, 1, ~extract_r2(.x,.y)))
+data.sc_r <- data.sc_r %>%
+  mutate(conditional.r2 = map2(mixedmodel_vsris, 2, ~extract_r2(.x,.y)))
+data.sc_r <- data.sc_r %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+# Store model slopes
+data.sc_r <- data.sc_r %>%
+  mutate(modelslope_min = (map2(mixedmodel_vsris, 1, ~extract_slope(.x,.y)))) %>%
+  mutate(modelslope_median = (map2(mixedmodel_vsris, 3, ~extract_slope(.x,.y)))) %>%
+  mutate(modelslope_max = (map2(mixedmodel_vsris, 5, ~extract_slope(.x,.y))))
+  
+
+#   # Store AIC for all models
+#   results_model$AIC_vsris[i] <- summary(model_vsris)$"AIC"[1]
+#   results_model$AIC_null[i] <- summary(model_null)$"AIC"[1]
+#   results_model$AIC_vsri[i] <- summary(model_vsri)$"AIC"[1]
+#   results_model$AIC_vscris[i] <- summary(model_vscris)$"AIC"[1]
+
+```
+
+
+Compare linear models with mixed models. Does adding random effects lead to a statistically different model? 
+
+Test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
+```{r Compare mixed with linear model using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- data.sc_r %>%
-  mutate(dev_mixed = map(mixedmodel, devcalc)) %>%
-  mutate(dev_linear = map(linearmodel, devcalc)) %>%
-  mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
-  mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
-  mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
-  mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-  mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
+```
 
+
+
+Show model fitting results as a table.
+```{r}
+props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+  knitr::kable(
+  props_table_unnest,
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+)
+
+write_csv(props_table_unnest, "results_model_table.csv")
 ```
 
 
@@ -308,12 +359,6 @@ ggpairs(combined_intercepts_slopes_ss,columns = c(2:13),
         ),
         ggplot2::aes(alpha = 0.1))
 ```
-
-Look at principle components of intercepts.
-```{r}
-
-```
-
 
 
 

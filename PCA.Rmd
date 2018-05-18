@@ -106,9 +106,6 @@ out.pca.x_g <- out.pca.x_g %>%
   mutate(coefs = map(mixedmodel, coef_df))
 ```
 
-To do:
-Look at variance explained by fixed and random effects.
-
 
 Convert data from the nested format so that we can make plots of the fitted data.
 ```{r}
@@ -198,7 +195,7 @@ IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = val
 IS_figure_PCA
 ```
 
-Add housing to the plot above.
+---------------------- Compare mixed with linear models -------------
 
 To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
 ```{r Compare mixed with linear model using chisq}
@@ -207,15 +204,7 @@ To test whether effects of animal id are significant compare mixed model fits wi
 out.pca.x_g <- out.pca.x_g %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-out.pca.x_g <- out.pca.x_g %>%
-  mutate(dev_mixed = map(mixedmodel, devcalc)) %>%
-  mutate(dev_linear = map(linearmodel, devcalc)) %>%
-  mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
-  mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
-  mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
-  mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-  mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
-
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g))
 ```
 
 Compare the linear and mixed models using ANOVA and mixed model fit with nlme. 
