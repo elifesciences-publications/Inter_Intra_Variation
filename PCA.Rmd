@@ -12,6 +12,7 @@ library(tidyverse)
 library (pls)
 library(GGally)
 library(nlme)
+library(Rtsne)
 ```
 
 ## Goals
@@ -42,12 +43,23 @@ out.pca.x$dvlocmm <- data.pca$dvlocmm
 out.pca.x$id <- data.pca$id
 out.pca.x$housing <- data.pca$housing
 
-out.pca.x <- out.pca.x %>%
+out.pca.x_g1_11 <- out.pca.x %>%
   gather("component", "value", 1:11)
 
-ggplot(data = out.pca.x, aes(x = dvlocmm, y = value)) +
+pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
   geom_point(aes(colour = id)) +
   facet_wrap(~ component)
+
+out.pca.x_g1_5 <- out.pca.x %>%
+  gather("component", "value", 1:5)
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value)) +
+  geom_point() +
+  facet_wrap(~ component, ncol = 5) +
+  theme_classic() +
+  hist_theme
+
+pc_plot
+pc1to5_plot
 ```
 
 
@@ -64,7 +76,12 @@ Plot components against one another.
 out.pca.x_2 <- as_tibble(out.pca$x)
 out.pca.x_2$dvlocmm <- data.pca$dvlocmm
 out.pca.x_2$id <- data.pca$id
-ggpairs(out.pca.x_2,columns = c(1:4), ggplot2::aes(colour=id, alpha = 0.1))
+pairs1 <- ggpairs(out.pca.x_2,columns = c(1:4), ggplot2::aes(colour=id, alpha = 0.1))
+
+pairs2 <- ggpairs(out.pca.x_2,columns = c(1:2), ggplot2::aes(colour=id, alpha = 0.1))
+
+pairs1
+pairs2
 ```
 
 
@@ -79,6 +96,22 @@ Fit mixed model for each principal component as a function of dorsoventral posit
 out.pca.x_g <- out.pca.x_g %>%
   mutate(mixedmodel = map(data, model_to_fit))
 ```
+
+Fit mixed models to all measured properties using lmer. Don't fit vscri as it fails to converge.
+```{r}
+# model_to_fit moved to functions.
+# lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+# out.pca.x_g <- out.pca.x %>%
+#   group_by(component) %>%
+#   nest()
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris)) %>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null)) %>%
+  mutate(mixedmodel_vsri = map(data, model_vsri)) %>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))
+```
+
 
 
 Add model predictions. Using predict adds a prediction for each location inclusing random effects or at the population level (all random effects set to zero.) Using broom::augment adds predictions (.mu) and residuals (.wtres). Package broom.mixed might be useful in future (https://github.com/bbolker/broom.mixed).
@@ -156,11 +189,13 @@ Plot predicted values at 0 mm and at 1mm for each mouse.
 out.pca.x_g_coefs_01 <- out.pca.x_g_coefs %>%
   dplyr::select(id, component, intercept, is) %>%
   gather(measure, value, intercept, is)
+
 intercept_slope_plot_a <- ggplot(out.pca.x_g_coefs_01, aes(x = measure, y = value)) +
   geom_line(aes(group = id)) +
   facet_wrap(~component, scales = "free") +
   theme_classic() +
   hist_theme
+
 intercept_slope_plot_b <- ggplot(out.pca.x_g_coefs_01, aes(x = measure, y = value)) +
   geom_jitter(width = 0.2, height = 0) +
   facet_wrap(~component, scales = "free") +
@@ -183,7 +218,7 @@ combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_h
 combined_intercepts_slopes_PCA$component_factors <- as.factor(combined_intercepts_slopes_PCA$component)
 combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_slopes_PCA$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
 
-IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
+IS_figure_PCA_1_11 <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("intercept", "is",  "estimate", "intercept_slope"), label = c("I", "I + S", "", "")) +
@@ -192,7 +227,7 @@ IS_figure_PCA <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = val
   hist_theme +
   theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
 
-IS_figure_PCA
+IS_figure_PCA_1_11
 ```
 
 ---------------------- Compare mixed with linear models -------------
@@ -222,8 +257,77 @@ anova(out.pca.x_g$nlmemodel[[3]],out.pca.x_g$linearmodel[[3]])
 anova(out.pca.x_g$nlmemodel[[4]],out.pca.x_g$linearmodel[[4]])
 ```
 
+-------------- t-SNE ----------------------
 
-Directly compare inter-animal variance with population variance.
+```{r}
+p.x <- as_tibble(out.pca$x)
+p.x_unique <- unique(p.x)
+p.x_mat <- as.matrix(p.x_unique[,1:11])
+set.seed(1)
+tSNE_out <- Rtsne(p.x_mat, perplexity = 50, max_iter = 10000, pca = FALSE)
+```
+
+
+Plot tSNE output.
+```{r}
+t.o <- as.tibble(tSNE_out$Y)
+t.o$dvlocmm <- data.pca$dvlocmm
+t.o$housing <- data.pca$housing
+t.o$id <- data.pca$id
+ggplot(t.o, aes(V1,V2, colour = dvlocmm)) +
+  geom_point()
+```
+
+----------------- Model analysis ---------------------
+
+
+Compare different model with null models.
+```{r}
+# Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model).
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
+  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
+  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
+  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
+  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
+  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+# Extract model slopes
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
+  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
+  
+# Extract AIC for all models
+out.pca.x_g <- out.pca.x_g %>% 
+  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]]))
+
+```
+
+Show model fitting results as a table.
+```{r}
+props_for_table <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table <- as.tibble(out.pca.x_g[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+  knitr::kable(
+  props_table_unnest,
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+)
+
+write_csv(props_table_unnest, "PCA_results_model_table.csv")
+```
+
+
+-----Directly compare inter-animal variance with population variance---------
 
 Predictions from model coefficients from each mouse are in fit_random and for the global model are in fit_population. Subtract coefficients from datavalues to obtain the residuals.
 ```{r}

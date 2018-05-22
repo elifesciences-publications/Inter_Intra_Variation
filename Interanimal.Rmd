@@ -68,8 +68,8 @@ Fit mixed models to all measured properties using lmer
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris = map(data, model_vsris))%>%
   mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsis = map(data, model_vsris))%>%
-  mutate(mixedmodel_vsis_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
   mutate(mixedmodel_vscris = map(data, model_vscris))%>%
   mutate(mixedmodel_vscris_null = map(data, model_vscris))
 ```
@@ -83,15 +83,10 @@ data.sc_r <- data.sc_r %>%
   mutate(fits = map(mixedmodel_vsris, broom::augment))
 ```
 
-Add model metrics. Not used to make the figures below, but useful.
+Add model metrics (with glance) and summaries (with tidy). Not used to make the figures below, but useful.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(glance = map(mixedmodel_vsris, broom::glance))
-```
-
-Add summaries of model output
-```{r}
-data.sc_r <- data.sc_r %>%
+  mutate(glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(tidy = map(mixedmodel_vsris, broom::tidy))
 ```
 
@@ -102,7 +97,6 @@ data.sc_r <- data.sc_r %>%
   mutate(coefs = map(mixedmodel_vsris, coef_df))
 ```
 
-
 Convert data from the nested format so that we can make plots of the fitted data.
 ```{r}
 data.sc_r_fit <- data.sc_r %>%
@@ -111,37 +105,33 @@ data.sc_r_fit <- data.sc_r %>%
 
 Compare different model with null models.
 ```{r}
-extract_coefs <- function(model){as.numeric(summary(model)$"coefficients"[[2]])}
-extract_r2 <- function(model, index){as.numeric(r.squaredGLMM(model)[index])}
-extract_slope <- function(model, index){as.numeric(summary(coef(model)[[1]][[2]])[index])}
-
-mdl.comp <- function(a, b){
-  anova(a, b)$"Pr(>Chisq)"[2]
-}
-
-# Store model gradient, marginal and conditional R2 and p-value vs null model.
+# Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model).
 data.sc_r <- data.sc_r %>%
-  mutate(gradient_slopes = map(mixedmodel_vsris, extract_coefs)) %>%
-  mutate(marginal.r2 = map2(mixedmodel_vsris, 1, ~extract_r2(.x,.y)))
-data.sc_r <- data.sc_r %>%
-  mutate(conditional.r2 = map2(mixedmodel_vsris, 2, ~extract_r2(.x,.y)))
-data.sc_r <- data.sc_r %>%
+  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
+  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
+  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
+  mutate(vscris_summary = map(mixedmodel_vscris, summary)) %>%
+  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
+  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
+  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
 
-# Store model slopes
+# Extract model slopes
 data.sc_r <- data.sc_r %>%
-  mutate(modelslope_min = (map2(mixedmodel_vsris, 1, ~extract_slope(.x,.y)))) %>%
-  mutate(modelslope_median = (map2(mixedmodel_vsris, 3, ~extract_slope(.x,.y)))) %>%
-  mutate(modelslope_max = (map2(mixedmodel_vsris, 5, ~extract_slope(.x,.y))))
+  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
+  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
   
-
-#   # Store AIC for all models
-#   results_model$AIC_vsris[i] <- summary(model_vsris)$"AIC"[1]
-#   results_model$AIC_null[i] <- summary(model_null)$"AIC"[1]
-#   results_model$AIC_vsri[i] <- summary(model_vsri)$"AIC"[1]
-#   results_model$AIC_vscris[i] <- summary(model_vscris)$"AIC"[1]
+# Extract AIC for all models
+data.sc_r <- data.sc_r %>% 
+  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vcsris = map_dbl(vscris_summary, ~.$AIC[[1]]))
 
 ```
 
