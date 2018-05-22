@@ -62,10 +62,11 @@ linearmodel_to_fit <- function(df) {
 - used in Interanimal.rmd
 - used in PCA.rmd
 
+Alternative way to fit mixed model using nlme for compatibility with ANOVA.
 ```{r}
 # Gives error when random term incluces dvlocmm
 nlmemodel_to_fit <- function(df) {
-  lme(value ~ dvlocmm, random = ~1|id, data = df, method = "ML", na.action = na.exclude)
+  nlme::lme(value ~ dvlocmm, random = ~1|id, data = df, method = "ML", na.action = na.exclude)
 }
 ```
 

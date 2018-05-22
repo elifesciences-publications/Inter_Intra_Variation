@@ -11,7 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library (pls)
 library(GGally)
-library(nlme)
 library(Rtsne)
 ```
 

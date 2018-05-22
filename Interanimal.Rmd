@@ -52,7 +52,7 @@ counts.old <- data.sc.old %>% count(id)
 summary(counts.old)
 ```
 
-Reformat data for use with map and othe rtidy tidyverse functions.
+Reformat data for use with map and other tidyverse functions.
 ```{r}
 data.sc_r <- data.sc %>%
   dplyr::select(vm:fi, dvlocmm, id, housing) %>%

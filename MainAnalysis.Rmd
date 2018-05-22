@@ -1,0 +1,173 @@
+---
+title: "Main Analysis"
+author: "Matt Nolan"
+date: "22/05/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lme4)
+library(MuMIn)
+library(tidyverse)
+```
+
+
+## Goals
+
+Core analyses used for investigation of inter-animal variability in intrinsic properties of layer 2 stellate cells and their dorsoventral organisation. This code uses functions in "Functions.rmd".
+
+Organisation:
+
+Load data
+
+Fit mixed models
+Compare fits of mixed models to one another and to population level linear model
+Extract other summary data from the models
+Generate summary table
+Plot fits of mixed models
+Generate plots to evaluate assumptions of mixed models
+
+Carry out PCA
+Fit mixed models to principal components
+Generate summary table
+Plot fits of mixed models
+Generate plots to evaluate assumptions of mixed models
+
+## Load data
+
+Specific properties for filtering data. Include animals ≥ 28 days.
+```{r Analysis parameters}
+min_age <- 0
+```
+
+Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
+```{r import data, message = FALSE}
+# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+data.import <- read_tsv(fname.sc)
+
+# Strip out rows from data where locations are unknown (are NaN)
+data.sc <- data.import %>% drop_na(dvloc)
+
+# Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
+data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
+# Keep animals ≥ min_age
+data.sc.old <- filter(data.sc, age >= min_age)
+
+# Calculate total number of observations, and number in each environment
+length(data.sc.old$housing)
+count(data.sc.old, housing)
+
+# Calculate number of observations per animal
+counts.old <- data.sc.old %>% count(id)
+summary(counts.old)
+```
+
+Reformat data for use with map and other tidyverse functions.
+```{r}
+data.sc_r <- data.sc %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+```
+
+
+## Fit mixed models
+
+Fit mixed models to all measured properties using lmer. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
+  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
+  mutate(mixedmodel_vscris_null = map(data, model_vscris))
+```
+
+
+## Compare fits of mixed models to one another and to population level linear model
+
+Compare different model using AIC.
+```{r Extract AIC}
+# Extract summary statistics from models (could use Broom for this instead?).
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
+  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
+  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
+  mutate(vscris_summary = map(mixedmodel_vscris, summary))
+
+# Extract AIC for all models
+data.sc_r <- data.sc_r %>% 
+  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
+  mutate(AIC_vcsris = map_dbl(vscris_summary, ~.$AIC[[1]]))
+
+```
+
+To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
+```{r Compare mixed with linear model using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
+```
+
+
+## Extract other summary data from the model fits
+
+Focus on the model with random intercept and slope (mixedmodel_vsris).
+
+Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract model properties}
+data.sc_r <- data.sc_r %>%
+  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
+  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
+  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
+  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
+```
+
+
+## Generate summary table
+
+Show model fitting results as a table.
+```{r}
+props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+  knitr::kable(
+  props_table_unnest,
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+)
+
+write_csv(props_table_unnest, "results_model_table.csv")
+```
+
+
+
+Plot fits of mixed models
+Generate plots to evaluate assumptions of mixed models
+
+Carry out PCA
+Fit mixed models to principal components
+Generate summary table
+Plot fits of mixed models
+Generate plots to evaluate assumptions of mixed models
