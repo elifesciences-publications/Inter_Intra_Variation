@@ -1,0 +1,127 @@
+---
+title: "Functions"
+author: "Matt Nolan"
+date: "17/05/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggthemes)
+```
+
+Goals: functions for mixed model and related analysis of multiple electrophysiological properties. Functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
+
+----------------------- Models ------------------------
+
+# Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
+model_to_fit 
+```{r}
+model_to_fit <- function(df) {
+  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+```
+ - used in Interanimal.rmd
+ - used in PCA.rmd
+ 
+
+```{r}
+# Model for random intercept and slope
+model_vsris <- function(df) {
+  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+# Null model for random intercept and slope
+model_vsris_null <- function(df) {
+  lme4::lmer(value ~ 1+dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
+}
+# Model vs random intercept.
+model_vsri <- function(df) {
+    lme4::lmer(value ~ dvlocmm +(1|id), data = df, REML = FALSE, na.action = na.exclude)
+}
+# Null model vs random intercept.
+model_vsri_null <- function(df) {
+    lme4::lmer(value ~ 1|id, data = df, REML = FALSE, na.action = na.exclude)
+}
+# Model vs correlated random intercept and slope.
+model_vscris <- function(df) {
+  lme4::lmer(value ~ dvlocmm +(1+dvlocmm|id), data = df, REML = FALSE, na.action = na.exclude)
+}
+# Null model vs correlated random intercept and slope.
+model_vscris_null <- function(df) {
+  lme4::lmer(value ~ 1+dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
+}
+```
+
+ 
+```{r}
+linearmodel_to_fit <- function(df) {
+  lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+}
+```
+- used in Interanimal.rmd
+- used in PCA.rmd
+
+```{r}
+# Gives error when random term incluces dvlocmm
+nlmemodel_to_fit <- function(df) {
+  lme(value ~ dvlocmm, random = ~1|id, data = df, method = "ML", na.action = na.exclude)
+}
+```
+
+
+------------------ Helper functions ---------------------
+
+Helper function to return model coefficients in a tidy formt.
+```{r}
+coef_df <- function(model_name) {
+  mod_coef <- coef(model_name)
+  tibble(id = row.names(mod_coef[[1]]), intercept = mod_coef[[1]][[1]], slope = mod_coef[[1]][[2]])
+}
+```
+- used in Internanmal.rmd
+- used in PCA.rmd
+
+Helper functions for chi-squared test to compare linear with mixed models.
+```{r}
+devcalc <- function(df){
+  dev <- -2*logLik(df)
+}
+
+extractdf <- function(dev){
+  attr(dev,"df")
+}
+
+# CAn this be improved? Returning a tibble / df seems a bit clunky.
+mixed_vs_linear_pchisqu <- function(df){
+  df <- df %>%
+    mutate(dev_mixed = map(mixedmodel_vsris, devcalc)) %>%
+    mutate(dev_linear = map(linearmodel, devcalc)) %>%
+    mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
+    mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
+    mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
+    mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
+    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
+  tibble(dev_mixed = df$dev_mixed,
+         dev_linear = df$dev_linear,
+         devdiff = df$devdiff,
+         dev_mixed_df = df$dev_mixed_df,
+         dev_linear_df = df$dev_linear_df,
+         dfdiff = df$dfdiff,
+         pdiff = df$pdiff)
+}
+```
+- used in Internanmal.rmd
+- used in PCA.rmd
+
+
+Function for presentation of data.
+```{r}
+hist_theme = theme(
+    text = element_text(size=9),
+    strip.background = element_blank(),
+    axis.title.x=element_blank(),
+    axis.title.y=element_blank()
+  )
+```
+
