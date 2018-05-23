@@ -93,21 +93,25 @@ data.sc_r <- data.sc_r %>%
 
 ## Compare fits of mixed models to one another and to population level linear model
 
-Compare different model using AIC.
+Extract summary statistics from models with Broom (glance, tidy and augment) as these return values in data frames. Need to use summary for vsris to also obtain min, max and median slopes.
 ```{r Extract AIC}
-# Extract summary statistics from models (could use Broom for this instead?).
 data.sc_r <- data.sc_r %>%
-  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
-  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
-  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
-  mutate(vscris_summary = map(mixedmodel_vscris, summary))
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
+  mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
+  mutate(vsris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
+  mutate(vsris_aug = map(mixedmodel_vsris, broom::augment)) %>%
+  mutate(vsris_summary = map(mixedmodel_vsris, summary))
+```
 
-# Extract AIC for all models
+Extract AIC for all models
+```{r Extract AIC}
 data.sc_r <- data.sc_r %>% 
-  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vcsris = map_dbl(vscris_summary, ~.$AIC[[1]]))
+  mutate(AIC_vsris = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(AIC_vsri = map_dbl(vsri_glance, ~.$AIC)) %>%
+  mutate(AIC_vcsris = map_dbl(vscris_glance, ~.$AIC))
 
 ```
 
@@ -125,10 +129,10 @@ data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
 
 Focus on the model with random intercept and slope (mixedmodel_vsris).
 
-Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
 ```{r Extract model properties}
 data.sc_r <- data.sc_r %>%
-  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
+  mutate(gradient_slopes = map_dbl(vsris_tidy, ~.$estimate[[2]])) %>%
   mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
   mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
   mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
@@ -162,11 +166,82 @@ write_csv(props_table_unnest, "results_model_table.csv")
 ```
 
 
+## Plot fits of mixed models
 
-Plot fits of mixed models
-Generate plots to evaluate assumptions of mixed models
+We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
 
-Carry out PCA
+```{r Extract model predictions for plotting}
+# Obtain global intercepts for each feature.
+data.sc_r <- data.sc_r %>%
+  mutate(pop_intercepts = map_dbl(vsris_tidy, ~.$estimate[[1]]))
+
+# Obtain individual intercepts and slopes for each feature.
+# coef_df is a helper function to return model coefficients in a tidy formt.
+# coef_df_2 also calculate I+S, etc.
+data.sc_r <- data.sc_r %>%
+  mutate(coefs = map2(mixedmodel_vsris, pop_intercepts, ~coef_df_2(.x, .y)))
+
+data.sc_r_unnest <- unnest(data.sc_r, coefs) %>%
+  select(property, id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+```
+
+Reformat the data to generate plots.
+```{r Format data ready for plotting}
+ind_intercept <- select(data.sc_r_unnest, property, id, ind_intercept) %>%
+  mutate(measure = "ind_intercept") %>%
+  mutate(value_2 = ind_intercept)
+global_intercept <- select(data.sc_r_unnest, property, id, global_intercept) %>%
+  mutate(measure = "global_intercept") %>%
+  mutate(value_1 = global_intercept)
+ind_intercept_slope <- select(data.sc_r_unnest, property, id, ind_intercept_slope) %>%
+  mutate(measure = "ind_intercept_slope") %>%
+  mutate(value_2 = ind_intercept_slope)
+global_intercept_slope <- select(data.sc_r_unnest, property, id, global_intercept_slope) %>%
+  mutate(measure = "global_intercept_slope") %>%
+  mutate(value_1 = global_intercept_slope)
+
+
+combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
+
+combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
+combined_intercepts_slopes$property_factors = factor(combined_intercepts_slopes$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+```
+
+
+Now generate the plot.
+```{r Make facetted plot of model fits}
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure
+```
+
+Save the figure.
+```{r Save plot of model fits}
+ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
+```
+
+
+
+## Generate plots to evaluate assumptions of mixed models
+Plot residuals to test for linearity and to assess homoscedasticity.
+
+Test for normality of residuals.
+
+
+## Carry out PCA
 Fit mixed models to principal components
 Generate summary table
 Plot fits of mixed models
