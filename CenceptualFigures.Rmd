@@ -50,7 +50,7 @@ CF_plot <- ggplot(CellFeatures, aes(x, y, colour = cell)) +
   geom_point() +
   xlim(0,45) +
   ylim(0,45) +
-  labs(x = "Feature 1", y = "Feature 2", colour = "Cell Type", title = "Global organisation") +
+  labs(x = "Feature 1", y = "Feature 2", colour = "Cell Type", title = "Cell type separation") +
   scale_colour_manual(values=cbPalette) +
   theme_classic() +
   theme(legend.position = "bottom",
@@ -150,7 +150,7 @@ IntraAnimalPlot <- ggplot(IntraAnimal, aes(x, y, alpha = animal)) +
   geom_point(colour = cbPalette[2]) +
   xlim(20,45) +
   ylim(20,30) +
-  labs(x = "Feature 1", y = "Feature 2", alpha = "Animal", title = "Intra-animal organisation") +
+  labs(x = "Feature 1", y = "Feature 2", alpha = "Animal", title = "Within cell type variability") +
   facet_wrap(~scheme, nrow = 3, labeller = labeller(scheme = labels_schemes)) +
   theme_classic() +
   theme(strip.background = element_blank(),

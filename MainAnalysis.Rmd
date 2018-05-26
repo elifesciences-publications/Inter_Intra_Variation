@@ -46,7 +46,8 @@ min_age <- 0
 Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
 ```{r import data, message = FALSE}
 # fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
-fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+#fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
+fname.sc <- "datatable.txt"
 data.import <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
@@ -70,7 +71,7 @@ summary(counts.old)
 Reformat data for use with map and other tidyverse functions.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
@@ -94,7 +95,7 @@ data.sc_r <- data.sc_r %>%
 ## Compare fits of mixed models to one another and to population level linear model
 
 Extract summary statistics from models with Broom (glance, tidy and augment) as these return values in data frames. Need to use summary for vsris to also obtain min, max and median slopes.
-```{r Extract AIC}
+```{r Extract Summary statistics}
 data.sc_r <- data.sc_r %>%
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
@@ -113,6 +114,8 @@ data.sc_r <- data.sc_r %>%
   mutate(AIC_vsri = map_dbl(vsri_glance, ~.$AIC)) %>%
   mutate(AIC_vcsris = map_dbl(vscris_glance, ~.$AIC))
 ```
+
+In general vsris and vscris have similar AIC. Focus subsequent analysis on vsris.
 
 To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
 ```{r Compare mixed with linear model using chisq}
@@ -256,6 +259,27 @@ ggplot(resid_plot_data, aes(.resid)) +
 ```
 
 
+## Evalaute impact of other experimental parameters
+
+Does the parameter contribute to random effects?
+
+Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
+
+Build models with all possible random effects.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) %>%
+  mutate(mixedmodel_vsris_2r = map(data, model_vsris_2r))
+```
+
+Use step to remove random effects.
+****** Warning: this takes several hours to run for vsris_all *******
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_all = map(mixedmodel_vsris_all, lmerTest::step)) %>%
+  mutate(vsris_step_2r = map(mixedmodel_vsris_2r, lmerTest::step))
+```
+
 
 ## Carry out PCA
 
@@ -296,11 +320,12 @@ pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
 
 out.pca.x_g1_5 <- out.pca.x %>%
   gather("component", "value", 1:5)
-pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value)) +
-  geom_point() +
-  facet_wrap(~ component) +
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ component, ncol = 5) +
+  scale_x_continuous("DV location (mm)", c(0,1,2)) +
   theme_classic() +
-  hist_theme
+  PCA_theme
 
 pc_plot
 pc1to5_plot
@@ -311,12 +336,14 @@ Plot components against one another.
 out.pca.x_2 <- as_tibble(out.pca$x)
 out.pca.x_2$dvlocmm <- data.pca$dvlocmm
 out.pca.x_2$id <- data.pca$id
-pairs1 <- GGally::ggpairs(out.pca.x_2,columns = c(1:4), ggplot2::aes(colour=id, alpha = 0.1))
 
-pairs2 <- GGally::ggpairs(out.pca.x_2,columns = c(1:2), ggplot2::aes(colour=id, alpha = 0.1))
+PCA_components <- ggplot(out.pca.x_2, aes(PC1, PC2)) +
+  geom_point(alpha = 0.05) +
+  geom_point(data = subset(out.pca.x_2, id %in% c("mouse_20130416","mouse_20130419", "mouse_20140113")), aes(PC1, PC2, colour = id, alpha = 1)) +
+  theme_classic()
 
-pairs1
-pairs2
+PCA_components
+
 ```
 
 ## Fit mixed models to principal components
@@ -344,9 +371,9 @@ out.pca.x_g <- out.pca.x_g %>%
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
   mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
-  mutate(vsris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
-  mutate(vsris_aug = map(mixedmodel_vsris, broom::augment)) %>%
-  mutate(vsris_summary = map(mixedmodel_vsris, summary))
+  mutate(vscris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
+  mutate(vscris_aug = map(mixedmodel_vsris, broom::augment)) %>%
+  mutate(vscris_summary = map(mixedmodel_vsris, summary))
 ```
 
 Extract AIC for all models
@@ -470,7 +497,7 @@ IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
-  facet_wrap(~component_factors) +
+  facet_wrap(~component_factors, ncol = 5) +
   theme_classic() +
   hist_theme +
   theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
@@ -482,7 +509,9 @@ IS_figure_PCA_1_5
 
 ## Generate plots to evaluate assumptions of mixed models
 ```{r}
-ggpubr::ggarrange(pc1to5_plot, IS_figure_PCA_1_5)
+PCAplot <- ggpubr::ggarrange(pc1to5_plot, IS_figure_PCA_1_5, nrow = 2)
+
+PCAplot
 ```
 
 

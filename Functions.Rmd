@@ -27,11 +27,11 @@ model_to_fit <- function(df) {
  
 
 ```{r}
-# Model for random intercept and slope
+# Model for uncorrelated random intercept and slope
 model_vsris <- function(df) {
   lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
-# Null model for random intercept and slope
+# Null model for uncorrelated random intercept and slope
 model_vsris_null <- function(df) {
   lme4::lmer(value ~ 1+dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
 }
@@ -50,6 +50,17 @@ model_vscris <- function(df) {
 # Null model vs correlated random intercept and slope.
 model_vscris_null <- function(df) {
   lme4::lmer(value ~ 1+dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
+}
+
+# # Model for uncorrelated random intercept and slope for all possible random effects.
+model_vsris_all <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (1+dvlocmm||id) + (1+dvlocmm||mlpos) + (1+dvlocmm||hemi)+ (1+dvlocmm||age)+ (1+dvlocmm||housing) + (1+dvlocmm||expr) + (1+dvlocmm||patchdir) + (1+dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_2r<- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (1+dvlocmm||id) + (1+dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 ```
 
@@ -125,8 +136,8 @@ mixed_vs_linear_pchisqu <- function(df){
 - used in PCA.rmd
 
 
-Function for presentation of data.
-```{r}
+Functions for presentation of data.
+```{r Model plot theme}
 hist_theme = theme(
     text = element_text(size=9),
     strip.background = element_blank(),
@@ -135,3 +146,10 @@ hist_theme = theme(
   )
 ```
 
+```{r PCA plot theme}
+PCA_theme = theme(
+    text = element_text(size=9),
+    strip.background = element_blank(),
+    axis.title.y=element_blank()
+  )
+```
