@@ -29,11 +29,16 @@ model_to_fit <- function(df) {
 ```{r}
 # Model for uncorrelated random intercept and slope
 model_vsris <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
+
+model_vsris_lT<- function(df) {
+  lmerTest::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
 # Null model for uncorrelated random intercept and slope
 model_vsris_null <- function(df) {
-  lme4::lmer(value ~ 1+dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
 }
 # Model vs random intercept.
 model_vsri <- function(df) {
@@ -45,25 +50,20 @@ model_vsri_null <- function(df) {
 }
 # Model vs correlated random intercept and slope.
 model_vscris <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm|id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm +(dvlocmm|id), data = df, REML = FALSE, na.action = na.exclude)
 }
 # Null model vs correlated random intercept and slope.
 model_vscris_null <- function(df) {
-  lme4::lmer(value ~ 1+dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
 }
 
-# # Model for uncorrelated random intercept and slope for all possible random effects.
+# Model for uncorrelated random intercept and slope for all possible random effects.
 model_vsris_all <- function(df) {
   df <- df %>% drop_na()
-  lmerTest::lmer(value ~ dvlocmm + (1+dvlocmm||id) + (1+dvlocmm||mlpos) + (1+dvlocmm||hemi)+ (1+dvlocmm||age)+ (1+dvlocmm||housing) + (1+dvlocmm||expr) + (1+dvlocmm||patchdir) + (1+dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
-}
-
-model_vsris_2r<- function(df) {
-  df <- df %>% drop_na()
-  lmerTest::lmer(value ~ dvlocmm + (1+dvlocmm||id) + (1+dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 ```
-
+hemi, age, patchdir, rectime
  
 ```{r}
 linearmodel_to_fit <- function(df) {
@@ -153,3 +153,11 @@ PCA_theme = theme(
     axis.title.y=element_blank()
   )
 ```
+
+Helper function to normalise a vector
+```{r}
+normalize<-function(m){
+   (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
+}
+```
+

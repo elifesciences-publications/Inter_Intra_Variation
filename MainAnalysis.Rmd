@@ -80,7 +80,7 @@ data.sc_r <- data.sc %>%
 
 ## Fit mixed models
 
-Fit mixed models to all measured properties using lmer. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null.
+Fit mixed models to all measured properties using lmer. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT fit use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris = map(data, model_vsris))%>%
@@ -88,7 +88,8 @@ data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsri = map(data, model_vsri))%>%
   mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
   mutate(mixedmodel_vscris = map(data, model_vscris))%>%
-  mutate(mixedmodel_vscris_null = map(data, model_vscris))
+  mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
+  mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
 ```
 
 
@@ -265,20 +266,53 @@ Does the parameter contribute to random effects?
 
 Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
 
+
 Build models with all possible random effects.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) %>%
-  mutate(mixedmodel_vsris_2r = map(data, model_vsris_2r))
+  mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) 
 ```
 
-Use step to remove random effects.
-****** Warning: this takes several hours to run for vsris_all *******
+Use step to remove random effects. Then extract models identified with lmerTest::step
+****** Warning: this may take several hours to run for vsris_all *******
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(vsris_step_all = map(mixedmodel_vsris_all, lmerTest::step)) %>%
-  mutate(vsris_step_2r = map(mixedmodel_vsris_2r, lmerTest::step))
+  mutate(mixedmodel_vsris_step = map(vsris_step_all, lmerTest::get_model))
 ```
+Interim save
+```{r}
+write_rds(data.sc_r, "analysis_outputs.rds")
+```
+
+Interim load
+```{r}
+data.sc_r_recover <- read_rds("analysis_outputs.rds")
+```
+
+Output from step indicates some models failed to converge. The larger model (mixedmodel_vsris_all) does converge. Failure appears to be associated with random effects with very small variance. Normalisation doesn't fix the problem. To check whether the selected models can be improved, run step again to further evaluate random effects and extract models identified. 
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_2 = map(mixedmodel_vsris_step, lmerTest::step))  %>%
+  mutate(mixedmodel_vsris_step2 = map(vsris_step_2, lmerTest::get_model))
+```
+
+Extract p-values for dorso-ventral dependence of each property using the step model.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_summary = map(mixedmodel_vsris_step2, summary)) %>%
+  mutate(vsris_step_coef = map(vsris_step_summary, ~.$coefficients)) %>%
+  mutate(vsris_step_dv_p = map(vsris_step_coef, ~.[10]))
+```
+
+Extract p-values for (1|id) and (0 + dvlocmm | id) estimated using the step model.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_random = map(vsris_step_2, ~.$random)) %>%
+  mutate(vsris_step_row = map(vsris_step_random, rownames_to_column))
+```
+
+Make tables with summaries of step models.
 
 
 ## Carry out PCA
