@@ -124,7 +124,7 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
 ```
 
 
@@ -167,6 +167,36 @@ props_table_unnest <- unnest(props_table)
 
 write_csv(props_table_unnest, "results_model_table.csv")
 ```
+
+## Evaluate age and housing
+
+Evaluate inclusion of housing as fixed effect.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_housing = map(data, model_vsris_housing)) %>%
+  mutate(anova_housing = map2(mixedmodel_vsris, mixedmodel_vsris_housing, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_housing = map(anova_housing, broom::tidy)) %>% 
+  mutate(p_housing = map_dbl(tidy_anova_housing, ~.$p.value[2]))
+```
+
+Evaluate inclusion of age as fixed effect 
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_age_null = map(data, model_vsris_age_con)) %>%
+  mutate(mixedmodel_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(anova_age = map2(mixedmodel_vsris_age_null, mixedmodel_vsris_age, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_age = map(anova_age, broom::tidy)) %>% 
+  mutate(p_age = map_dbl(tidy_anova_age, ~.$p.value[2]))
+  
+```
+
+Compare models that include id as random effect in models that include age with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_age = map(data, linearmodel_age))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
+```
+
 
 
 ## Plot fits of mixed models
@@ -263,9 +293,7 @@ ggplot(resid_plot_data, aes(.resid)) +
 ## Evalaute impact of other experimental parameters
 
 Does the parameter contribute to random effects?
-
 Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
-
 
 Build models with all possible random effects.
 ```{r}
@@ -273,24 +301,15 @@ data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) 
 ```
 
-Use step to remove random effects. Then extract models identified with lmerTest::step
+Use step to remove random effect and then extract models identified.
 ****** Warning: this may take several hours to run for vsris_all *******
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(vsris_step_all = map(mixedmodel_vsris_all, lmerTest::step)) %>%
   mutate(mixedmodel_vsris_step = map(vsris_step_all, lmerTest::get_model))
 ```
-Interim save
-```{r}
-write_rds(data.sc_r, "analysis_outputs.rds")
-```
 
-Interim load
-```{r}
-data.sc_r_recover <- read_rds("analysis_outputs.rds")
-```
-
-Output from step indicates some models failed to converge. The larger model (mixedmodel_vsris_all) does converge. Failure appears to be associated with random effects with very small variance. Normalisation doesn't fix the problem. To check whether the selected models can be improved, run step again to further evaluate random effects and extract models identified. 
+Output from step indicates some models failed to converge. The larger model (mixedmodel_vsris_all) does converge and gives an indicate of the variance of each random effect. Failure appears to be associated with random effects with very small variance. Normalisation doesn't fix the problem. To check whether the selected models can be improved, run step again to further evaluate random effects and extract models identified. 
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(vsris_step_2 = map(mixedmodel_vsris_step, lmerTest::step))  %>%
@@ -302,17 +321,39 @@ Extract p-values for dorso-ventral dependence of each property using the step mo
 data.sc_r <- data.sc_r %>%
   mutate(vsris_step_summary = map(mixedmodel_vsris_step2, summary)) %>%
   mutate(vsris_step_coef = map(vsris_step_summary, ~.$coefficients)) %>%
+  mutate(vsris_step_varcor = map(vsris_step_summary, ~.$varcor)) %>%
   mutate(vsris_step_dv_p = map(vsris_step_coef, ~.[10]))
 ```
 
-Extract p-values for (1|id) and (0 + dvlocmm | id) estimated using the step model.
+Make tables to view properties of the step models
 ```{r}
+
+kt <- function(df, cap) {knitr::kable(x = df, format = "pandoc", caption = paste("Property:", cap))}
 data.sc_r <- data.sc_r %>%
   mutate(vsris_step_random = map(vsris_step_2, ~.$random)) %>%
-  mutate(vsris_step_row = map(vsris_step_random, rownames_to_column))
+  mutate(vsris_step_ran_table = map2(vsris_step_random, property, kt)) %>%
+  mutate(vsris_step_varcor_table = map2(vsris_step_varcor, property, kt)) %>%
+  mutate(vsris_step_coef_table = map2(vsris_step_coef, property, kt))
+
+data.sc_r$vsris_step_ran_table
+data.sc_r$vsris_step_coef_table
+data.sc_r$vsris_step_varcor_table
+  
 ```
 
-Make tables with summaries of step models.
+
+
+Interim save
+```{r}
+write_rds(data.sc_r, "analysis_outputs.rds")
+```
+
+Interim load
+```{r}
+data.sc_r_recover <- read_rds("analysis_outputs.rds")
+```
+
+
 
 
 ## Carry out PCA

@@ -57,22 +57,48 @@ model_vscris_null <- function(df) {
   lme4::lmer(value ~ dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
 }
 
+# Model for uncorrelated random intercept and slope including housing as a fixed effect
+model_vsris_housing <- function(df) {
+  lme4::lmer(value ~ dvlocmm * housing + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+# Model for uncorrelated random intercept and slope including age as a fixed effect
+model_vsris_age <- function(df) {
+  df_na_remove <- filter(df, !is.na(age))
+  lme4::lmer(value ~ dvlocmm * age + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
+}
+
+# Control model with data points without age excluded
+model_vsris_age_con <- function(df) {
+  df_na_remove <- filter(df, !is.na(age))
+  lme4::lmer(value ~ dvlocmm + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
+}
+
+
 # Model for uncorrelated random intercept and slope for all possible random effects.
 model_vsris_all <- function(df) {
   df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 ```
-hemi, age, patchdir, rectime
+
  
+ ## Linear models
 ```{r}
 linearmodel_to_fit <- function(df) {
   lm(value ~ dvlocmm, data = df, na.action = na.exclude)
 }
+
+linearmodel_age <- function(df) {
+  lm(value ~ dvlocmm * age, data = df, na.action = na.exclude)
+}
+
 ```
 - used in Interanimal.rmd
 - used in PCA.rmd
 
+
+## Mixed models fit with nlme
 Alternative way to fit mixed model using nlme for compatibility with ANOVA.
 ```{r}
 # Gives error when random term incluces dvlocmm
@@ -113,24 +139,27 @@ extractdf <- function(dev){
   attr(dev,"df")
 }
 
-# CAn this be improved? Returning a tibble / df seems a bit clunky.
-mixed_vs_linear_pchisqu <- function(df){
+# Can this be improved? Returning a tibble / df seems a bit clunky.
+mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
   df <- df %>%
-    mutate(dev_mixed = map(mixedmodel_vsris, devcalc)) %>%
-    mutate(dev_linear = map(linearmodel, devcalc)) %>%
+    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
+    mutate(dev_linear = map(!! rlang::sym(linearmod), devcalc)) %>%
     mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
     mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
     mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
     mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
-  tibble(dev_mixed = df$dev_mixed,
-         dev_linear = df$dev_linear,
-         devdiff = df$devdiff,
-         dev_mixed_df = df$dev_mixed_df,
-         dev_linear_df = df$dev_linear_df,
-         dfdiff = df$dfdiff,
-         pdiff = df$pdiff)
+    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) %>%
+    select(dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df, dfdiff, pdiff)
+  df
 }
+
+mixed_vs_linear_pchisqu_1 <- function(df, mixedmod, linearmod){
+  df <- df %>%
+    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
+    select(dev_mixed)
+  df
+}
+
 ```
 - used in Internanmal.rmd
 - used in PCA.rmd
