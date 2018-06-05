@@ -93,6 +93,9 @@ linearmodel_age <- function(df) {
   lm(value ~ dvlocmm * age, data = df, na.action = na.exclude)
 }
 
+linearmodel_housing <- function(df) {
+  lm(value ~ dvlocmm * housing, data = df, na.action = na.exclude)
+}
 ```
 - used in Interanimal.rmd
 - used in PCA.rmd
@@ -153,12 +156,7 @@ mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
   df
 }
 
-mixed_vs_linear_pchisqu_1 <- function(df, mixedmod, linearmod){
-  df <- df %>%
-    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
-    select(dev_mixed)
-  df
-}
+
 
 ```
 - used in Internanmal.rmd

@@ -190,11 +190,35 @@ data.sc_r <- data.sc_r %>%
   
 ```
 
+Compare models that include id as random effect in models that include housing with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_housing = map(data, linearmodel_housing))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_housing", "linearmodel_vsris_housing"))
+```
+
 Compare models that include id as random effect in models that include age with conventional linear models.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel_vsris_age = map(data, linearmodel_age))
 data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
+```
+
+
+Make a table to summarise effects of housing and age.
+Bwe careful with pdiff1 and pdiff2 - if mixed_vs_linear_pchisqu has been called more than once for each variable then names will be incorrect.
+```{r}
+props_for_table <- c("property", "p_housing", "pdiff1", "p_age", "pdiff2")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+  knitr::kable(
+  props_table_unnest,
+  digits = 5,
+  caption = "Additional fits with housing and age as fixd effects"
+)
+
+write_csv(props_table_unnest, "housing_age_table.csv")
 ```
 
 
@@ -290,7 +314,7 @@ ggplot(resid_plot_data, aes(.resid)) +
 ```
 
 
-## Evalaute impact of other experimental parameters
+## Evalaute mdel with maximal random effects
 
 Does the parameter contribute to random effects?
 Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
@@ -300,6 +324,45 @@ Build models with all possible random effects.
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) 
 ```
+
+Show variance of each random effect in the maximal model
+```{r}
+VarCorr_helper <- function(df){
+  as.tibble(VarCorr(df))
+}
+
+data.sc_r <- data.sc_r %>%
+  mutate(all_VarCorr = map(mixedmodel_vsris_all, VarCorr_helper)) %>%
+  mutate(all_VarCorr_sdcor = map(all_VarCorr,~.$sdcor)) %>%
+  mutate(all_VarCorr_grp = map(all_VarCorr,~.$grp))
+
+sdcor_frame <- select(data.sc_r, property, all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  unnest(all_VarCorr_sdcor, all_VarCorr_grp)
+
+ggplot(sdcor_frame, aes(all_VarCorr_grp, all_VarCorr_sdcor)) +
+  geom_point(aes(colour = all_VarCorr_grp)) +
+  facet_wrap(~property, scales = "free_y")
+
+norm_helper <- function(df) {
+  df_sum <- sum(df)
+  df1 <- df / df_sum
+  df1
+}
+sdcor_frame <- sdcor_frame %>%
+  group_by(property) %>%
+  nest(all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  mutate(all_VarCorr_sdcor = map(data, ~.$all_VarCorr_sdcor)) %>%
+  mutate(norm_sd = map(all_VarCorr_sdcor, norm_helper)) %>%
+  select(property, data, norm_sd) %>%
+  unnest()
+
+ggplot(sdcor_frame, aes(property, norm_sd)) +
+  geom_point(aes(colour = property)) +
+  facet_wrap(~all_VarCorr_grp)
+```
+
+
+## Evalaute removal of random effects
 
 Use step to remove random effect and then extract models identified.
 ****** Warning: this may take several hours to run for vsris_all *******
