@@ -77,9 +77,14 @@ model_vsris_age_con <- function(df) {
 
 
 # Model for uncorrelated random intercept and slope for all possible random effects.
-model_vsris_all <- function(df) {
+model_vsris_all_lmerTest <- function(df) {
   df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all <- function(df) {
+  df <- df %>% drop_na()
+  lme4::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all_PC <- function(df) {
@@ -208,6 +213,44 @@ normalize<-function(m){
    (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
 }
 ```
+
+
+Helper function to extract fit properties from a column of models stored in a dataframe and then add the output to the dataframe as additional columns.
+
+Use Broom (glance, tidy and augment) as returns values in data frames. Need to use summary for vsris to also obtain min, max and median slopes.
+
+df - a dataframe containing columns to work on
+mm_col - a column of df containing the mixed models fit with lmer
+
+Properties to extract are:
+Model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract properties of models}
+mixedmod_extract <- function(df, mm_col){
+  # If want to use this for more than one model in the same data frame then will need to make names of new columns extensions of mm_col
+  df <- df %>%
+    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+    mutate(mm_aug = map(!! rlang::sym(mm_col), broom::augment)) %>%
+    mutate(mm_summary = map(!! rlang::sym(mm_col), summary)) 
+  
+  df <- df %>%
+    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+    mutate(gradient_slopes = map_dbl(mm_tidy, ~.$estimate[[2]])) %>%
+    mutate(extractR2 = map(!! rlang::sym(mm_col), r.squaredGLMM)) %>%
+    mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+    mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]]))
+  # To reduce clutter could remove extractR2 and mm_tidy at this point so they don't get returned?
+  
+  df <- df %>%
+   mutate(vsris_simcoefs = map(!! rlang::sym(mm_col), ~summary(coef(.x)[[1]][[2]]))) %>%
+    mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+    mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+   mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
+  # Check these are min, median and max - comment from Yiannis
+  # could remove vsris_simcoefs at this point
+}
+```
+
+
 
 
 Helper function to extract model predictions in a dataframe ready for plotting.

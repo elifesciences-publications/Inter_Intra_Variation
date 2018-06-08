@@ -95,28 +95,27 @@ data.sc_r <- data.sc_r %>%
 
 ## Compare fits of mixed models to one another and to population level linear model
 
-Extract summary statistics from models with Broom (glance, tidy and augment) as these return values in data frames. Need to use summary for vsris to also obtain min, max and median slopes.
-```{r Extract Summary statistics}
-data.sc_r <- data.sc_r %>%
+Extract AIC for all models.
+```{r Extract AIC}
+data.sc_r <- data.sc_r %>% 
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
   mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
   mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
-  mutate(vsris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
-  mutate(vsris_aug = map(mixedmodel_vsris, broom::augment)) %>%
-  mutate(vsris_summary = map(mixedmodel_vsris, summary))
-```
-
-Extract AIC for all models
-```{r Extract AIC}
-data.sc_r <- data.sc_r %>% 
-  mutate(AIC_vsris = map_dbl(vsris_glance, ~.$AIC)) %>%
-  mutate(AIC_vsris_null = map_dbl(vsris_null_glance, ~.$AIC)) %>%
-  mutate(AIC_vsri = map_dbl(vsri_glance, ~.$AIC)) %>%
-  mutate(AIC_vcsris = map_dbl(vscris_glance, ~.$AIC))
+  mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
+  mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
 ```
 
 In general vsris and vscris have similar AIC. Focus subsequent analysis on vsris.
+
+
+Extract summary statistics from models. The function mixedmod_extract is used to return statistics for mixedmodel_vsris and the corresponding null model. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract Summary statistics}
+data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
+```
+
 
 To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
 ```{r Compare mixed with linear model using chisq}
@@ -127,27 +126,12 @@ data.sc_r <- data.sc_r %>%
 data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
 ```
 
-
-## Extract other summary data from the model fits
-
-Focus on the model with random intercept and slope (mixedmodel_vsris).
-
-Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
-```{r Extract model properties}
+Compare the model with a null model containing only id as a random effect.
+```{r Compare to null model}
 data.sc_r <- data.sc_r %>%
-  mutate(gradient_slopes = map_dbl(vsris_tidy, ~.$estimate[[2]])) %>%
-  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
-  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
-  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
-
-data.sc_r <- data.sc_r %>%
-  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
-  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
-  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
-  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
 ```
 
 
@@ -236,6 +220,7 @@ id_housing <-  distinct(data.sc, id, housing)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
 
 combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
+
 combined_intercepts_slopes$property_factors = factor(combined_intercepts_slopes$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
 ```
 
@@ -285,7 +270,7 @@ ggplot(resid_plot_data, aes(.resid)) +
 ```
 
 
-## Evalaute mdel with maximal random effects
+## Evalaute model with maximal random effects
 
 Does the parameter contribute to random effects?
 Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
@@ -330,6 +315,37 @@ sdcor_frame <- sdcor_frame %>%
 ggplot(sdcor_frame, aes(property, norm_sd)) +
   geom_point(aes(colour = property)) +
   facet_wrap(~all_VarCorr_grp)
+```
+
+## Plot intercepts and slopes for the maximal model
+
+Prepare data
+```{r Format data ready for plotting}
+combined_intercepts_slopes_max <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris_all")
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes_max <- left_join(combined_intercepts_slopes_max, id_housing, by = "id")
+
+combined_intercepts_slopes_max$property_factors <- as.factor(combined_intercepts_slopes_max$property)
+
+combined_intercepts_slopes_max$property_factors = factor(combined_intercepts_slopes_max$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+```
+
+
+Now generate the plot.
+```{r Make facetted plot of model fits}
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+IS_figure_max <- ggplot(combined_intercepts_slopes_max, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure_max
 ```
 
 
