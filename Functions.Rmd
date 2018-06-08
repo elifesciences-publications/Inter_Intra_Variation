@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggthemes)
+library(optimx)
 ```
 
 Goals: functions for mixed model and related analysis of multiple electrophysiological properties. Functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
@@ -79,6 +80,26 @@ model_vsris_age_con <- function(df) {
 model_vsris_all <- function(df) {
   df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all_PC <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all_NM <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ="Nelder_Mead"))
+}
+
+model_vsris_all_BFGS <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='L-BFGS-B')))
+}
+
+model_vsris_all_nlminb <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='nlminb')))
 }
 ```
 
@@ -187,4 +208,57 @@ normalize<-function(m){
    (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
 }
 ```
+
+
+Helper function to extract model predictions in a dataframe ready for plotting.
+prep_int_slopes
+
+Inputs
+df - a dataframe containing columns to work on
+group_col - a column of df containing the names of each group
+mm_col - a column of df containing the mixed models fit with lmer
+
+Returns
+combined_intercepts_slopes - a data frame to be used to generate the plot
+
+```{r Extract model predictions for plotting}
+prep_int_slopes <- function(df, group_col, mm_col){
+
+# Use broom::tidy to extract model fit parameters for each feature.
+df <- df %>%
+  mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+  mutate(pop_intercepts = map_dbl(mm_tidy, ~.$estimate[[1]]))
+
+# Obtain individual intercepts and slopes for each feature as separate columns.
+# coef_df is a helper function to return model coefficients in a tidy formt.
+# coef_df_2 also calculate I+S, etc.
+df <- df %>%
+  mutate(coefs = map2(!! rlang::sym(mm_col), pop_intercepts, ~coef_df_2(.x, .y)))
+
+df_unnest <- unnest(df, coefs) %>%
+  select(!! rlang::sym(group_col), id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+# Make new tibble with model predictions ready for plotting
+ind_intercept <- select(df_unnest, !! rlang::sym(group_col), id, ind_intercept) %>%
+  mutate(measure = "ind_intercept") %>%
+  mutate(value_2 = ind_intercept)
+
+global_intercept <- select(df_unnest, !! rlang::sym(group_col), id, global_intercept) %>%
+  mutate(measure = "global_intercept") %>%
+  mutate(value_1 = global_intercept)
+
+ind_intercept_slope <- select(df_unnest, !! rlang::sym(group_col), id, ind_intercept_slope) %>%
+  mutate(measure = "ind_intercept_slope") %>%
+  mutate(value_2 = ind_intercept_slope)
+
+global_intercept_slope <- select(df_unnest, !! rlang::sym(group_col), id, global_intercept_slope) %>%
+  mutate(measure = "global_intercept_slope") %>%
+  mutate(value_1 = global_intercept_slope)
+
+combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+}
+```
+
+
 

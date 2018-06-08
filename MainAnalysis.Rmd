@@ -227,39 +227,10 @@ write_csv(props_table_unnest, "housing_age_table.csv")
 
 We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
 
-```{r Extract model predictions for plotting}
-# Obtain global intercepts for each feature.
-data.sc_r <- data.sc_r %>%
-  mutate(pop_intercepts = map_dbl(vsris_tidy, ~.$estimate[[1]]))
-
-# Obtain individual intercepts and slopes for each feature.
-# coef_df is a helper function to return model coefficients in a tidy formt.
-# coef_df_2 also calculate I+S, etc.
-data.sc_r <- data.sc_r %>%
-  mutate(coefs = map2(mixedmodel_vsris, pop_intercepts, ~coef_df_2(.x, .y)))
-
-data.sc_r_unnest <- unnest(data.sc_r, coefs) %>%
-  select(property, id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
-
-```
-
 Reformat the data to generate plots.
+Call to prep_int_slopes extracts model predictions ready for plotting.
 ```{r Format data ready for plotting}
-ind_intercept <- select(data.sc_r_unnest, property, id, ind_intercept) %>%
-  mutate(measure = "ind_intercept") %>%
-  mutate(value_2 = ind_intercept)
-global_intercept <- select(data.sc_r_unnest, property, id, global_intercept) %>%
-  mutate(measure = "global_intercept") %>%
-  mutate(value_1 = global_intercept)
-ind_intercept_slope <- select(data.sc_r_unnest, property, id, ind_intercept_slope) %>%
-  mutate(measure = "ind_intercept_slope") %>%
-  mutate(value_2 = ind_intercept_slope)
-global_intercept_slope <- select(data.sc_r_unnest, property, id, global_intercept_slope) %>%
-  mutate(measure = "global_intercept_slope") %>%
-  mutate(value_1 = global_intercept_slope)
-
-
-combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, global_intercept, global_intercept_slope)
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris")
 
 id_housing <-  distinct(data.sc, id, housing)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
@@ -423,9 +394,11 @@ data.sc_r_recover <- read_rds("analysis_outputs.rds")
 
 Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
 
+A problem to address here is that we have less complete for fi than for the other measured prooperties. Initial analysis will exclude fi. Conisder carrying out a second PCA and using row or column bind to out.pca.x_g to include this in the analyses (alternatively analyse consecutively).
+
 Carry out PCA.
 ```{r}
-data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing)
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
 cols.pca <- 1:11
 
 out.pca <- prcomp(data.pca[cols.pca],
@@ -441,10 +414,7 @@ biplot(out.pca)
 ## View relationships between principal components
 
 ```{r Prepare data for fitting model to principal components}
-out.pca.x <- as_tibble(out.pca$x)
-out.pca.x$dvlocmm <- data.pca$dvlocmm
-out.pca.x$id <- data.pca$id
-out.pca.x$housing <- data.pca$housing
+out.pca.x <- bind_cols(as_tibble(out.pca$x), data.pca)
 ```
 
 
@@ -486,7 +456,7 @@ PCA_components
 
 ## Fit mixed models to principal components
 
-Fit mixed models to all measured properties using lmer. Don't fit vscri as it fails to converge.
+Fit mixed models to all measured properties using lmer.
 ```{r}
 # Reform data for use with dplyr.
 out.pca.x_g <- out.pca.x %>%
@@ -509,9 +479,9 @@ out.pca.x_g <- out.pca.x_g %>%
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
   mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
-  mutate(vscris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
-  mutate(vscris_aug = map(mixedmodel_vsris, broom::augment)) %>%
-  mutate(vscris_summary = map(mixedmodel_vsris, summary))
+  mutate(vsris_tidy = map(mixedmodel_vsris, broom::tidy)) %>%
+  mutate(vsris_aug = map(mixedmodel_vsris, broom::augment)) %>%
+  mutate(vsris_summary = map(mixedmodel_vsris, summary))
 ```
 
 Extract AIC for all models
@@ -528,7 +498,7 @@ Test whether effects of animal id are significant.
 out.pca.x_g <- out.pca.x_g %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g))
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, "mixedmodel_vsris", "linearmodel"))
 ```
 
 
@@ -577,44 +547,17 @@ write_csv(props_table_unnest, "results_model_table_PCA.csv")
 
 As above, we want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
 
-```{r Extract model predictions for plotting}
-# Obtain global intercepts for each feature.
-out.pca.x_g <- out.pca.x_g %>%
-  mutate(pop_intercepts = map_dbl(vsris_tidy, ~.$estimate[[1]]))
 
-# Obtain individual intercepts and slopes for each feature.
-# coef_df is a helper function to return model coefficients in a tidy formt.
-# coef_df_2 also calculate I+S, etc.
-out.pca.x_g <- out.pca.x_g %>%
-  mutate(coefs = map2(mixedmodel_vsris, pop_intercepts, ~coef_df_2(.x, .y)))
-
-out.pca.x_g_unnest <- unnest(out.pca.x_g, coefs) %>%
-  select(component, id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
-
-```
-
-Reformat the data to generate plots.
+Extract model predictions ready to generate plots.
 ```{r Format data ready for plotting}
-ind_intercept_PCA <- select(out.pca.x_g_unnest, component, id, ind_intercept) %>%
-  mutate(measure = "ind_intercept") %>%
-  mutate(value_2 = ind_intercept)
-global_intercept_PCA <- select(out.pca.x_g_unnest, component, id, global_intercept) %>%
-  mutate(measure = "global_intercept") %>%
-  mutate(value_1 = global_intercept)
-ind_intercept_slope_PCA <- select(out.pca.x_g_unnest, component, id, ind_intercept_slope) %>%
-  mutate(measure = "ind_intercept_slope") %>%
-  mutate(value_2 = ind_intercept_slope)
-global_intercept_slope_PCA <- select(out.pca.x_g_unnest, component, id, global_intercept_slope) %>%
-  mutate(measure = "global_intercept_slope") %>%
-  mutate(value_1 = global_intercept_slope)
-
-
-combined_intercepts_slopes_PCA <- bind_rows(ind_intercept_PCA, ind_intercept_slope_PCA, global_intercept_PCA, global_intercept_slope_PCA)
+combined_intercepts_slopes_PCA <- prep_int_slopes(out.pca.x_g, "component", "mixedmodel_vsris")
 
 id_housing_PCA <-  distinct(out.pca.x, id, housing)
+
 combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing_PCA, by = "id")
 
 combined_intercepts_slopes_PCA$component_factors <- as.factor(combined_intercepts_slopes_PCA$component)
+
 combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_slopes_PCA$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
 
 ```
@@ -643,6 +586,54 @@ IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in
 IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
+
+
+
+## Evalaute PCA model with maximal random effects
+
+Does the parameter contribute to random effects?
+Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
+
+Build models with multiple random effects. Fits fail to converge when use all possible random effects. Instead omit hemi and rectime as they generally show very little variance in the fits to the individual features.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mixedmodel_vsris_all = map(data, model_vsris_all_PC)) 
+```
+
+Show variance of each random effect in the maximal model
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(all_VarCorr = map(mixedmodel_vsris_all, VarCorr_helper)) %>%
+  mutate(all_VarCorr_sdcor = map(all_VarCorr,~.$sdcor)) %>%
+  mutate(all_VarCorr_grp = map(all_VarCorr,~.$grp))
+
+PCA_sdcor_frame <- select(out.pca.x_g, component, all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  unnest(all_VarCorr_sdcor, all_VarCorr_grp)
+
+PCA_sdcor_frame$component <- factor(PCA_sdcor_frame$component, levels =c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
+
+ggplot(PCA_sdcor_frame, aes(all_VarCorr_grp, all_VarCorr_sdcor)) +
+  geom_point(aes(colour = all_VarCorr_grp)) +
+  facet_wrap(~component)
+
+norm_helper <- function(df) {
+  df_sum <- sum(df)
+  df1 <- df / df_sum
+  df1
+}
+PCA_sdcor_frame <- PCA_sdcor_frame %>%
+  group_by(component) %>%
+  nest(all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  mutate(all_VarCorr_sdcor = map(data, ~.$all_VarCorr_sdcor)) %>%
+  mutate(norm_sd = map(all_VarCorr_sdcor, norm_helper)) %>%
+  select(component, data, norm_sd) %>%
+  unnest()
+
+ggplot(PCA_sdcor_frame, aes(component, norm_sd)) +
+  geom_point(aes(colour = component)) +
+  facet_wrap(~all_VarCorr_grp)
+```
+
 
 
 ## Generate plots to evaluate assumptions of mixed models
