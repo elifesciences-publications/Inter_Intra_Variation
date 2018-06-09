@@ -63,17 +63,119 @@ model_vscris_null <- function(df) {
 }
 ```
 
-
-
+Bayesian linear mixed models using MCMCglmm
 ```{r}
-model_vsrisage <- function(df) {
-    lme4::lmer(value ~ dvlocmm+age +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+## ------------------------------------------------------
+## 
+## ------------------------------------------------------
+
+## codes risc
+## r: random
+## i: intercept
+## s: slope
+## c: correlated
+
+## M1
+
+## null model has only intercept in the fixed effects
+model_vsri_null_Bayes <- function(df) {
+    ## dependent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,1), nu=0.001)))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1,
+                       random = ~ idh(1):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr     = TRUE)
 }
-model_vsrisagerectime <- function(df) {
-    lme4::lmer(value ~ dvlocmm+age+rectime +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+## 
+model_vsri_Bayes <- function(df) {
+    ## dependent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,1), nu=0.001) ))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1 + dvlocmm,
+                       random = ~ idh(1):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr     = TRUE)
+}
+
+## M2
+
+## null model has intercept only in the fixed effects
+model_vsris_null_Bayes <- function(df) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,2), nu=0.001) ))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1,
+                       random = ~ idh(1+dvlocmm):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr=TRUE)
+}
+## 
+model_vsris_Bayes <- function(df) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,2), nu=0.001) ))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1 + dvlocmm,
+                       random = ~ idh(1+dvlocmm):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr=TRUE)
+}
+
+## M3
+
+## null model has intercept only in the fixed effects
+model_vsrisc_null_Bayes <- function(df) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,2), nu=0.001) ))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1,
+                       random = ~ us(1+dvlocmm):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr=TRUE)
+}
+## 
+model_vsrisc_Bayes <- function(df) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
+                 R = list(V = diag(1, 1), nu=0.001),
+                 G = list(G1= list(V = diag(1,2), nu=0.001) ))
+    ## model fitting
+    MCMCglmm::MCMCglmm(fixed  = value ~ 1 + dvlocmm,
+                       random = ~ us(1+dvlocmm):id,
+                       data   = as.data.frame(df),
+                       family = "gaussian",
+                       prior  = prior,
+                       pr=TRUE)
 }
 
 ```
+
 
  
 ```{r}
@@ -94,6 +196,21 @@ nlmemodel_to_fit <- function(df) {
 
 
 ------------------ Helper functions ---------------------
+
+Function to source Rmd fils
+```{r}
+source_rmd <- function(file, local = FALSE, ...){
+  options(knitr.duplicate.label = 'allow')
+  ## --------------------------------------------
+  tempR <- tempfile(tmpdir = ".", fileext = ".R")
+  on.exit(unlink(tempR))
+  knitr::purl(file, output=tempR, quiet = TRUE)
+  ## --------------------------------------------
+  envir <- globalenv()
+  source(tempR, local = envir, ...)
+}
+
+```
 
 Helper function to return model coefficients in a tidy format.
 ```{r}
@@ -248,24 +365,10 @@ post_summary <- function(fittedmodel, type="sol",
     return(out)
 }
 
-
-
-
-gsub("\\.mouse.*", replacement="", x="(Intercept).id.mouse_20141112")
+## gsub("\\.mouse.*", replacement="", x="(Intercept).id.mouse_20141112")
 
 ```
 
-General purpose functions
-```{r}
-## vectorize grepl and gsub
-greplvec <- function(vec, pattern)
-{
-    do.call("grepl", list(vec, pattern=pattern))
-}
-
-
-
-```
 
 
 
