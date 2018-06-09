@@ -13,10 +13,30 @@ library(lme4)
 library(MuMIn)
 library(tidyverse)
 library(ggpubr)
-library(corrplot)
 library(modelr)
+library(corrplot)
 library(ggthemes)
 library(broom)
+library(skimr)
+library(GGally)
+library(MCMCglmm)
+library(RColorBrewer)
+library(glmnet)
+```
+Source functions
+
+```{r}
+source_rmd <- function(file, local = FALSE, ...){
+  options(knitr.duplicate.label = 'allow')
+
+  tempR <- tempfile(tmpdir = ".", fileext = ".R")
+  on.exit(unlink(tempR))
+  knitr::purl(file, output=tempR, quiet = TRUE)
+
+  envir <- globalenv()
+  source(tempR, local = envir, ...)
+}
+source_rmd("Functions.Rmd")
 ```
 
 ## Goals
@@ -30,9 +50,12 @@ min_age <- 0
 
 Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
 ```{r import data, message = FALSE}
-# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
-fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
-data.import <- read_tsv(fname.sc)
+
+## fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
+start.dir <- "~/Dropbox/org/Research/Software/R/Modular_Intrinsic_Properties/"
+fname.sc <- "datatable.txt"
+
+data.import <- read_tsv(paste0(start.dir, fname.sc))
 
 # Strip out rows from data where locations are unknown (are NaN)
 data.sc <- data.import %>% drop_na(dvloc)
@@ -52,29 +75,60 @@ counts.old <- data.sc.old %>% count(id)
 summary(counts.old)
 ```
 
+Visualize all pairwise dependencies between measured properties
+```{r}
+## vizualise on a common N(0,1) scale
+edf <- function(x) rank(x)/(1+length(x))
+
+data.sc %>% dplyr::select(vm:fi) %>%
+    apply(2, edf) %>% apply(2, qnorm) %>%
+    pairs
+## contrast with original scale
+data.sc %>% dplyr::select(vm:fi) %>%
+    pairs
+```
+
 Reformat data for use with map and other tidyverse functions.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing) %>%
-  gather("property", "value", vm:fi) %>%
-  group_by(property) %>%
-  nest()
+    dplyr::select(vm:fi, dvlocmm, id, housing) %>%
+    gather("property", "value", vm:fi) %>%
+    group_by(property) %>%
+    nest()
 ```
 
-Fit mixed models to all measured properties using lmer
+
+
+Fit mixed models to all measured properties using lmer and MCMCglmm
 ```{r}
 # model_to_fit moved to functions.
 # lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
-  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
-  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
-  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
-  mutate(mixedmodel_vscris_null = map(data, model_vscris))
-```
+    mutate(mixedmodel_vsris              = map(data, model_vsris))      %>%
+    mutate(mixedmodel_vsris_null         = map(data, model_vsris_null)) %>%
+    mutate(mixedmodel_vsri               = map(data, model_vsri))       %>%
+    mutate(mixedmodel_vsri_null          = map(data, model_vsri_null))  %>%
+    mutate(mixedmodel_vscris             = map(data, model_vscris))     %>%
+    mutate(mixedmodel_vscris_null        = map(data, model_vscris))     %>%
+    mutate(mixedmodel_vsri_Bayes         = map(data, model_vsri_Bayes)) %>%
+    mutate(mixedmodel_vsri_null_Bayes    = map(data, model_vsri_null_Bayes))  %>%
+    mutate(mixedmodel_vsris_Bayes        = map(data, model_vsris_Bayes))      %>%
+    mutate(mixedmodel_vsris_null_Bayes   = map(data, model_vsris_null_Bayes)) %>%
+    mutate(mixedmodel_vsrisc_Bayes       = map(data, model_vsrisc_Bayes)) %>%
+    mutate(mixedmodel_vsrisc_null_Bayes  = map(data, model_vsrisc_null_Bayes))
 
-Add model predictions. Using predict adds a prediction for each location, using broom::augment adds predictions (.mu) and residuals (.wtres).
+## data.sc_r <- data.sc_r %>% 
+##     mutate(DIC_vsris_Bayes       = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
+##     mutate(DIC_vsris_null_Bayes  = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
+##     mutate(DIC_vsri_Bayes        = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
+##     mutate(DIC_vcsris_Bayes      = map_dbl(vscris_summary, ~.$AIC[[1]]))
+```    
+
+
+
+Add model predictions. Using predict adds a prediction for each
+location, using broom::augment adds predictions (.mu) and residuals
+(.wtres).
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(fit = map(mixedmodel_vsris, predict))
@@ -83,21 +137,24 @@ data.sc_r <- data.sc_r %>%
   mutate(fits = map(mixedmodel_vsris, broom::augment))
 ```
 
-Add model metrics (with glance) and summaries (with tidy). Not used to make the figures below, but useful.
+Add model metrics (with glance) and summaries (with tidy). Not used to
+make the figures below, but useful.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(tidy = map(mixedmodel_vsris, broom::tidy))
 ```
 
-Extract coefficients for individual mice. The function is to convert the output of coef() to a dataframe so it will work with unnest.
+Extract coefficients for individual mice. The function is to convert
+the output of coef() to a dataframe so it will work with unnest.
 ```{r}
-# coef_df is a helper function to return model coefficients in a tidy formt.
+# coef_df is a helper function to return model coefficients in a tidy format.
 data.sc_r <- data.sc_r %>%
   mutate(coefs = map(mixedmodel_vsris, coef_df))
 ```
 
-Convert data from the nested format so that we can make plots of the fitted data.
+Convert data from the nested format so that we can make plots of the
+fitted data.
 ```{r}
 data.sc_r_fit <- data.sc_r %>%
   unnest(data, fit)
@@ -107,33 +164,166 @@ Compare different model with null models.
 ```{r}
 # Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model).
 data.sc_r <- data.sc_r %>%
-  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
-  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
-  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
-  mutate(vscris_summary = map(mixedmodel_vscris, summary)) %>%
-  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
-  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
-  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
-  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
-  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
-  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+    mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
+    mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
+    mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
+    mutate(vscris_summary = map(mixedmodel_vscris, summary)) %>%
+    mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
+    mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
+    mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+    mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
+    mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+    mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+    mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
 
-# Extract model slopes
+                                        # Extract model slopes
 data.sc_r <- data.sc_r %>%
-  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
-  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
-  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
-  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
-  
-# Extract AIC for all models
+    mutate(vsris_simcoefs    = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
+    mutate(modelslope_min    = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+    mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+    mutate(modelslope_max    = map_dbl(vsris_simcoefs, ~.[[6]]))
+
+
+data.sc_r <- data.sc_r %>%
+    mutate(vsris_simcoefs     = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
+    mutate(modelslope_min     = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
+    mutate(modelslope_median  = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
+    mutate(modelslope_max     = map_dbl(vsris_simcoefs, ~.[[6]]))
+
+# Extract AIC and DIC for all models
 data.sc_r <- data.sc_r %>% 
-  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vcsris = map_dbl(vscris_summary, ~.$AIC[[1]]))
+    mutate(AIC_vsris             = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
+    mutate(AIC_vsris_null        = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
+    mutate(AIC_vsri              = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
+    mutate(AIC_vcsris            = map_dbl(vscris_summary, ~.$AIC[[1]])) %>%
+    mutate(DIC_vsris_Bayes       = map(mixedmodel_vsris_Bayes, ~.$DIC)) %>%
+    mutate(DIC_vsris_null_Bayes  = map(mixedmodel_vsris_null_Bayes, ~.$DIC)) %>%
+    mutate(DIC_vsri_Bayes        = map(mixedmodel_vsri_Bayes, ~.$DIC)) %>%
+    mutate(DIC_vsri_null_Bayes   = map(mixedmodel_vsri_null_Bayes, ~.$DIC)) %>%
+    mutate(DIC_vsrisc_Bayes      = map(mixedmodel_vsrisc_Bayes, ~.$DIC)) %>%
+    mutate(DIC_vsrisc_null_Bayes = map(mixedmodel_vsrisc_null_Bayes, ~.$DIC))
+
+
+DICdat <- bind_rows(data.sc_r %>% dplyr::
+                    select(property, contains("DIC"))) %>% as.data.frame 
+
+DICdat_long           <-  gather(DICdat, model, value, -property)
+DICdat_long$value     <-  unlist(DICdat_long$value)
+DICdat_long$model     <-  factor(DICdat_long$model)
+DICdat_long$property  <-  factor(DICdat_long$property)
+
+ggplot(data=DICdat_long) +
+    geom_line(aes(x=reorder(model,-value), y=value,group=property)) +
+    facet_wrap(~property, scales="free") + ylab("DIC") +
+    xlab("model") + theme_bw() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+## TODO mutate an actual model name column: strip away DIC and 
+## TODO move code to plots section
 
 ```
+
+
+Obtain 95% high posterior density intervals
+```{r}
+data.sc_r <- data.sc_r %>%
+    mutate(HPDsol_vsri_Bayes    = map(mixedmodel_vsri_Bayes, HPD,
+                                      type="sol")) %>%
+    mutate(HPDsol_vsris_Bayes   = map(mixedmodel_vsris_Bayes, HPD,
+                                      type="sol")) %>%
+    mutate(HPDsol_vsrisc_Bayes  = map(mixedmodel_vsrisc_Bayes, HPD,
+                                      type="sol")) %>%
+    mutate(HPDvcov_vsri_Bayes   = map(mixedmodel_vsri_Bayes, HPD,
+                                      type="vcov")) %>%
+    mutate(HPDvcov_vsris_Bayes  = map(mixedmodel_vsris_Bayes, HPD,
+                                      type="vcov")) %>%
+    mutate(HPDvcov_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, HPD,
+                                      type="vcov"))
+
+
+
+data.sc_r <- data.sc_r %>%
+    ## Random intercepts
+    mutate(HPDri_vsri_Bayes=map(HPDsol_vsri_Bayes,
+                                HPDforggplot,
+                                stringmatch="Intercept).id.mouse",
+                                stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))        %>%
+    mutate(HPDri_vsris_Bayes=map(HPDsol_vsris_Bayes,
+                                 HPDforggplot,
+                                 stringmatch="Intercept).id.mouse",
+                                 stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))      %>%
+    mutate(HPDri_vsrisc_Bayes=map(HPDsol_vsrisc_Bayes,
+                                  HPDforggplot,
+                                  stringmatch="Intercept).id.mouse",
+                                  stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))   %>%
+    ## Random slopes
+    mutate(HPDrs_vsris_Bayes=map(HPDsol_vsris_Bayes,
+                                 HPDforggplot,
+                                 stringmatch="dvlocmm.id.mouse",
+                                 stringreplace="dvlocmm\\.id\\.mouse\\_"))      %>%
+    mutate(HPDrs_vsrisc_Bayes=map(HPDsol_vsrisc_Bayes,
+                                  HPDforggplot,
+                                  stringmatch="dvlocmm.id.mouse",
+                                  stringreplace="dvlocmm\\.id\\.mouse\\_")) %>%
+    ## variance-covariance
+
+
+## plot.intercepts
+
+## tmp  <- gather(data.sc_r$HPDsol_vsri_Bayes[[1]],  HPDendpoint, value, -rname) 
+## tmp2 <- tmp %>% dplyr::filter(grepl(rname, pattern="Intercept).id.mouse")) %>%
+##     mutate(mouse.id=gsub(pattern="\\(Intercept\\)\\.id\\.", replacement="", tmp2$rname))
+
+## tmp2%>%
+##     ggplot(aes(x=reorder(mouse.id,value),
+##                y=value, group=factor(HPDendpoint))) + geom_line() +
+##     theme_classic() + xlab("Mouse") +
+##     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Obtain posterior mean of all coefficients
+```{r}
+data.sc_r <- data.sc_r%>%
+    mutate(PMri_vsri_Bayes   = map(mixedmodel_vsri_Bayes, post_summary,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(PMri_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(PMri_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(PMrs_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
+                                    type="sol", statistic=mean,
+                                    stringmatch="dvlocmm\\.id\\.mouse.*",
+                                    stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
+    mutate(PMrs_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
+                                    type="sol", statistic=mean,
+                                    stringmatch="dvlocmm\\.id\\.mouse.*",
+                                    stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
+    mutate(PMvcov_vsri_Bayes   = map(mixedmodel_vsri_Bayes, post_summary,
+                                     type="vcov", statistic=mean,
+                                     stringmatch=".*",
+                                     stringreplace=""))                                %>%
+    mutate(PMvcov_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
+                                     type="vcov", statistic=mean,
+                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_")) %>%
+    mutate(PMvcov_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
+                                     type="vcov", statistic=mean,
+                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))
+```        
+
+
+Obtain effective sample sizes from McMC output
+```{r}
+
+```
+
+
 
 
 Compare linear models with mixed models. Does adding random effects lead to a statistically different model? 
@@ -151,7 +341,9 @@ data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
 
 Show model fitting results as a table.
 ```{r}
-props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_for_table <- c("property", "gradient_slopes", "modelslope_min",
+                     "modelslope_max", "anova_p_val", "marginal.r2",
+                     "conditional.r2", "pdiff") ## !!! review modelslope_max
 props_table <- as.tibble(data.sc_r[props_for_table])
 props_table_unnest <- unnest(props_table)
 
@@ -407,6 +599,3 @@ ggplot(data.sc.norm_r_fit, aes(x = dvlocmm, y = value)) +
 
 
 ```
-
-
-
