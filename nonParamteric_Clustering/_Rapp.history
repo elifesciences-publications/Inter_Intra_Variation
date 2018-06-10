@@ -1,0 +1,19 @@
+source("/Users/Oliver/Downloads/Modes/modes.ex2.mixture.r")
+demo()
+load("/Users/Oliver/Downloads/eigenprcomp/R/eigenprcomp.rdx")
+load("/Users/Oliver/Downloads/eigenprcomp/help/aliases.rds")
+install.packages("features")
+library(feature)
+feature
+sigmods = [1]
+sigmods = 1
+print(paste('Maximum no. of significant modes found = ',max(nsigmods),sep=''))
+nsigmods = 1
+print(paste('Maximum no. of significant modes found = ',max(nsigmods),sep=''))
+setwd('documents/newcastle conference/modes')
+source('general_mode_find.r')
+source('general_mode_find.r')
+source('general_mode_find.r')
+dat
+import
+source('general_mode_find.r')
