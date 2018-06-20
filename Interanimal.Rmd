@@ -22,6 +22,12 @@ library(GGally)
 library(MCMCglmm)
 library(RColorBrewer)
 library(glmnet)
+library(gridExtra)
+library(ggraph)
+library(igraph)
+library(corpcor)
+library(tidygraph)
+
 ```
 Source functions
 
@@ -80,6 +86,10 @@ data.sc %>% dplyr::select(vm:fi) %>%
 
 Reformat data for use with map and other tidyverse functions.
 ```{r}
+
+data.sc_long <- data.sc %>%
+    gather("property", "value", vm:fi) 
+
 data.sc_r <- data.sc %>%
     dplyr::select(vm:fi, dvlocmm, id, housing) %>%
     gather("property", "value", vm:fi) %>%
@@ -87,12 +97,94 @@ data.sc_r <- data.sc %>%
     nest()
 ```
 
+Obtain partial correlation and visualize the conditional independence
+graph.
+```{r}
+data.sc_neurons <- data.sc %>% dplyr::select(vm:fi) %>% na.omit
+N               <- nrow(data.sc)
+Rho_neurons     <- cor(data.sc_neurons)
+tol             <- 1.96/sqrt(N)           # rough approximation for
+                                          # significance of partial
+                                          # correlation.  Samples not
+                                          # independent due to
+                                          # multiple measurements for
+                                          # each mouse.  TODO: adjust
+                                          # tolerance level according
+                                          # to efficient sample size
+tol            <- 2*tol
+Q_neurons      <- cor2pcor(Rho_neurons)
+Q_neurons      <- Q_neurons %>% as.data.frame
+g              <- graph.adjacency(abs(Q_neurons)>tol,
+                               mode="undirected", diag=FALSE)
+V(g)$class     <- data.sc_r$property
+V(g)$degree    <- degree(g)
+edge_width    <- NULL
+edge_colour      <- NULL
+k <- 0
+for(i in 1:(ncol(Q_neurons)-1))
+{
+  for(j in (i+1):ncol(Q_neurons))
+    if(abs(Q_neurons[i,j])>tol)
+    {
+      k<-k+1
+      edge_width[k] <- abs(Q_neurons[i,j])/2
+      edge_colour[k]   <- ifelse(Q_neurons[i,j] > 0 , 1, 3)
+    }
+}
+E(g)$width     <- edge_width
+E(g)$colour    <- edge_colour
+graph          <- as_tbl_graph(g)
+##
 
 
-Fit mixed models to all measured properties using lmer and MCMCglmm
+p <- ggraph(graph, 'igraph', algorithm = 'dh') +
+    ## ggraph(graph, layout= "kk") +
+    geom_node_circle(aes( r=.4), fill="orange", colour="black")+
+    geom_edge_fan(aes(width = edge_width, color= colour), 
+                  show.legend = FALSE,
+                  start_cap = circle(1.4, 'cm'),
+                  end_cap = circle(1.4,  'cm'),
+                  lineend = "butt") +
+    ## scale_edge_color_hue(colour=c("black","gray"))+
+    geom_node_text(aes(label=class),
+                   size=6, nudge_x=.0, nudge_y=0.0, colour="blue") +
+    coord_fixed()+ 
+    theme_graph(foreground = 'steelblue', fg_text_colour = 'white')
+
+p
+## ggsave(filename="CIG_neurons.pdf")
+
+```
+
+Model assessment
+```{r}
+for(j in 1:nrow(data.sc_r))
+{
+    p2 <-
+        ggplot(data = data.frame(st.residuals=residuals(data.sc_r$mixedmodel_vscris[[j]])/
+                                     sd(residuals(data.sc_r$mixedmodel_vscris[[j]])))) +
+        stat_qq(aes(sample=st.residuals)) + 
+        geom_abline(intercept = 0, slope = 1)
+    p1 <- pp_check(data.sc_r$mixedmodel_vsrisc_stan[[j]])
+    grid.arrange(p1, p2, nrow=1)
+    a <- grid.arrange(p1, p2, nrow=1)
+    ggsave(a, filename="MA_"%+%data.sc_r$property[j]%+%".pdf", width=13)
+}
+
+## ----------------------------------------------------------------
+qqnorm(); abline(a=0,b=1); 
+```
+
+
+
+Fit mixed models to all measured properties using lmer, MCMCglmm and rstanarm
 ```{r}
 # model_to_fit moved to functions.
-# lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+                                        # lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+
+## about ?h to fit all models on Thinkpad X1 Carbon
+## TODO: write an Rscript that implements code on cluster
+
 data.sc_r <- data.sc_r %>%
     mutate(mixedmodel_vsris              = map(data, model_vsris))      %>%
     mutate(mixedmodel_vsris_null         = map(data, model_vsris_null)) %>%
@@ -100,18 +192,30 @@ data.sc_r <- data.sc_r %>%
     mutate(mixedmodel_vsri_null          = map(data, model_vsri_null))  %>%
     mutate(mixedmodel_vscris             = map(data, model_vscris))     %>%
     mutate(mixedmodel_vscris_null        = map(data, model_vscris))     %>%
-    mutate(mixedmodel_vsri_Bayes         = map(data, model_vsri_Bayes)) %>%
-    mutate(mixedmodel_vsri_null_Bayes    = map(data, model_vsri_null_Bayes))  %>%
-    mutate(mixedmodel_vsris_Bayes        = map(data, model_vsris_Bayes))      %>%
-    mutate(mixedmodel_vsris_null_Bayes   = map(data, model_vsris_null_Bayes)) %>%
-    mutate(mixedmodel_vsrisc_Bayes       = map(data, model_vsrisc_Bayes)) %>%
-    mutate(mixedmodel_vsrisc_null_Bayes  = map(data, model_vsrisc_null_Bayes))
+    mutate(mixedmodel_vsri_null_stan     = map(data, model_vsri_null_stan)) %>%
+    mutate(mixedmodel_vsri_stan          = map(data, model_vsri_stan)) %>%
+    mutate(mixedmodel_vsris_null_stan    = map(data, model_vsris_null_stan))  %>%
+    mutate(mixedmodel_vsris_stan         = map(data, model_vsris_stan)) %>%
+    mutate(mixedmodel_vsrisc_null_stan   = map(data, model_vsrisc_null_stan)) %>%
+    mutate(mixedmodel_vsrisc_stan        = map(data, model_vsrisc_stan)) %>%
+    mutate(mixedmodel_vsri_null_McMC     = map(data, model_vsri_null_McMC))  %>%
+    mutate(mixedmodel_vsri_McMC          = map(data, model_vsri_McMC))  %>%
+    mutate(mixedmodel_vsris_McMC         = map(data, model_vsris_McMC))      %>%
+    mutate(mixedmodel_vsris_null_McMC    = map(data, model_vsris_null_McMC)) %>%
+    mutate(mixedmodel_vsrisc_McMC        = map(data, model_vsrisc_McMC)) %>%
+    mutate(mixedmodel_vsrisc_null_McMC   = map(data, model_vsrisc_null_McMC))
 
-## data.sc_r <- data.sc_r %>% 
-##     mutate(DIC_vsris_Bayes       = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
-##     mutate(DIC_vsris_null_Bayes  = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
-##     mutate(DIC_vsri_Bayes        = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
-##     mutate(DIC_vcsris_Bayes      = map_dbl(vscris_summary, ~.$AIC[[1]]))
+save(list=ls(),file = "modelfits_and_summaries.RData")
+
+
+
+
+data.sc_r <- data.sc_r %>%
+    mutate(ppc_stan_vsri = mixedmodel_vsri_stan) %>%
+    mutate(ppc_stan_vsris = mixedmodel_vsris_stan) %>%
+    mutate(ppc_stan_vsrisc = mixedmodel_vsrisc_stan)
+
+
 ```    
 
 
@@ -124,7 +228,15 @@ data.sc_r <- data.sc_r %>%
   mutate(fit = map(mixedmodel_vsris, predict))
 
 data.sc_r <- data.sc_r %>%
-  mutate(fits = map(mixedmodel_vsris, broom::augment))
+    mutate(fits = map(mixedmodel_vsris, broom::augment))
+
+data.sc_r <- data.sc_r %>%
+  mutate(fit_stan= map(mixedmodel_vsrisc_stan, posterior_predict)) 
+
+data.sc_r <- data.sc_r %>%
+  mutate(fits_stan= map(mixedmodel_vsrisc_stan, broom::augment))
+
+
 ```
 
 Add model metrics (with glance) and summaries (with tidy). Not used to
@@ -140,7 +252,9 @@ the output of coef() to a dataframe so it will work with unnest.
 ```{r}
 # coef_df is a helper function to return model coefficients in a tidy format.
 data.sc_r <- data.sc_r %>%
-  mutate(coefs = map(mixedmodel_vsris, coef_df))
+    mutate(coefs = map(mixedmodel_vsris, coef_df)) %>%
+    mutate(coefs_vsris_stan = map(mixedmodel_vsris_stan, coef_df)) %>%
+    mutate(coefs_vsrisc_stan = map(mixedmodel_vsrisc_stan, coef_df))    
 ```
 
 Convert data from the nested format so that we can make plots of the
@@ -152,7 +266,7 @@ data.sc_r_fit <- data.sc_r %>%
 
 Compare different model with null models.
 ```{r}
-# Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model).
+# Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredG LMM) and p-value vs null model (calculated with ANOVA vs null model).
 data.sc_r <- data.sc_r %>%
     mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
     mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
@@ -186,12 +300,12 @@ data.sc_r <- data.sc_r %>%
     mutate(AIC_vsris_null        = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
     mutate(AIC_vsri              = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
     mutate(AIC_vcsris            = map_dbl(vscris_summary, ~.$AIC[[1]])) %>%
-    mutate(DIC_vsris_Bayes       = map(mixedmodel_vsris_Bayes, ~.$DIC)) %>%
-    mutate(DIC_vsris_null_Bayes  = map(mixedmodel_vsris_null_Bayes, ~.$DIC)) %>%
-    mutate(DIC_vsri_Bayes        = map(mixedmodel_vsri_Bayes, ~.$DIC)) %>%
-    mutate(DIC_vsri_null_Bayes   = map(mixedmodel_vsri_null_Bayes, ~.$DIC)) %>%
-    mutate(DIC_vsrisc_Bayes      = map(mixedmodel_vsrisc_Bayes, ~.$DIC)) %>%
-    mutate(DIC_vsrisc_null_Bayes = map(mixedmodel_vsrisc_null_Bayes, ~.$DIC))
+    mutate(DIC_vsris_McMC       = map(mixedmodel_vsris_McMC, ~.$DIC)) %>%
+    mutate(DIC_vsris_null_McMC  = map(mixedmodel_vsris_null_McMC, ~.$DIC)) %>%
+    mutate(DIC_vsri_McMC        = map(mixedmodel_vsri_McMC, ~.$DIC)) %>%
+    mutate(DIC_vsri_null_McMC   = map(mixedmodel_vsri_null_McMC, ~.$DIC)) %>%
+    mutate(DIC_vsrisc_McMC      = map(mixedmodel_vsrisc_McMC, ~.$DIC)) %>%
+    mutate(DIC_vsrisc_null_McMC = map(mixedmodel_vsrisc_null_McMC, ~.$DIC))
 
 
 DICdat <- bind_rows(data.sc_r %>% dplyr::
@@ -203,12 +317,15 @@ DICdat_long$model     <-  factor(DICdat_long$model)
 DICdat_long$property  <-  factor(DICdat_long$property)
 
 ggplot(data=DICdat_long) +
-    geom_line(aes(x=reorder(model,-value), y=value,group=property)) +
+    geom_line(aes(x=reorder(model,-value), y=value, group=property)) +
     facet_wrap(~property, scales="free") + ylab("DIC") +
     xlab("model") + theme_bw() +
     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ## TODO mutate an actual model name column: strip away DIC and 
 ## TODO move code to plots section
+
+
+
 
 ```
 
@@ -216,117 +333,153 @@ ggplot(data=DICdat_long) +
 Obtain 95% high posterior density intervals
 ```{r}
 data.sc_r <- data.sc_r %>%
-    mutate(HPDsol_vsri_Bayes    = map(mixedmodel_vsri_Bayes, HPD,
+    mutate(HPDsol_vsri_McMC    = map(mixedmodel_vsri_McMC, HPD,
                                       type="sol")) %>%
-    mutate(HPDsol_vsris_Bayes   = map(mixedmodel_vsris_Bayes, HPD,
+    mutate(HPDsol_vsris_McMC   = map(mixedmodel_vsris_McMC, HPD,
                                       type="sol")) %>%
-    mutate(HPDsol_vsrisc_Bayes  = map(mixedmodel_vsrisc_Bayes, HPD,
+    mutate(HPDsol_vsrisc_McMC  = map(mixedmodel_vsrisc_McMC, HPD,
                                       type="sol")) %>%
-    mutate(HPDvcov_vsri_Bayes   = map(mixedmodel_vsri_Bayes, HPD,
+    mutate(HPDvcov_vsri_McMC   = map(mixedmodel_vsri_McMC, HPD,
                                       type="vcov")) %>%
-    mutate(HPDvcov_vsris_Bayes  = map(mixedmodel_vsris_Bayes, HPD,
+    mutate(HPDvcov_vsris_McMC  = map(mixedmodel_vsris_McMC, HPD,
                                       type="vcov")) %>%
-    mutate(HPDvcov_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, HPD,
+    mutate(HPDvcov_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, HPD,
                                       type="vcov"))
 
 
 
 data.sc_r <- data.sc_r %>%
     ## Random intercepts
-    mutate(HPDri_vsri_Bayes=map(HPDsol_vsri_Bayes,
-                                HPDforggplot,
+    mutate(HPDri_vsri_McMC=map(HPDsol_vsri_McMC,
+                                HPD_nonverbose,
                                 stringmatch="Intercept).id.mouse",
                                 stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))        %>%
-    mutate(HPDri_vsris_Bayes=map(HPDsol_vsris_Bayes,
-                                 HPDforggplot,
+    mutate(HPDri_vsris_McMC=map(HPDsol_vsris_McMC,
+                                 HPD_nonverbose,
                                  stringmatch="Intercept).id.mouse",
                                  stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))      %>%
-    mutate(HPDri_vsrisc_Bayes=map(HPDsol_vsrisc_Bayes,
-                                  HPDforggplot,
+    mutate(HPDri_vsrisc_McMC=map(HPDsol_vsrisc_McMC,
+                                  HPD_nonverbose,
                                   stringmatch="Intercept).id.mouse",
                                   stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))   %>%
     ## Random slopes
-    mutate(HPDrs_vsris_Bayes=map(HPDsol_vsris_Bayes,
-                                 HPDforggplot,
+    mutate(HPDrs_vsris_McMC=map(HPDsol_vsris_McMC,
+                                 HPD_nonverbose,
                                  stringmatch="dvlocmm.id.mouse",
                                  stringreplace="dvlocmm\\.id\\.mouse\\_"))      %>%
-    mutate(HPDrs_vsrisc_Bayes=map(HPDsol_vsrisc_Bayes,
-                                  HPDforggplot,
+    mutate(HPDrs_vsrisc_McMC=map(HPDsol_vsrisc_McMC,
+                                  HPD_nonverbose,
                                   stringmatch="dvlocmm.id.mouse",
-                                  stringreplace="dvlocmm\\.id\\.mouse\\_")) %>%
+                                  stringreplace="dvlocmm\\.id\\.mouse\\_")) 
     ## variance-covariance
 
 
-## plot.intercepts
 
-## tmp  <- gather(data.sc_r$HPDsol_vsri_Bayes[[1]],  HPDendpoint, value, -rname) 
-## tmp2 <- tmp %>% dplyr::filter(grepl(rname, pattern="Intercept).id.mouse")) %>%
-##     mutate(mouse.id=gsub(pattern="\\(Intercept\\)\\.id\\.", replacement="", tmp2$rname))
-
-## tmp2%>%
-##     ggplot(aes(x=reorder(mouse.id,value),
-##                y=value, group=factor(HPDendpoint))) + geom_line() +
-##     theme_classic() + xlab("Mouse") +
-##     theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
+
 
 Obtain posterior mean of all coefficients
 ```{r}
 data.sc_r <- data.sc_r%>%
-    mutate(PMri_vsri_Bayes   = map(mixedmodel_vsri_Bayes, post_summary,
-                                    type="sol", statistic=mean,
+    mutate(PMri_vsri_McMC   = map(mixedmodel_vsri_McMC, post_summary,
+                                    type="sol", statistic=median,
                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
-    mutate(PMri_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
-                                    type="sol", statistic=mean,
+    mutate(PMri_vsris_McMC  = map(mixedmodel_vsris_McMC, post_summary,
+                                    type="sol", statistic=median,
                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
-    mutate(PMri_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
-                                    type="sol", statistic=mean,
+    mutate(PMri_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, post_summary,
+                                    type="sol", statistic=median,
                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
-    mutate(PMrs_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
-                                    type="sol", statistic=mean,
+    mutate(PMrs_vsris_McMC  = map(mixedmodel_vsris_McMC, post_summary,
+                                    type="sol", statistic=median,
                                     stringmatch="dvlocmm\\.id\\.mouse.*",
                                     stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
-    mutate(PMrs_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
-                                    type="sol", statistic=mean,
+    mutate(PMrs_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, post_summary,
+                                    type="sol", statistic=median,
                                     stringmatch="dvlocmm\\.id\\.mouse.*",
                                     stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
-    mutate(PMvcov_vsri_Bayes   = map(mixedmodel_vsri_Bayes, post_summary,
-                                     type="vcov", statistic=mean,
+    mutate(PMvcov_vsri_McMC   = map(mixedmodel_vsri_McMC, post_summary,
+                                     type="vcov", statistic=median,
                                      stringmatch=".*",
                                      stringreplace=""))                                %>%
-    mutate(PMvcov_vsris_Bayes  = map(mixedmodel_vsris_Bayes, post_summary,
-                                     type="vcov", statistic=mean,
-                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
-                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_")) %>%
-    mutate(PMvcov_vsrisc_Bayes = map(mixedmodel_vsrisc_Bayes, post_summary,
-                                     type="vcov", statistic=mean,
-                                     stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
-                                     stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))
+    mutate(PMvcov_vsris_McMC  = map(mixedmodel_vsris_McMC, post_summary,
+                                     type="vcov", statistic=median,
+                                     stringmatch=".*",
+                                     stringreplace="")) %>%
+    mutate(PMvcov_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, post_summary,
+                                     type="vcov", statistic=median,
+                                     stringmatch="\\.*",
+                                     stringreplace=""))
 ```        
 
 
-Obtain effective sample sizes from McMC output
+Obtain effective sample sizes from McMC chains
+
+```{r import, message=FALSE, warning=FALSE}
+data.sc_r <- data.sc_r%>%
+    mutate(ESSri_vsri_McMC   = map(mixedmodel_vsri_McMC, ESS,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(ESSri_vsris_McMC  = map(mixedmodel_vsris_McMC, ESS,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(ESSri_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, ESS,
+                                    type="sol", statistic=mean,
+                                    stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                                    stringreplace="\\(Intercept\\)\\.id\\.mouse\\_"))  %>%
+    mutate(ESSrs_vsris_McMC  = map(mixedmodel_vsris_McMC, ESS,
+                                    type="sol", statistic=mean,
+                                    stringmatch="dvlocmm\\.id\\.mouse.*",
+                                    stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
+    mutate(ESSrs_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, ESS,
+                                    type="sol", statistic=mean,
+                                    stringmatch="dvlocmm\\.id\\.mouse.*",
+                                    stringreplace="dvlocmm\\.id\\.mouse\\_"))          %>%
+    mutate(ESSvcov_vsri_McMC   = map(mixedmodel_vsri_McMC, ESS,
+                                     type="vcov", statistic=mean,
+                                     stringmatch=".*",
+                                     stringreplace=""))                                %>%
+    mutate(ESSvcov_vsris_McMC  = map(mixedmodel_vsris_McMC, ESS,
+                                     type="vcov", statistic=mean,
+                                     stringmatch=".*",
+                                     stringreplace=""))                                %>%
+    mutate(ESSvcov_vsrisc_McMC = map(mixedmodel_vsrisc_McMC, ESS,
+                                     type="vcov", statistic=mean,
+                                     stringmatch="\\.*",
+                                     stringreplace=""))
+
+```
+Merging HPD intervals and posterior means in a single data frame
 ```{r}
+data.sc_r<- data.sc_r %>%
+    mutate(ri_coefs_HPD_vsri_McMC=map2(HPDri_vsrisc_McMC, PMri_vsri_McMC, inner_join)) %>%
+    mutate(ri_coefs_HPD_vsris_McMC=map2(HPDri_vsrisc_McMC, PMri_vsris_McMC, inner_join)) %>%
+    mutate(ri_coefs_HPD_vsrisc_McMC=map2(HPDri_vsrisc_McMC, PMri_vsrisc_McMC, inner_join)) %>%
+    mutate(rs_coefs_HPD_vsris_McMC=map2(HPDrs_vsrisc_McMC, PMrs_vsris_McMC, inner_join)) %>%
+    mutate(rs_coefs_HPD_vsrisc_McMC=map2(HPDrs_vsrisc_McMC, PMrs_vsrisc_McMC, inner_join))
+
+data.sc_r<- data.sc_r %>%
+    mutate(pl_ri_coefs_HPD_vsri_McMC=map(ri_coefs_HPD_vsri_McMC, ggplotHPD)) %>%
+    mutate(pl_ri_coefs_HPD_vsris_McMC=map(ri_coefs_HPD_vsris_McMC, ggplotHPD)) %>%
+    mutate(pl_ri_coefs_HPD_vsrisc_McMC=map(ri_coefs_HPD_vsrisc_McMC, ggplotHPD)) %>%
+    mutate(pl_rs_coefs_HPD_vsris_McMC=map(rs_coefs_HPD_vsris_McMC, ggplotHPD)) %>%
+    mutate(pl_rs_coefs_HPD_vsrisc_McMC=map(rs_coefs_HPD_vsrisc_McMC, ggplotHPD))
 
 ```
 
 
-
-
-Compare linear models with mixed models. Does adding random effects lead to a statistically different model? 
-
-Test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
-```{r Compare mixed with linear model using chisq}
+```{r}
 ## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
 data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
 ```
-
 
 
 Show model fitting results as a table.
@@ -361,7 +514,13 @@ ggplot(data.sc_r_fit, aes(x = dvlocmm, y = value, colour = housing)) +
 Extract individual slopes and intercepts from model fits.
 ```{r}
 data.sc_r_coefs <- data.sc_r %>%
-  unnest(coefs)
+    unnest(coefs)
+
+data.sc_r_coefs_vsris_stan <- data.sc_r %>%
+    unnest(coefs_vsris_stan)
+
+data.sc_r_coefs_vsrisc_stan <- data.sc_r %>%
+    unnest(coefs_vsrisc_stan)
 ```
 
 
@@ -370,13 +529,34 @@ Plot distributions of intercepts.
 labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
 
+## MLE
 intercept_histograms <- ggplot(data.sc_r_coefs, aes(intercept)) +
   geom_histogram(bins = 20) +
   facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
   theme_classic() +
   hist_theme
 
+
 intercept_histograms
+
+## Bayes [fitted using STAN]
+intercept_vsris_stan_histograms <- ggplot(data.sc_r_coefs_vsris_stan, aes(intercept)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
+  theme_classic() +
+  hist_theme
+
+intercept_vsris_stan_histograms
+
+## Bayes [fitted using STAN]
+intercept_vsrisc_stan_histograms <- ggplot(data.sc_r_coefs_vsrisc_stan, aes(intercept)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_intercepts)) +
+  theme_classic() +
+  hist_theme
+
+intercept_vsrisc_stan_histograms
+
 ```
 
 Plot intercepts as violin plots. Could try using geom_blank here to set the scales.
@@ -391,6 +571,28 @@ intercept_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = intercept)) +
     strip.text.x = element_blank()
   ) 
 intercept_violins
+
+intercept_violins <- ggplot(data.sc_r_coefs_vsris_stan, aes(x = property, y = intercept)) +
+  geom_violin() +
+  geom_jitter(height = 0, width = 0.2) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  ) 
+intercept_violins
+
+intercept_vsris_violins <- ggplot(data.sc_r_coefs_vsris_stan, aes(x = property, y = intercept)) +
+  geom_violin() +
+  geom_jitter(height = 0, width = 0.2) +
+  facet_wrap(~property, scales = "free") +
+  theme_classic() +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank()
+  ) 
+intercept_vsris_violins
 ```
 
 
@@ -405,13 +607,35 @@ slope_histograms <- ggplot(data.sc_r_coefs, aes(slope)) +
   hist_theme
 
 slope_histograms
+
+slope_vsris_histograms <- ggplot(data.sc_r_coefs_vsris_stan, aes(slope)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_slopes)) +
+  theme_classic() +
+  hist_theme
+
+slope_vsris_histograms
+
+
+slope_vsrisc_histograms <- ggplot(data.sc_r_coefs_vsrisc_stan, aes(slope)) +
+  geom_histogram(bins = 20) +
+  facet_wrap(~property, scales = "free",  labeller = labeller(property = labels_slopes)) +
+  theme_classic() +
+  hist_theme
+
+slope_histograms
+x11()
+slope_vsrisc_histograms
+
+
+
 ```
 
 Plot slopes as violin plots.
 ```{r}
 slope_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
   geom_jitter(height = 0, width = 0.2) +
-  facet_wrap(~property, scales = "free") +
+    facet_wrap(~property, scales = "free") +
   theme_classic() +
   theme(
     strip.background = element_blank(),
@@ -419,6 +643,29 @@ slope_violins <- ggplot(data.sc_r_coefs, aes(x = property, y = slope)) +
   )
 slope_violins
 ```
+
+```{r}
+data.sc_r_fits      <- data.sc_r %>% unnest(fits)
+data.sc_r_fits_stan <- data.sc_r %>% unnest(fits_stan)
+
+data.sc_r_fits_joined <-
+    inner_join(data.sc_r_fits %>% dplyr::select(dvlocmm,.fitted, id, value, property),
+    (data.sc_r_fits_stan%>% dplyr::select(dvlocmm,.fitted, id, value, property)),
+    by=c("id", "dvlocmm", "value", "property"))
+
+ggplot(data.sc_r_fits_stan)+
+    geom_line(aes(x=dvlocmm, y=.fitted, group=id, colour=id), linetype="dashed") +
+    geom_line(aes(x=dvlocmm, y=value, alpha=0.02, group=id, colour=id)) +
+    facet_wrap(~property, scales = "free") 
+
+ggplot(data.sc_r_fits_joined) +
+    geom_line(aes(x=dvlocmm, y=.fitted.x, group=id, colour=id), linetype="dashed") +
+    geom_line(aes(x=dvlocmm, y=.fitted.y, group=id, colour=id), linetype="solid") +
+    facet_wrap(~property, scales = "free")
+
+```
+
+<!-- EOS -->
 
 Add slope to intercept to predict values at 1 mm for each mouse.
 ```{r}
@@ -552,6 +799,26 @@ Analysis is as above. Loop through the data.
 1. Create a model for each measured parameter.
 2. Store plots for fitted slopes for each mouse.
 ```{r}
+##     theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+
+do.call("grid.arrange", data.sc_r$pl_ri_coefs_HPD_vsri_McMC)
+do.call("grid.arrange", data.sc_r$pl_ri_coefs_HPD_vsris_McMC)
+do.call("grid.arrange", data.sc_r$pl_ri_coefs_HPD_vsrisc_McMC)
+do.call("grid.arrange", data.sc_r$pl_rs_coefs_HPD_vsris_McMC)
+do.call("grid.arrange", data.sc_r$pl_rs_coefs_HPD_vsrisc_McMC)
+
+
+```
+
+
+
+Compare linear models with mixed models. Does adding random effects lead to a statistically different model? 
+
+Test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
+```{r Compare mixed with linear model using chisq}
 # reformat data
 data.sc.norm_r <- data.sc.norm %>%
   select(vm:fi, dvlocmm, id) %>%
@@ -589,3 +856,8 @@ ggplot(data.sc.norm_r_fit, aes(x = dvlocmm, y = value)) +
 
 
 ```
+
+
+
+
+        

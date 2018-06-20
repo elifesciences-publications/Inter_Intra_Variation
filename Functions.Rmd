@@ -78,7 +78,7 @@ Bayesian linear mixed models using MCMCglmm
 ## M1
 
 ## null model has only intercept in the fixed effects
-model_vsri_null_Bayes <- function(df) {
+model_vsri_null_McMC <- function(df) {
     ## dependent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
@@ -93,7 +93,7 @@ model_vsri_null_Bayes <- function(df) {
                        pr     = TRUE)
 }
 ## 
-model_vsri_Bayes <- function(df) {
+model_vsri_McMC <- function(df) {
     ## dependent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
@@ -111,7 +111,7 @@ model_vsri_Bayes <- function(df) {
 ## M2
 
 ## null model has intercept only in the fixed effects
-model_vsris_null_Bayes <- function(df) {
+model_vsris_null_McMC <- function(df) {
     ## independent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
@@ -126,7 +126,7 @@ model_vsris_null_Bayes <- function(df) {
                        pr=TRUE)
 }
 ## 
-model_vsris_Bayes <- function(df) {
+model_vsris_McMC <- function(df) {
     ## independent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
@@ -144,7 +144,7 @@ model_vsris_Bayes <- function(df) {
 ## M3
 
 ## null model has intercept only in the fixed effects
-model_vsrisc_null_Bayes <- function(df) {
+model_vsrisc_null_McMC <- function(df) {
     ## independent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,1), V=diag(1e+8, 1)),
@@ -159,7 +159,7 @@ model_vsrisc_null_Bayes <- function(df) {
                        pr=TRUE)
 }
 ## 
-model_vsrisc_Bayes <- function(df) {
+model_vsrisc_McMC <- function(df) {
     ## independent random intercept and random slope
     ## specification of prior distribution
     prior = list(B=list(mu=rep(0,2), V=diag(1e+8, 2)),
@@ -174,6 +174,60 @@ model_vsrisc_Bayes <- function(df) {
                        pr=TRUE)
 }
 
+```
+
+
+
+Bayesian linear mixed models using rstanarm
+
+```{r}
+
+## null model has only intercept in the fixed effects
+model_vsri_null_stan <- function(df, K=4) {
+    rstanarm::stan_lmer(value ~ 1 + (1|id), data = df, cores=K)
+}
+## 
+model_vsri_stan <- function(df, K=4) {
+    ## dependent random intercept and random slope
+    ## specification of prior distribution
+    rstanarm::stan_lmer(value ~ 1+dvlocmm + (1|id), data = df, cores=K)
+}
+
+## M2
+## null model has intercept only in the fixed effects
+model_vsris_null_stan <- function(df, K=4) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    ## model fitting
+    rstanarm::stan_lmer(value ~ 1 + (1+dvlocmm||id), data = df, cores=K)
+}
+## 
+model_vsris_stan <- function(df, K=4) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+   
+    ## model fitting
+    rstanarm::stan_lmer(value ~ 1 + dvlocmm + (1+dvlocmm||id), data = df, cores=K)
+}
+
+
+## M3
+## M2
+## null model has intercept only in the fixed effects
+model_vsrisc_null_stan <- function(df, K=4) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+    ## model fitting
+    rstanarm::stan_lmer(value ~ 1 + (1+dvlocmm|id), data = df, cores=K)
+}
+## 
+model_vsrisc_stan <- function(df, K=4) {
+    ## independent random intercept and random slope
+    ## specification of prior distribution
+   
+    ## model fitting
+    rstanarm::stan_lmer(value ~ 1 + dvlocmm + (1+dvlocmm|id), data = df, cores=K)
+}
 ```
 
 
@@ -197,7 +251,7 @@ nlmemodel_to_fit <- function(df) {
 
 ------------------ Helper functions ---------------------
 
-Function to source Rmd fils
+Function to source Rmd files
 ```{r}
 source_rmd <- function(file, local = FALSE, ...){
   options(knitr.duplicate.label = 'allow')
@@ -297,7 +351,7 @@ HPD <- function(fittedmodel, type="sol")
 }
 
 
-HPDforggplot <- function(HPDobject,
+HPD_nonverbose<- function(HPDobject,
                          stringmatch="Intercept).id.mouse",
                          stringreplace="\\(Intercept\\)\\.id\\.mouse\\.")
     ## helper function to convert HPD objects to long format and extract
@@ -314,22 +368,23 @@ HPDforggplot <- function(HPDobject,
     ## TODO add a stopifnot statement for consistency in use of arguments
     ## stringmatch and stringreplace
     df_long <- gather(HPDobject, HPDendpoint, value, -rname) 
-    df_long%>% dplyr::filter(grepl(rname, pattern=stringmatch)) %>%
+    df_long <- df_long%>% dplyr::filter(grepl(rname, pattern=stringmatch)) %>%
         mutate(mouse.id=gsub(pattern=stringreplace,
                              replacement="", rname)) %>%
         dplyr::select(-rname)
+    df_wide <- spread(df_long, HPDendpoint, value)
+    return(df_wide)
 }
 
 ggplotHPD <- function(df, yLab="Intercept")
 {
-    p <- ggplot(df, aes(x=reorder(mouse.id,value),
-                        y=value, group=factor(HPDendpoint))) +
-        geom_line() +
-        geom_point()+
+    p <- ggplot(df) +
+        geom_point(aes(x=reorder(mouse.id, -lower),
+                       y=value)) +
+        geom_errorbar(aes(x=mouse.id, ymin=lower, ymax=upper)) + 
         geom_hline(yintercept=0)+
         theme_classic() + xlab("Mouse id") + ylab(yLab) + 
-        theme(axis.text.x = element_text(angle = 40, hjust = 1))
-    
+        theme(axis.text.x = element_text(angle = 40, hjust = 1))   
     return(p)
 }
     
@@ -360,14 +415,57 @@ post_summary <- function(fittedmodel, type="sol",
         out <- apply(fittedmodel$VCV, 2, statistic) %>%
             keep_rownames
         names(out) <- c("rname", "value")
+        out <- out %>% dplyr::filter(grepl(rname, pattern=stringmatch)) %>%
+            mutate(mouse.id=gsub(pattern=stringreplace,
+                                 replacement="", rname)) %>%
+            dplyr::select(-rname)        
     }
 
     return(out)
 }
 
-## gsub("\\.mouse.*", replacement="", x="(Intercept).id.mouse_20141112")
+```
+Extract effective sample sizes
+
+```{r}
+
+## posterior summary statistics
+ESS <- function(fittedmodel, type="sol",
+                statistic=mean,
+                stringmatch="\\(Intercept\\)\\.id\\.mouse.*",
+                stringreplace="\\(Intercept\\)\\.id\\.mouse\\_")
+    ## 
+{
+    fittedmodel$sol <- fittedmodel$sol %>% as.data.frame
+    if(type=="sol")
+    {
+        out <- effectiveSize(fittedmodel$Sol) %>%
+            keep_rownames
+        names(out) <- c("rname", "value") 
+        out <- out %>% dplyr::filter(grepl(rname, pattern=stringmatch)) %>%
+            mutate(mouse.id=gsub(pattern=stringreplace,
+                                 replacement="", rname)) %>%
+            dplyr::select(-rname)        
+    }
+    if(type=="vcov")
+    {
+        out <- effectiveSize(fittedmodel$VCV)%>%
+            keep_rownames
+        names(out) <- c("rname", "value")
+        out <- out %>% dplyr::filter(grepl(rname, pattern=stringmatch)) %>%
+            mutate(mouse.id=gsub(pattern=stringreplace,
+                                 replacement="", rname)) %>%
+            dplyr::select(-rname)        
+    }
+    
+    return(out)
+}
 
 ```
+
+
+
+
 
 
 
