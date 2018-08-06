@@ -1,0 +1,6 @@
+book_filename: "Modular_Intrinsic_Properties_add_bookdown"
+delete_merged_file: true
+language:
+  ui:
+    chapter_name: "Figure "
+rmd_files: ["index.Rmd", "01-ConceptualFigures.Rmd"]
