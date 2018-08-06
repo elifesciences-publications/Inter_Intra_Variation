@@ -186,7 +186,7 @@ MF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ModularFeat
 
 MF_plot</code></pre></div>
 <pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
-<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/Generate%20modular%20distributions-1.png" width="672" /></p>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/plot_modules-1.png" width="672" /></p>
 <p>Next imagine a scenarion in which the distribution in D is continuous within an animal, but for which there are inter-animal differences in the mean of feature 2.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">60</span>
 
@@ -208,7 +208,7 @@ OOF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(OrthogOffs
 <span class="st">  </span><span class="kw">theme_classic</span>()
 
 OOF_plot</code></pre></div>
-<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/Generate%20continuous%20distributions%20with%20inter-animal%20mean%20differences-1.png" width="672" /></p>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/plot_continuous_offset-1.png" width="672" /></p>
 <p>Finally, imagine a scenario in which the distribution in D is continuous within an animal but the range across the variable feature differs between animals.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">60</span>
 
@@ -229,8 +229,7 @@ LOF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(LinearOffs
 <span class="st">  </span><span class="kw">theme_classic</span>()
 
 LOF_plot</code></pre></div>
-<pre><code>## Warning: Removed 2 rows containing missing values (geom_point).</code></pre>
-<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/Generate%20continuous%20distributions%20with%20interanial%20offsets-1.png" width="672" /></p>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/plot_continuous_offset_overlap-1.png" width="672" /></p>
 <p>Combine models for intra-animal variation and make plots using facets.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ModularFeatures<span class="op">$</span>scheme &lt;-<span class="st"> &quot;modular&quot;</span>
 OrthogOffsetFeatures<span class="op">$</span>scheme &lt;-<span class="st"> &quot;orthog&quot;</span>
@@ -255,15 +254,15 @@ IntraAnimalPlot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(Int
         <span class="dt">legend.text =</span> <span class="kw">element_blank</span>())
 
 IntraAnimalPlot</code></pre></div>
-<pre><code>## Warning: Removed 3 rows containing missing values (geom_point).</code></pre>
-<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/Make%20plots%20for%20intra-%20and%20inter-animal%20distributions-1.png" width="672" /></p>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/plot_intraanimal_variation-1.png" width="672" /></p>
 <p>Plot all together. Blank columns are to allow white space for insertion of labels.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ConceptFigure &lt;-<span class="st"> </span><span class="kw">grid.arrange</span>(CF_plot, IntraAnimalPlot,
              <span class="dt">ncol =</span> <span class="dv">4</span>,
              <span class="dt">widths =</span> <span class="kw">c</span>(<span class="fl">0.1</span>, <span class="dv">1</span>, <span class="fl">0.1</span>, <span class="fl">1.2</span>),
              <span class="dt">layout_matrix =</span> <span class="kw">rbind</span>(<span class="kw">c</span>(<span class="ot">NA</span>, <span class="dv">1</span>, <span class="ot">NA</span>, <span class="dv">2</span>)))</code></pre></div>
-<pre><code>## Warning: Removed 3 rows containing missing values (geom_point).</code></pre>
-<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/Make%20inter-%20and%20intra-cell-type%20variability%20figure-1.png" width="672" /></p>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/plot_concept_fig-1.png" width="672" /></p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ConceptFigure</code></pre></div>
 <pre><code>## TableGrob (1 x 4) &quot;arrange&quot;: 2 grobs
 ##   z     cells    name           grob
