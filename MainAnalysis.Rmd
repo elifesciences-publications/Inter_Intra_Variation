@@ -5,7 +5,6 @@ date: "22/05/2018"
 output: 
   html_document: 
     keep_md: yes
-    self_contained: no
 ---
 
 ```{r setup, include=FALSE}
@@ -141,7 +140,7 @@ data.sc_r <- data.sc_r %>%
 ## Generate summary table
 
 Show model fitting results as a table.
-```{r Make and save table}
+```{r Make and save table with mixed model properties}
 props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
 props_table <- as.tibble(data.sc_r[props_for_table])
 props_table_unnest <- unnest(props_table)
@@ -218,7 +217,7 @@ We want to plot for each model the prediction at location = 0 for each animal (I
 
 Reformat the data to generate plots.
 Call to prep_int_slopes extracts model predictions ready for plotting.
-```{r Format data ready for plotting}
+```{r Format mixed model outputs ready for plotting}
 combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris")
 
 id_housing <-  distinct(data.sc, id, housing)
@@ -346,7 +345,7 @@ write_csv(props_table_unnest_all, "results_model_all_table.csv")
 ## Plot intercepts and slopes for the maximal model
 
 Prepare data.
-```{r Format data ready for plotting}
+```{r Format maximal mixed model outputs ready for plotting}
 combined_intercepts_slopes_max <- prep_int_slopes(data.sc_r_all, "property", "mixedmodel_vsris_all")
 
 id_housing <-  distinct(data.sc, id, housing)
@@ -359,7 +358,7 @@ combined_intercepts_slopes_max$property_factors = factor(combined_intercepts_slo
 
 
 Now generate the plot. Not sure how useful this is.
-```{r Make facetted plot of model fits}
+```{r Make facetted plot of fits for the maximal model}
 labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
 IS_figure_max <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
@@ -520,7 +519,7 @@ out.pca.x_g <- out.pca.x_g %>%
 ## Compare fits of mixed models to one another and to population level linear model
 
 Extract AIC for all models
-```{r Extract AIC}
+```{r Extract AIC for PCA models}
 out.pca.x_g <- out.pca.x_g %>%
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
@@ -532,7 +531,7 @@ out.pca.x_g <- out.pca.x_g %>%
 
 
 Test whether effects of animal id are significant.
-```{r Compare mixed with linear model using chisq}
+```{r Compare mixed with linear PCA models using chisq}
 ## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
 out.pca.x_g <- out.pca.x_g %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
@@ -561,7 +560,7 @@ out.pca.x_g <- out.pca.x_g %>%
 ## Generate summary table for PCA
 
 Show model fitting results as a table.
-```{r Make and save table}
+```{r Make and save table with PCA mixed model properties}
 props_for_table_PCA <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
 props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
 props_table_unnest_PCA <- unnest(props_table_PCA)
@@ -582,7 +581,7 @@ As above, we want to plot for each model the prediction at location = 0 for each
 
 
 Extract model predictions ready to generate plots.
-```{r Format data ready for plotting}
+```{r Format PCA mixed model fits ready for plotting}
 combined_intercepts_slopes_PCA <- prep_int_slopes(out.pca.x_g, "component", "mixedmodel_vsris")
 
 id_housing_PCA <-  distinct(out.pca.x, id, housing)
@@ -597,7 +596,7 @@ combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_sl
 
 
 Now generate the plot.
-```{r Make facetted plot of model fits}
+```{r Make facetted plot of PCA model fits}
 IS_figure_PCA_1_11 <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
