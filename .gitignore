@@ -3,3 +3,6 @@
 .RData
 .Ruserdata
 I_S_figure.png
+_book/
+_bookdown_files/
+*.html

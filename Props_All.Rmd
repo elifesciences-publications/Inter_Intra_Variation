@@ -1,0 +1,15 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Analysis of membrane properties from all animals
+
+## Comparison of stellate cells with Wfs1+ cells
+
+This analysis is currently elsewhere.
+
+
+## Plot of stellate cell and pyramidal cell properties as a function of location
+
+This analysis is currently elsewhere.

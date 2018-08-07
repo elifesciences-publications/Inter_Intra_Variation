@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html >
+
+<head>
+
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Analysis code for Pastoll et al.</title>
+  <meta name="description" content="The book documents code used in Pastoll et al. Each chapter describes analyses for the corresponding figure.">
+  <meta name="generator" content="bookdown 0.7 and GitBook 2.6.7">
+
+  <meta property="og:title" content="Analysis code for Pastoll et al." />
+  <meta property="og:type" content="book" />
+  
+  
+  <meta property="og:description" content="The book documents code used in Pastoll et al. Each chapter describes analyses for the corresponding figure." />
+  
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Analysis code for Pastoll et al." />
+  
+  <meta name="twitter:description" content="The book documents code used in Pastoll et al. Each chapter describes analyses for the corresponding figure." />
+  
+
+<meta name="author" content="Matt Nolan">
+
+
+<meta name="date" content="2018-08-06">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  
+  
+<link rel="prev" href="index.html">
+
+<script src="libs/jquery-2.2.3/jquery.min.js"></script>
+<link href="libs/gitbook-2.6.7/css/style.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-bookdown.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-highlight.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-search.css" rel="stylesheet" />
+<link href="libs/gitbook-2.6.7/css/plugin-fontsettings.css" rel="stylesheet" />
+
+
+
+
+
+
+
+
+
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+<link rel="stylesheet" href="style.css" type="text/css" />
+</head>
+
+<body>
+
+
+
+  <div class="book without-animation with-summary font-size-2 font-family-1" data-basepath=".">
+
+    <div class="book-summary">
+      <nav role="navigation">
+
+<ul class="summary">
+<li><a href="./">A Minimal Book Example</a></li>
+
+<li class="divider"></li>
+<li class="chapter" data-level="" data-path="index.html"><a href="index.html"><i class="fa fa-check"></i>Introduction</a></li>
+<li class="chapter" data-level="1" data-path="Fig1.html"><a href="Fig1.html"><i class="fa fa-check"></i><b>1</b> Figure 1</a></li>
+<li class="divider"></li>
+<li><a href="https://github.com/rstudio/bookdown" target="blank">Published with bookdown</a></li>
+
+</ul>
+
+      </nav>
+    </div>
+
+    <div class="book-body">
+      <div class="body-inner">
+        <div class="book-header" role="navigation">
+          <h1>
+            <i class="fa fa-circle-o-notch fa-spin"></i><a href="./">Analysis code for Pastoll et al.</a>
+          </h1>
+        </div>
+
+        <div class="page-wrapper" tabindex="-1" role="main">
+          <div class="page-inner">
+
+            <section class="normal" id="section-">
+<div id="Fig1" class="section level1">
+<h1><span class="header-section-number">Chapter 1</span> Figure 1</h1>
+<p>The goal is to generate schematic diagrams to illustrate the ideas to be tested by the analyses.</p>
+<p>First generate simulated data. Imagine a dataset describing individual cells using two quantifiable features (x and y). In this scenario different cell class could be separated using these features. Each cell class is modeled as having variance for each feature.</p>
+<p>The distribution of features of cell class A has a simple structure in which the variance is around a point.</p>
+<p>For cell class B the distribution of features is along a line.</p>
+<p>Cell classes C and D have a similar distribution to A, but are centered at different values of one or both features.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">100</span>
+Cell_A &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">10</span>, <span class="dv">1</span>),
+                       <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">12</span>, <span class="dv">1</span>),
+                       <span class="dt">cell =</span> <span class="st">&quot;A&quot;</span>)
+Cell_B &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">runif</span>(numcells, <span class="dt">min =</span> <span class="dv">20</span>, <span class="dt">max =</span> <span class="dv">40</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(numcells,<span class="dv">0</span>,<span class="dv">1</span>),
+                       <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">25</span>, <span class="dv">2</span>),
+                       <span class="dt">cell =</span> <span class="st">&quot;B&quot;</span>)
+Cell_C &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">10</span>, <span class="dv">2</span>),
+                       <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">35</span>, <span class="dv">2</span>),
+                       <span class="dt">cell =</span> <span class="st">&quot;C&quot;</span>)
+Cell_D &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">30</span>, <span class="dv">2</span>),
+                       <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">10</span>, <span class="dv">2</span>),
+                       <span class="dt">cell =</span> <span class="st">&quot;D&quot;</span>)
+ 
+CellFeatures &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(Cell_A, Cell_B, Cell_C, Cell_D)</code></pre></div>
+<p>Plot cell features using a colour blind friendly palette (from <a href="http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/" class="uri">http://www.cookbook-r.com/Graphs/Colors_(ggplot2)/</a>).</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">cbPalette &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="st">&quot;#E69F00&quot;</span>, <span class="st">&quot;#D55E00&quot;</span>, <span class="st">&quot;#56B4E9&quot;</span>, <span class="st">&quot;#009E73&quot;</span>)
+
+CF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(CellFeatures, <span class="kw">aes</span>(x, y, <span class="dt">colour =</span> cell)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">0</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="dv">0</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;Feature 1&quot;</span>, <span class="dt">y =</span> <span class="st">&quot;Feature 2&quot;</span>, <span class="dt">colour =</span> <span class="st">&quot;Cell Type&quot;</span>, <span class="dt">title =</span> <span class="st">&quot;Cell type separation&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_colour_manual</span>(<span class="dt">values=</span>cbPalette) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_classic</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,
+        <span class="dt">axis.ticks =</span> <span class="kw">element_blank</span>(),
+        <span class="dt">axis.text =</span> <span class="kw">element_blank</span>(),
+        <span class="dt">legend.text =</span> <span class="kw">element_blank</span>())
+
+CF_plot</code></pre></div>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>Focus on cell class B. First imagine how a distribution like the one above could be generated by pooling data from multiple animals in which the actual distribution is modular. Considered colour / intensity coding the points to reflect a functional variable, e.g. dorsoventral position in MEC. Would probaly add too much information.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">20</span>
+MF_A &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">c</span>(<span class="kw">rnorm</span>(numcells, <span class="dv">26</span>, <span class="fl">0.5</span>), <span class="kw">rnorm</span>(numcells, <span class="dv">31</span>, <span class="fl">0.5</span>), <span class="kw">rnorm</span>(numcells, <span class="dv">36</span>, <span class="fl">0.5</span>)),
+                   <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells<span class="op">*</span><span class="dv">3</span>, <span class="dv">25</span>, <span class="dv">2</span>),
+                   <span class="dt">animal =</span> <span class="st">&quot;1&quot;</span>)
+MF_B &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">c</span>(<span class="kw">rnorm</span>(numcells, <span class="fl">28.5</span>, <span class="fl">0.5</span>), <span class="kw">rnorm</span>(numcells, <span class="fl">33.5</span>, <span class="fl">0.5</span>), <span class="kw">rnorm</span>(numcells, <span class="fl">38.5</span>, <span class="fl">0.5</span>)),
+                    <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells<span class="op">*</span><span class="dv">3</span>, <span class="dv">25</span>, <span class="dv">2</span>),
+                    <span class="dt">animal =</span> <span class="st">&quot;2&quot;</span>)
+                   
+ModularFeatures &lt;-<span class="st"> </span><span class="kw">rbind</span>(MF_A, MF_B)
+
+MF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(ModularFeatures, <span class="kw">aes</span>(x, y, <span class="dt">colour =</span> animal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">20</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="dv">20</span>,<span class="dv">30</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlab</span>(<span class="st">&quot;Feature 1&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Feature 2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_classic</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">axis.title.x=</span><span class="kw">element_blank</span>())
+
+MF_plot</code></pre></div>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>Next imagine a scenarion in which the distribution in D is continuous within an animal, but for which there are inter-animal differences in the mean of feature 2.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">60</span>
+
+OOF_A &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">runif</span>(numcells, <span class="dt">min =</span> <span class="dv">25</span>, <span class="dt">max =</span> <span class="dv">40</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(numcells,<span class="dv">0</span>,<span class="dv">1</span>),
+                <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">23</span>, <span class="dv">1</span>),
+                <span class="dt">animal =</span> <span class="st">&quot;1&quot;</span>)
+OOF_B &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">runif</span>(numcells, <span class="dt">min =</span> <span class="dv">25</span>, <span class="dt">max =</span> <span class="dv">40</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(numcells,<span class="dv">0</span>,<span class="dv">1</span>),
+                <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">27</span>, <span class="dv">1</span>),
+                <span class="dt">animal =</span> <span class="st">&quot;2&quot;</span>)
+     
+OrthogOffsetFeatures &lt;-<span class="st"> </span><span class="kw">rbind</span>(OOF_A, OOF_B)
+
+OOF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(OrthogOffsetFeatures, <span class="kw">aes</span>(x, y, <span class="dt">colour =</span> animal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">20</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="dv">20</span>,<span class="dv">30</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlab</span>(<span class="st">&quot;Feature 1&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Feature 2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_classic</span>()
+
+OOF_plot</code></pre></div>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Finally, imagine a scenario in which the distribution in D is continuous within an animal but the range across the variable feature differs between animals.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">numcells &lt;-<span class="st"> </span><span class="dv">60</span>
+
+LOF_A &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">runif</span>(numcells, <span class="dt">min =</span> <span class="dv">25</span>, <span class="dt">max =</span> <span class="dv">35</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(numcells,<span class="dv">0</span>,<span class="dv">1</span>),
+                <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">25</span>, <span class="dv">2</span>),
+                <span class="dt">animal =</span> <span class="st">&quot;1&quot;</span>)
+LOF_B &lt;-<span class="st"> </span><span class="kw">tibble</span>(<span class="dt">x =</span> <span class="kw">runif</span>(numcells, <span class="dt">min =</span> <span class="dv">30</span>, <span class="dt">max =</span> <span class="dv">40</span>) <span class="op">+</span><span class="st"> </span><span class="kw">rnorm</span>(numcells,<span class="dv">0</span>,<span class="dv">1</span>),
+                <span class="dt">y =</span> <span class="kw">rnorm</span>(numcells, <span class="dv">25</span>, <span class="dv">2</span>),
+                <span class="dt">animal =</span> <span class="st">&quot;2&quot;</span>)
+LinearOffsetFeatures &lt;-<span class="st"> </span><span class="kw">rbind</span>(LOF_A, LOF_B)
+
+LOF_plot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(LinearOffsetFeatures, <span class="kw">aes</span>(x, y, <span class="dt">colour =</span> animal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">20</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="dv">20</span>,<span class="dv">30</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlab</span>(<span class="st">&quot;Feature 1&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylab</span>(<span class="st">&quot;Feature 2&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_classic</span>()
+
+LOF_plot</code></pre></div>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Combine models for intra-animal variation and make plots using facets.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ModularFeatures<span class="op">$</span>scheme &lt;-<span class="st"> &quot;modular&quot;</span>
+OrthogOffsetFeatures<span class="op">$</span>scheme &lt;-<span class="st"> &quot;orthog&quot;</span>
+LinearOffsetFeatures<span class="op">$</span>scheme &lt;-<span class="st"> &quot;linear&quot;</span>
+IntraAnimal &lt;-<span class="st"> </span><span class="kw">bind_rows</span>(ModularFeatures, OrthogOffsetFeatures, LinearOffsetFeatures)
+IntraAnimal<span class="op">$</span>scheme &lt;-<span class="st"> </span><span class="kw">as.factor</span>(IntraAnimal<span class="op">$</span>scheme)
+IntraAnimal<span class="op">$</span>scheme =<span class="st"> </span><span class="kw">factor</span>(IntraAnimal<span class="op">$</span>scheme, <span class="kw">c</span>(<span class="st">&quot;modular&quot;</span>, <span class="st">&quot;orthog&quot;</span>,<span class="st">&quot;linear&quot;</span>))
+labels_schemes &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dt">modular =</span> <span class="st">&quot;Modular&quot;</span>, <span class="dt">orthog =</span> <span class="st">&quot;Orthogonal&quot;</span>, <span class="dt">linear =</span> <span class="st">&quot;Linear&quot;</span>)
+
+IntraAnimalPlot &lt;-<span class="st"> </span><span class="kw">ggplot</span>(IntraAnimal, <span class="kw">aes</span>(x, y, <span class="dt">alpha =</span> animal)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_point</span>(<span class="dt">colour =</span> cbPalette[<span class="dv">2</span>]) <span class="op">+</span>
+<span class="st">  </span><span class="kw">xlim</span>(<span class="dv">20</span>,<span class="dv">45</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ylim</span>(<span class="dv">20</span>,<span class="dv">30</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">labs</span>(<span class="dt">x =</span> <span class="st">&quot;Feature 1&quot;</span>, <span class="dt">y =</span> <span class="st">&quot;Feature 2&quot;</span>, <span class="dt">alpha =</span> <span class="st">&quot;Animal&quot;</span>, <span class="dt">title =</span> <span class="st">&quot;Within cell type variability&quot;</span>) <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span>scheme, <span class="dt">nrow =</span> <span class="dv">3</span>, <span class="dt">labeller =</span> <span class="kw">labeller</span>(<span class="dt">scheme =</span> labels_schemes)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme_classic</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">strip.background =</span> <span class="kw">element_blank</span>(),
+        <span class="dt">axis.ticks =</span> <span class="kw">element_blank</span>(),
+        <span class="dt">axis.text =</span> <span class="kw">element_blank</span>()) <span class="op">+</span>
+<span class="st">  </span><span class="kw">scale_alpha_discrete</span>(<span class="dt">range=</span><span class="kw">c</span>(<span class="fl">0.1</span>,<span class="dv">1</span>)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">theme</span>(<span class="dt">legend.position =</span> <span class="st">&quot;bottom&quot;</span>,
+        <span class="dt">legend.text =</span> <span class="kw">element_blank</span>())
+
+IntraAnimalPlot</code></pre></div>
+<pre><code>## Warning: Removed 2 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Plot all together. Blank columns are to allow white space for insertion of labels.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ConceptFigure &lt;-<span class="st"> </span><span class="kw">grid.arrange</span>(CF_plot, IntraAnimalPlot,
+             <span class="dt">ncol =</span> <span class="dv">4</span>,
+             <span class="dt">widths =</span> <span class="kw">c</span>(<span class="fl">0.1</span>, <span class="dv">1</span>, <span class="fl">0.1</span>, <span class="fl">1.2</span>),
+             <span class="dt">layout_matrix =</span> <span class="kw">rbind</span>(<span class="kw">c</span>(<span class="ot">NA</span>, <span class="dv">1</span>, <span class="ot">NA</span>, <span class="dv">2</span>)))</code></pre></div>
+<pre><code>## Warning: Removed 2 rows containing missing values (geom_point).</code></pre>
+<p><img src="Modular_Intrinsic_Properties_add_bookdown_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ConceptFigure</code></pre></div>
+<pre><code>## TableGrob (1 x 4) &quot;arrange&quot;: 2 grobs
+##   z     cells    name           grob
+## 1 1 (1-1,2-2) arrange gtable[layout]
+## 2 2 (1-1,4-4) arrange gtable[layout]</code></pre>
+<p>Save the figure.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">ggsave</span>(<span class="st">&quot;Concept_figure.png&quot;</span>, <span class="dt">plot =</span> ConceptFigure, <span class="dt">width =</span> <span class="dv">160</span>, <span class="dt">height =</span> <span class="dv">100</span>, <span class="dt">units =</span> <span class="st">&quot;mm&quot;</span>)</code></pre></div>
+
+</div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+<a href="index.html" class="navigation navigation-prev navigation-unique" aria-label="Previous page"><i class="fa fa-angle-left"></i></a>
+
+    </div>
+  </div>
+<script src="libs/gitbook-2.6.7/js/app.min.js"></script>
+<script src="libs/gitbook-2.6.7/js/lunr.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-search.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-sharing.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-fontsettings.js"></script>
+<script src="libs/gitbook-2.6.7/js/plugin-bookdown.js"></script>
+<script src="libs/gitbook-2.6.7/js/jquery.highlight.js"></script>
+<script>
+gitbook.require(["gitbook"], function(gitbook) {
+gitbook.start({
+"sharing": {
+"github": false,
+"facebook": true,
+"twitter": true,
+"google": false,
+"linkedin": false,
+"weibo": false,
+"instapper": false,
+"vk": false,
+"all": ["facebook", "google", "twitter", "linkedin", "weibo", "instapaper"]
+},
+"fontsettings": {
+"theme": "white",
+"family": "sans",
+"size": 2
+},
+"edit": {
+"link": null,
+"text": null
+},
+"download": ["Modular_Intrinsic_Properties_add_bookdown.pdf", "Modular_Intrinsic_Properties_add_bookdown.epub"],
+"toc": {
+"collapse": "subsection"
+}
+});
+});
+</script>
+
+</body>
+
+</html>
