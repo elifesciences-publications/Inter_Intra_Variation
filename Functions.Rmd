@@ -19,8 +19,7 @@ This document contains functions for code used in later sections.  The functions
 
 ----------------------- Models ------------------------
 
-Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
-model_to_fit 
+Model vs random intercept and slope.
 ```{r}
 model_to_fit <- function(df) {
   lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
@@ -36,6 +35,10 @@ model_vsris <- function(df) {
   lme4::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
+model_vsris_1 <- function(df) {
+  lme4::lmer(value ~ dvlocmm1 +(dvlocmm1||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
 model_vsris_lT<- function(df) {
   lmerTest::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
@@ -44,6 +47,11 @@ model_vsris_lT<- function(df) {
 model_vsris_null <- function(df) {
   lme4::lmer(value ~ dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
 }
+
+model_vsris_1_null <- function(df) {
+  lme4::lmer(value ~ dvlocmm1||id, data = df, REML = FALSE, na.action = na.exclude)
+}
+
 # Model vs random intercept.
 model_vsri <- function(df) {
     lme4::lmer(value ~ dvlocmm +(1|id), data = df, REML = FALSE, na.action = na.exclude)
@@ -116,6 +124,10 @@ Linear models
 ```{r}
 linearmodel_to_fit <- function(df) {
   lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+}
+
+linearmodel_to_fit_1 <- function(df) {
+  lm(value ~ dvlocmm1, data = df, na.action = na.exclude)
 }
 
 linearmodel_age <- function(df) {

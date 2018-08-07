@@ -3,9 +3,6 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-
-
-
 ```{r setup_Feates_mixedmod, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
@@ -32,11 +29,13 @@ Generate plots to evaluate assumptions of mixed models
 
 ## Fit mixed models
 
-Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
+Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). An additional model uses the transformation of dvlocmm (vsris_1) carried out in LoadData.Rmd. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris = map(data, model_vsris))%>%
   mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsris_1 = map(data, model_vsris_1))%>%
+  mutate(mixedmodel_vsris_1_null = map(data, model_vsris_1_null))%>%
   mutate(mixedmodel_vsri = map(data, model_vsri))%>%
   mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
   mutate(mixedmodel_vscris = map(data, model_vscris))%>%
@@ -52,22 +51,27 @@ Extract AIC for all models.
 data.sc_r <- data.sc_r %>% 
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsris_1_glance = map(mixedmodel_vsris_1, broom::glance)) %>%
+  mutate(vsris_1_null_glance = map(mixedmodel_vsris_1_null, broom::glance)) %>%
   mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
   mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
   mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
   mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsris_1_AIC = map_dbl(vsris_1_glance, ~.$AIC)) %>%
+  mutate(vsris_1_null_AIC = map_dbl(vsris_1_null_glance, ~.$AIC)) %>%
   mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
   mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
 ```
 
-In general vsris and vscris have similar AIC. We focus the subsequent analysis on vsris.
+In general vsris and vscris have similar AIC (compare columns in data.sc_r). We focus the subsequent analysis on vsris. For discussion of maximal models versus random intercept only models see Barr et al. Journal of Memory and Language, 2013.
 
 
 ## Extract summary statistics from models.
 
-The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
-```{r Extract Summary statistics}
+The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
+```{r Extract Summary statistics, warning=FALSE}
 data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
+data.sc_r_1 <- mixedmod_extract(data.sc_r, "mixedmodel_vsris_1")
 ```
 
 
@@ -81,6 +85,14 @@ data.sc_r <- data.sc_r %>%
 
 data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
 ```
+And, do the same thing for the transformed data:
+```{r}
+data.sc_r_1 <- data.sc_r_1 %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit_1))
+
+data.sc_r_1 <- bind_cols(data.sc_r_1, mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel"))
+```
+
 
 ## Compare the model with a null model containing only id as a random effect
 Use ANOVA to compare the model with the null model.
@@ -90,14 +102,22 @@ data.sc_r <- data.sc_r %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
 ```
+And, again for the transformed data:
+```{r, warning=FALSE}
+data.sc_r_1 <- data.sc_r_1 %>%
+  mutate(anova = map2(mixedmodel_vsris_1, mixedmodel_vsris_1_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+```
 
 
-## Generate summary table
 
-Show model fitting results as a table.
+## Generate summary tables
+
+Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
-props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
-props_table <- as.tibble(data.sc_r[props_for_table])
+props_for_table <- c("property", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff", "gradient_slopes", "modelslope_min", "modelslope_max")
+props_table <- as.tibble(data.sc_r[props_for_table][1:12,])
 props_table_unnest <- unnest(props_table)
 
 props_table_unnest %>%
@@ -109,6 +129,33 @@ props_table_unnest %>%
 
 write_csv(props_table_unnest, "results_model_table.csv")
 ```
+
+Parameters from fitting models with properties transformed.
+```{r Table_mixed_model_properties_t}
+props_table_t <- as.tibble(data.sc_r[props_for_table][13:24,])
+props_table_t_unnest <- unnest(props_table_t)
+
+props_table_t_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
+Parameters from fitting models with properties and dvlocmm transformed.
+```{r Table_mixed_model_properties_1}
+props_table_1 <- as.tibble(data.sc_r_1[props_for_table][13:24,])
+props_table_1_unnest <- unnest(props_table_1)
+
+props_table_1_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+```
+
 
 
 ## Evaluate age and housing
@@ -173,7 +220,7 @@ We want to plot for each model the prediction at location = 0 for each animal (I
 
 Reformat the data to generate plots.
 Call to prep_int_slopes extracts model predictions ready for plotting. To use only measured values, rather than also including transformed values, only the first 12 rows of data.sc_r are used.
-```{r Format mixed model outputs ready for plotting}
+```{r Format mixed model outputs ready for plotting, warning=FALSE}
 combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mixedmodel_vsris")
 
 id_housing <-  distinct(data.sc, id, housing)
