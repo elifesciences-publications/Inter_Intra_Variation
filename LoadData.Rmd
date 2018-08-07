@@ -41,17 +41,27 @@ counts <- data.sc %>% count(id)
 summary(counts)
 ```
 
+
+Add new columns containing copula transformed data
+```{r}
+trans.properties <- 
+    apply(apply(data.sc %>% dplyr::select(vm:fi), 2, edf), 2, qnorm )
+data.sc <- bind_cols(data.sc, as.data.frame(trans.properties))
+```
+
+
+
 Data is in a 'flat' format:
 ```{r}
 head(data.sc)
 ```
 
 
-Reformat data for use with map and other tidyverse functions.
+Reformat data for use with map and other tidyverse functions. Properties vm:fi are the experimentally measured proprties, and vm1:fi1 are the transformed properties.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  gather("property", "value", vm:fi) %>%
+  dplyr::select(vm:fi, vm1:fi1, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi1) %>%
   group_by(property) %>%
   nest()
 ```
