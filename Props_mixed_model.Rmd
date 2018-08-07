@@ -95,7 +95,7 @@ data.sc_r <- data.sc_r %>%
 ## Generate summary table
 
 Show model fitting results as a table.
-```{r Make and save table with mixed model properties}
+```{r Table_mixed_model_properties}
 props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
 props_table <- as.tibble(data.sc_r[props_for_table])
 props_table_unnest <- unnest(props_table)
@@ -172,9 +172,9 @@ write_csv(props_table_unnest, "housing_age_table.csv")
 We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
 
 Reformat the data to generate plots.
-Call to prep_int_slopes extracts model predictions ready for plotting.
+Call to prep_int_slopes extracts model predictions ready for plotting. To use only measured values, rather than also including transformed values, only the first 12 rows of data.sc_r are used.
 ```{r Format mixed model outputs ready for plotting}
-combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris")
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mixedmodel_vsris")
 
 id_housing <-  distinct(data.sc, id, housing)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
