@@ -1,0 +1,232 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+
+```{r setup_Feates_mixedmod, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Ensure access to libraries
+library(lme4)
+library(MuMIn)
+library(tidyverse)
+```
+
+# Mixed model analysis of electrophysiological features
+
+
+Core analyses used for investigation of inter-animal variability in intrinsic properties of layer 2 stellate cells and their dorsoventral organisation. This code uses functions in "Functions.Rmd".
+
+Organisation:
+
+Fit mixed models
+Compare fits of mixed models to one another and to population level linear model
+Extract other summary data from the models
+Generate summary table
+Plot fits of mixed models
+Generate plots to evaluate assumptions of mixed models
+
+
+## Fit mixed models
+
+Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
+  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
+  mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
+  mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
+```
+
+
+## Compare fits of mixed models to one another and to population level linear model
+
+Extract AIC for all models.
+```{r Extract AIC}
+data.sc_r <- data.sc_r %>% 
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
+  mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
+  mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
+  mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
+```
+
+In general vsris and vscris have similar AIC. We focus the subsequent analysis on vsris.
+
+
+## Extract summary statistics from models.
+
+The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract Summary statistics}
+data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
+```
+
+
+## Compare fits of mixed models to population level linear model
+
+To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
+```{r Compare mixed with linear model using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
+```
+
+## Compare the model with a null model containing only id as a random effect
+Use ANOVA to compare the model with the null model.
+```{r Compare to null model, warning=FALSE}
+data.sc_r <- data.sc_r %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+```
+
+
+## Generate summary table
+
+Show model fitting results as a table.
+```{r Make and save table with mixed model properties}
+props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+props_table_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+
+write_csv(props_table_unnest, "results_model_table.csv")
+```
+
+
+## Evaluate age and housing
+
+Evaluate inclusion of housing as fixed effect.
+```{r, warning=FALSE}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_housing = map(data, model_vsris_housing)) %>%
+  mutate(anova_housing = map2(mixedmodel_vsris, mixedmodel_vsris_housing, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_housing = map(anova_housing, broom::tidy)) %>% 
+  mutate(p_housing = map_dbl(tidy_anova_housing, ~.$p.value[2]))
+```
+
+Evaluate inclusion of age as fixed effect 
+```{r, warning=FALSE}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_age_null = map(data, model_vsris_age_con)) %>%
+  mutate(mixedmodel_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(anova_age = map2(mixedmodel_vsris_age_null, mixedmodel_vsris_age, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_age = map(anova_age, broom::tidy)) %>% 
+  mutate(p_age = map_dbl(tidy_anova_age, ~.$p.value[2]))
+  
+```
+
+Compare models that include id as random effect in models that include housing with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_housing = map(data, linearmodel_housing))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_housing", "linearmodel_vsris_housing"))
+```
+
+Compare models that include id as random effect in models that include age with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_age = map(data, linearmodel_age))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
+```
+
+
+Make a table to summarise effects of housing and age.
+Bwe careful with pdiff1 and pdiff2 - if mixed_vs_linear_pchisqu has been called more than once for each variable then names will be incorrect.
+```{r}
+props_for_table <- c("property", "p_housing", "pdiff1", "p_age", "pdiff2")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+props_table_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Additional fits with housing and age as fixd effects"
+) %>%
+    kableExtra::kable_styling()
+
+write_csv(props_table_unnest, "housing_age_table.csv")
+```
+
+
+
+## Plot fits of mixed models
+
+We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
+
+Reformat the data to generate plots.
+Call to prep_int_slopes extracts model predictions ready for plotting.
+```{r Format mixed model outputs ready for plotting}
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris")
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
+
+combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
+
+combined_intercepts_slopes$property_factors = factor(combined_intercepts_slopes$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+```
+
+
+Now generate the plot.
+```{r Facetted_plot_of_model_fits}
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure
+```
+
+Save the figure.
+```{r Save plot of model fits}
+ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
+```
+
+
+
+## Generate plots to evaluate assumptions of mixed models
+To test for linearity, and to assess homoscedasticity, plot residuals (.residual) versus fitted values (.fitted) generated by broom::augment.
+
+```{r}
+resid_plot_data <- unnest(data.sc_r, mm_aug) %>%
+  select(property, id, .resid, .fitted)
+
+ggplot(resid_plot_data, aes(.fitted, .resid)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+Evaluate normality of residuals.
+```{r}
+ggplot(resid_plot_data, aes(.resid)) +
+  geom_histogram() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+

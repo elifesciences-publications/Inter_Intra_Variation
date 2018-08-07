@@ -56,12 +56,12 @@ data.sc_r <- data.sc %>%
   nest()
 ```
 
-Now the data is organised as a frame with nested for each measurement:
+Now the data is organised as a frame containing nested frames for each measurement:
 ```{r}
 head(data.sc_r)
 ```
 
-The nested frames look like this:
+The nested frame for membrane potential (vm) looks like this:
 ```{r}
 head(filter(data.sc_r, property == "vm")$data)
 ```
