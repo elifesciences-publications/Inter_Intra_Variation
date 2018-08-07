@@ -310,5 +310,13 @@ combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, glob
 }
 ```
 
+Helper function for copula transformation of data. Returns ranked data.
+```{r}
+edf <- function(x)
+{
+    n <- length(x)
+    rank(x)/(n+1)                       
+}
+```
 
 
