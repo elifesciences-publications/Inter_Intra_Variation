@@ -3,4 +3,4 @@ delete_merged_file: true
 language:
   ui:
     chapter_name: "Figure "
-rmd_files: ["index.Rmd", "01-ConceptualFigures.Rmd"]
+rmd_files: ["index.Rmd", "Functions.Rmd", "01-ConceptualFigures.Rmd"]

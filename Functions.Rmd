@@ -5,18 +5,21 @@ date: "17/05/2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup_functions, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggthemes)
 library(optimx)
 ```
 
-Goals: functions for mixed model and related analysis of multiple electrophysiological properties. Functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
+
+# Functions {-}
+
+This document contains functions for code used in later sections.  The functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
 
 ----------------------- Models ------------------------
 
-# Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
+Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
 model_to_fit 
 ```{r}
 model_to_fit <- function(df) {
@@ -109,7 +112,7 @@ model_vsris_all_nlminb <- function(df) {
 ```
 
  
- ## Linear models
+Linear models
 ```{r}
 linearmodel_to_fit <- function(df) {
   lm(value ~ dvlocmm, data = df, na.action = na.exclude)
@@ -127,7 +130,7 @@ linearmodel_housing <- function(df) {
 - used in PCA.rmd
 
 
-## Mixed models fit with nlme
+Mixed models fit with nlme
 Alternative way to fit mixed model using nlme for compatibility with ANOVA.
 ```{r}
 # Gives error when random term incluces dvlocmm
@@ -213,7 +216,7 @@ PCA_theme = theme(
 ```
 
 Helper function to normalise a vector
-```{r}
+```{r Normalise helper}
 normalize<-function(m){
    (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
 }
