@@ -17,17 +17,26 @@ library(tidyverse)
 To load and preprocess data used for other analyses.
 
 
-Import the data.
+Import stellate cell data.
 ```{r import data, message = FALSE}
 fname.sc <- "datatable.txt"
-data.import <- read_tsv(fname.sc)
+data.import.sc <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
-data.sc <- data.import %>% drop_na(dvloc)
+data.sc <- data.import.sc %>% drop_na(dvloc)
 
 # Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
 data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
 ```
+
+Import wfs1 cell data.
+```{r, message = FALSE}
+fname.wfs <- "datatable_cal.txt"
+data.import.wfs <- read_tsv(fname.wfs)
+data.wfs <- data.import.wfs %>% drop_na(dvloc)
+data.wfs <- mutate(data.wfs, dvlocmm = dvloc/1000)
+```
+
 
 Total number of cells recorded, and number in each environment:
 ```{r}
