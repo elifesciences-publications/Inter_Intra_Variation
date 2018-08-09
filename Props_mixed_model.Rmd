@@ -329,3 +329,15 @@ And for transformed data and locations
 ```{r}
 ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
 ```
+
+
+## Look at simulated values of distributions of random effects.
+Idea is from: https://stackoverflow.com/questions/13847936/in-r-plotting-random-effects-from-lmer-lme4-package-using-qqmath-or-dotplot
+```{r}
+fit <- filter(data.sc_r, property == "rheo")$mixedmodel_vsris
+randoms <- merTools::REsim(fit[[1]], n.sims = 500)
+merTools::plotREsim(randoms)
+```
+
+
+
