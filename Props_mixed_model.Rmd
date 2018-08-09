@@ -262,18 +262,70 @@ To test for linearity, and to assess homoscedasticity, plot residuals (.residual
 resid_plot_data <- unnest(data.sc_r, mm_aug) %>%
   select(property, id, .resid, .fitted)
 
-ggplot(resid_plot_data, aes(.fitted, .resid)) +
+ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(.fitted, .resid)) +
   geom_point() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
 ```
 
+Make the same plot, but for transformed data
+```{r}
+ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(.fitted, .resid)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+And for transformed location and data.
+```{r}
+resid_plot_data_1 <- unnest(data.sc_r_1, mm_aug) %>%
+  select(property, id, .resid, .fitted)
+
+ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(.fitted, .resid)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+
+
 Evaluate normality of residuals.
 ```{r}
-ggplot(resid_plot_data, aes(.resid)) +
+ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(.resid)) +
+  geom_histogram() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+Make same plot but for transformed data.
+```{r}
+ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(.resid)) +
+  geom_histogram() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+And for transformed location and data.
+```{r}
+ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(.resid)) +
   geom_histogram() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
 ```
 
 
+
+
+Q-Q plots of residuals for raw data
+```{r}
+ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+```
+
+Make same plots but for transformed data
+```{r}
+ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+```
+
+And for transformed data and locations
+```{r}
+ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+```
