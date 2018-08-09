@@ -1,5 +1,6 @@
 library(pcalg)
 library(igraph)
+
 df              <- data.sc %>% dplyr::select( vm:fi, dvlocmm) %>% na.omit
 N               <- nrow(df)
 Rho_neurons     <- cor(df)
