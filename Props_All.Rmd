@@ -1,0 +1,73 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r setup_Props_All, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+# Analysis of membrane properties from all animals
+
+## Comparison of stellate cells with Wfs1+ cells
+
+This analysis is currently elsewhere.
+
+
+## Plot of stellate cell and pyramidal cell properties as a function of location
+
+Gather variables into a single tidy data frame.
+```{r}
+plot_sc_wfs <- data.sc %>%
+  select(vm:fi, dvlocmm) %>%
+  mutate(classification = "SC")
+plot_wfs <- data.wfs %>%
+  select(vm:fi, dvlocmm, classification)
+plot_sc_wfs <- bind_rows(plot_sc_wfs, plot_wfs) %>%
+  gather("property", "value", vm:fi)
+
+ggplot(plot_sc_wfs, aes(dvlocmm,value)) +
+  geom_point(aes(colour = classification)) +
+  facet_wrap(~property, scales = "free_y")
+
+```
+
+
+## Plot raw and transformed stellate cell properties as a function of location
+
+Plot experimentally measured properties as a function of location.
+```{r}
+plot_all_raw_data <- data.sc %>%
+  select(vm:fi, dvlocmm) %>%
+  gather("property", "value", vm:fi)
+
+ggplot(plot_all_raw_data, aes(dvlocmm,value)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free_y")
+```
+
+
+Plot transformed properties as a function of location.
+```{r}
+plot_all_tprops_data <- data.sc %>%
+  select(vm1:fi1, dvlocmm) %>%
+  gather("property", "value", vm1:fi1)
+
+ggplot(plot_all_tprops_data, aes(dvlocmm,value)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free_y")
+```
+
+Plot transformed properties as a function of transformed location.
+```{r}
+plot_all_tall_data <- data.sc %>%
+  select(vm1:fi1, dvlocmm1) %>%
+  gather("property", "value", vm1:fi1)
+
+ggplot(plot_all_tall_data, aes(dvlocmm1,value)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free_y")
+```

@@ -2,7 +2,9 @@
 title: "Main Analysis"
 author: "Matt Nolan"
 date: "22/05/2018"
-output: html_document
+output: 
+  html_document: 
+    keep_md: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -21,8 +23,6 @@ Core analyses used for investigation of inter-animal variability in intrinsic pr
 
 Organisation:
 
-Load data
-
 Fit mixed models
 Compare fits of mixed models to one another and to population level linear model
 Extract other summary data from the models
@@ -36,50 +36,12 @@ Generate summary table
 Plot fits of mixed models
 Generate plots to evaluate assumptions of mixed models
 
-## Load data
 
-Specific properties for filtering data. Include animals ≥ 28 days.
-```{r Analysis parameters}
-min_age <- 0
-```
-
-Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
-```{r import data, message = FALSE}
-# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
-fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
-data.import <- read_tsv(fname.sc)
-
-# Strip out rows from data where locations are unknown (are NaN)
-data.sc <- data.import %>% drop_na(dvloc)
-
-# Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
-data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
-
-# Keep animals ≥ min_age
-data.sc.old <- filter(data.sc, age >= min_age)
-
-# Calculate total number of observations, and number in each environment
-length(data.sc.old$housing)
-count(data.sc.old, housing)
-
-# Calculate number of observations per animal
-counts.old <- data.sc.old %>% count(id)
-summary(counts.old)
-```
-
-Reformat data for use with map and other tidyverse functions.
-```{r}
-data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing) %>%
-  gather("property", "value", vm:fi) %>%
-  group_by(property) %>%
-  nest()
-```
 
 
 ## Fit mixed models
 
-Fit mixed models to all measured properties using lmer. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null.
+Fit mixed models to all measured properties using lmer. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT fit use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris = map(data, model_vsris))%>%
@@ -87,29 +49,34 @@ data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsri = map(data, model_vsri))%>%
   mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
   mutate(mixedmodel_vscris = map(data, model_vscris))%>%
-  mutate(mixedmodel_vscris_null = map(data, model_vscris))
+  mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
+  mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
 ```
 
 
 ## Compare fits of mixed models to one another and to population level linear model
 
-Compare different model using AIC.
+Extract AIC for all models.
 ```{r Extract AIC}
-# Extract summary statistics from models (could use Broom for this instead?).
-data.sc_r <- data.sc_r %>%
-  mutate(vsris_summary = map(mixedmodel_vsris, summary)) %>%
-  mutate(vsris_null_summary = map(mixedmodel_vsris_null, summary)) %>%
-  mutate(vsri_summary = map(mixedmodel_vsri, summary)) %>%
-  mutate(vscris_summary = map(mixedmodel_vscris, summary))
-
-# Extract AIC for all models
 data.sc_r <- data.sc_r %>% 
-  mutate(AIC_vsris = map_dbl(vsris_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsris_null = map_dbl(vsris_null_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vsri = map_dbl(vsri_summary, ~.$AIC[[1]])) %>%
-  mutate(AIC_vcsris = map_dbl(vscris_summary, ~.$AIC[[1]]))
-
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
+  mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
+  mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
+  mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
 ```
+
+In general vsris and vscris have similar AIC. Focus subsequent analysis on vsris.
+
+
+Extract summary statistics from models. The function mixedmod_extract is used to return statistics for mixedmodel_vsris and the corresponding null model. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract Summary statistics}
+data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
+```
+
 
 To test whether effects of animal id are significant compare mixed model fits with linear model fits. Modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html.
 ```{r Compare mixed with linear model using chisq}
@@ -117,7 +84,418 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
+```
+
+Compare the model with a null model containing only id as a random effect.
+```{r Compare to null model}
+data.sc_r <- data.sc_r %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+```
+
+
+## Generate summary table
+
+Show model fitting results as a table.
+```{r Make and save table with mixed model properties}
+props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+props_table_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+
+write_csv(props_table_unnest, "results_model_table.csv")
+```
+
+## Evaluate age and housing
+
+Evaluate inclusion of housing as fixed effect.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_housing = map(data, model_vsris_housing)) %>%
+  mutate(anova_housing = map2(mixedmodel_vsris, mixedmodel_vsris_housing, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_housing = map(anova_housing, broom::tidy)) %>% 
+  mutate(p_housing = map_dbl(tidy_anova_housing, ~.$p.value[2]))
+```
+
+Evaluate inclusion of age as fixed effect 
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mixedmodel_vsris_age_null = map(data, model_vsris_age_con)) %>%
+  mutate(mixedmodel_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(anova_age = map2(mixedmodel_vsris_age_null, mixedmodel_vsris_age, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_age = map(anova_age, broom::tidy)) %>% 
+  mutate(p_age = map_dbl(tidy_anova_age, ~.$p.value[2]))
+  
+```
+
+Compare models that include id as random effect in models that include housing with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_housing = map(data, linearmodel_housing))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_housing", "linearmodel_vsris_housing"))
+```
+
+Compare models that include id as random effect in models that include age with conventional linear models.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(linearmodel_vsris_age = map(data, linearmodel_age))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
+```
+
+
+Make a table to summarise effects of housing and age.
+Bwe careful with pdiff1 and pdiff2 - if mixed_vs_linear_pchisqu has been called more than once for each variable then names will be incorrect.
+```{r}
+props_for_table <- c("property", "p_housing", "pdiff1", "p_age", "pdiff2")
+props_table <- as.tibble(data.sc_r[props_for_table])
+props_table_unnest <- unnest(props_table)
+
+props_table_unnest %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Additional fits with housing and age as fixd effects"
+) %>%
+    kableExtra::kable_styling()
+
+write_csv(props_table_unnest, "housing_age_table.csv")
+```
+
+
+
+## Plot fits of mixed models
+
+We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
+
+Reformat the data to generate plots.
+Call to prep_int_slopes extracts model predictions ready for plotting.
+```{r Format mixed model outputs ready for plotting}
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mixedmodel_vsris")
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
+
+combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
+
+combined_intercepts_slopes$property_factors = factor(combined_intercepts_slopes$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+```
+
+
+Now generate the plot.
+```{r Make facetted plot of model fits}
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure
+```
+
+Save the figure.
+```{r Save plot of model fits}
+ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
+```
+
+
+
+## Generate plots to evaluate assumptions of mixed models
+To test for linearity, and to assess homoscedasticity, plot residuals (.residual) versus fitted values (.fitted) generated by broom::augment.
+
+```{r}
+resid_plot_data <- unnest(data.sc_r, mm_aug) %>%
+  select(property, id, .resid, .fitted)
+
+ggplot(resid_plot_data, aes(.fitted, .resid)) +
+  geom_point() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+Evaluate normality of residuals.
+```{r}
+ggplot(resid_plot_data, aes(.resid)) +
+  geom_histogram() +
+  facet_wrap(~property, scales = "free") +
+  theme_classic()
+```
+
+
+## Evalaute model with maximal random effects
+
+Does the parameter contribute to random effects?
+Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
+
+Build models with all possible random effects. Make a new dataframe for this so can also store model properies, etc without overwriting earlier results. Better long-term option might be to recode functions to handle different storage names.
+```{r}
+data.sc_r_all <- data.sc_r %>%
+  select(property, data) %>%
+  mutate(mixedmodel_vsris_all = map(data, model_vsris_all)) 
+```
+
+Show variance of each random effect in the maximal model
+```{r}
+VarCorr_helper <- function(df){
+  as.tibble(VarCorr(df))
+}
+
+data.sc_r_all <- data.sc_r_all %>%
+  mutate(all_VarCorr = map(mixedmodel_vsris_all, VarCorr_helper)) %>%
+  mutate(all_VarCorr_sdcor = map(all_VarCorr,~.$sdcor)) %>%
+  mutate(all_VarCorr_grp = map(all_VarCorr,~.$grp))
+
+sdcor_frame <- select(data.sc_r_all, property, all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  unnest(all_VarCorr_sdcor, all_VarCorr_grp)
+
+ggplot(sdcor_frame, aes(all_VarCorr_grp, all_VarCorr_sdcor)) +
+  geom_point(aes(colour = all_VarCorr_grp)) +
+  facet_wrap(~property, scales = "free_y")
+
+norm_helper <- function(df) {
+  df_sum <- sum(df)
+  df1 <- df / df_sum
+  df1
+}
+sdcor_frame <- sdcor_frame %>%
+  group_by(property) %>%
+  nest(all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  mutate(all_VarCorr_sdcor = map(data, ~.$all_VarCorr_sdcor)) %>%
+  mutate(norm_sd = map(all_VarCorr_sdcor, norm_helper)) %>%
+  select(property, data, norm_sd) %>%
+  unnest()
+
+ggplot(sdcor_frame, aes(property, norm_sd)) +
+  geom_point(aes(colour = property)) +
+  facet_wrap(~all_VarCorr_grp)
+```
+
+
+## Look at summary data for the maximal model
+```{r}
+data.sc_r_all <- mixedmod_extract(data.sc_r_all, "mixedmodel_vsris_all")
+
+props_for_table_all <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "marginal.r2", "conditional.r2")
+props_table_all <- as.tibble(data.sc_r_all[props_for_table_all])
+props_table_unnest_all <- unnest(props_table_all)
+
+props_table_unnest_all %>%
+  knitr::kable(
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+
+write_csv(props_table_unnest_all, "results_model_all_table.csv")
+```
+
+
+## Plot intercepts and slopes for the maximal model
+
+Prepare data.
+```{r Format maximal mixed model outputs ready for plotting}
+combined_intercepts_slopes_max <- prep_int_slopes(data.sc_r_all, "property", "mixedmodel_vsris_all")
+
+id_housing <-  distinct(data.sc, id, housing)
+combined_intercepts_slopes_max <- left_join(combined_intercepts_slopes_max, id_housing, by = "id")
+
+combined_intercepts_slopes_max$property_factors <- as.factor(combined_intercepts_slopes_max$property)
+
+combined_intercepts_slopes_max$property_factors = factor(combined_intercepts_slopes_max$property_factors, c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf"))
+```
+
+
+Now generate the plot. Not sure how useful this is.
+```{r Make facetted plot of fits for the maximal model}
+labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
+
+IS_figure_max <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+    geom_line(aes(group = id)) +
+    geom_jitter(aes(y = value_2), width = 0.2) +
+    scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+    theme_classic() +
+    hist_theme +
+    theme(axis.line.x = element_blank(), axis.ticks.x = element_blank()) +
+    facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
+    theme_classic() +
+    hist_theme
+
+
+IS_figure_max
+
+```
+
+
+## Evalaute removal of random effects
+
+Use step to remove random effect and then extract models identified.
+****** Warning: this may take several hours to run for vsris_all *******
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_all = map(mixedmodel_vsris_all, lmerTest::step)) %>%
+  mutate(mixedmodel_vsris_step = map(vsris_step_all, lmerTest::get_model))
+```
+
+Output from step indicates some models failed to converge. The larger model (mixedmodel_vsris_all) does converge and gives an indicate of the variance of each random effect. Failure appears to be associated with random effects with very small variance. Normalisation doesn't fix the problem. To check whether the selected models can be improved, run step again to further evaluate random effects and extract models identified. 
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_2 = map(mixedmodel_vsris_step, lmerTest::step))  %>%
+  mutate(mixedmodel_vsris_step2 = map(vsris_step_2, lmerTest::get_model))
+```
+
+Extract p-values for dorso-ventral dependence of each property using the step model.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_summary = map(mixedmodel_vsris_step2, summary)) %>%
+  mutate(vsris_step_coef = map(vsris_step_summary, ~.$coefficients)) %>%
+  mutate(vsris_step_varcor = map(vsris_step_summary, ~.$varcor)) %>%
+  mutate(vsris_step_dv_p = map(vsris_step_coef, ~.[10]))
+```
+
+Make tables to view properties of the step models
+```{r}
+
+kt <- function(df, cap) {knitr::kable(x = df, format = "pandoc", caption = paste("Property:", cap))}
+data.sc_r <- data.sc_r %>%
+  mutate(vsris_step_random = map(vsris_step_2, ~.$random)) %>%
+  mutate(vsris_step_ran_table = map2(vsris_step_random, property, kt)) %>%
+  mutate(vsris_step_varcor_table = map2(vsris_step_varcor, property, kt)) %>%
+  mutate(vsris_step_coef_table = map2(vsris_step_coef, property, kt))
+
+data.sc_r$vsris_step_ran_table
+data.sc_r$vsris_step_coef_table
+data.sc_r$vsris_step_varcor_table
+  
+```
+
+
+
+Interim save
+```{r}
+write_rds(data.sc_r, "analysis_outputs.rds")
+```
+
+Interim load
+```{r}
+data.sc_r_recover <- read_rds("analysis_outputs.rds")
+```
+
+
+
+
+## Carry out PCA
+
+Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
+
+A problem to address here is that we have less complete for fi than for the other measured prooperties. Initial analysis will exclude fi. Conisder carrying out a second PCA and using row or column bind to out.pca.x_g to include this in the analyses (alternatively analyse consecutively).
+
+Carry out PCA.
+```{r}
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
+cols.pca <- 1:11
+
+out.pca <- prcomp(data.pca[cols.pca],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(out.pca)
+summary(out.pca)
+biplot(out.pca)
+```
+
+## View relationships between principal components
+
+```{r Prepare data for fitting model to principal components}
+out.pca.x <- bind_cols(as_tibble(out.pca$x), data.pca)
+```
+
+
+```{r Plot principal components versus location}
+out.pca.x_g1_11 <- out.pca.x %>%
+  gather("component", "value", 1:11)
+
+pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
+  geom_point(aes(colour = id)) +
+  facet_wrap(~ component)
+
+out.pca.x_g1_5 <- out.pca.x %>%
+  gather("component", "value", 1:5)
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ component, ncol = 5) +
+  scale_x_continuous("DV location (mm)", c(0,1,2)) +
+  theme_classic() +
+  PCA_theme
+
+pc_plot
+pc1to5_plot
+```
+
+Plot components against one another.
+```{r}
+out.pca.x_2 <- as_tibble(out.pca$x)
+out.pca.x_2$dvlocmm <- data.pca$dvlocmm
+out.pca.x_2$id <- data.pca$id
+
+PCA_components <- ggplot(out.pca.x_2, aes(PC1, PC2)) +
+  geom_point(alpha = 0.05) +
+  geom_point(data = subset(out.pca.x_2, id %in% c("mouse_20130416","mouse_20130419", "mouse_20140113")), aes(PC1, PC2, colour = id, alpha = 1)) +
+  theme_classic()
+
+PCA_components
+
+```
+
+## Fit mixed models to principal components
+
+Fit mixed models to all measured properties using lmer.
+```{r}
+# Reform data for use with dplyr.
+out.pca.x_g <- out.pca.x %>%
+  gather("component", "value", 1:11) %>%
+  group_by(component) %>%
+  nest()
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris)) %>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null)) %>%
+  mutate(mixedmodel_vsri = map(data, model_vsri)) %>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))
+```
+
+## Compare fits of mixed models to one another and to population level linear model
+
+Extract AIC for all models
+```{r Extract AIC for PCA models}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
+  mutate(AIC_vsris = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(AIC_vsri = map_dbl(vsri_glance, ~.$AIC))
+```
+
+
+Test whether effects of animal id are significant.
+```{r Compare mixed with linear PCA models using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, "mixedmodel_vsris", "linearmodel"))
 ```
 
 
@@ -125,49 +503,182 @@ data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r))
 
 Focus on the model with random intercept and slope (mixedmodel_vsris).
 
-Store model gradient (extracted with summary), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
 ```{r Extract model properties}
-data.sc_r <- data.sc_r %>%
-  mutate(gradient_slopes = map_dbl(vsris_summary, ~.$coefficients[[2]])) %>%
-  mutate(extractR2 = map(mixedmodel_vsris, r.squaredGLMM)) %>%
-  mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
-  mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]])) %>%
+out.pca.x_g <- mixedmod_extract(out.pca.x_g, "mixedmodel_vsris")
+
+out.pca.x_g <- out.pca.x_g %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
 
-data.sc_r <- data.sc_r %>%
-  mutate(vsris_simcoefs = map(mixedmodel_vsris, ~summary(coef(.x)[[1]][[2]]))) %>%
-  mutate(modelslope_min = map_dbl(vsris_simcoefs, ~.[[1]])) %>%
-  mutate(modelslope_median = map_dbl(vsris_simcoefs, ~.[[3]])) %>%
-  mutate(modelslope_max = map_dbl(vsris_simcoefs, ~.[[5]]))
+
 ```
 
 
-## Generate summary table
+## Generate summary table for PCA
 
 Show model fitting results as a table.
-```{r}
-props_for_table <- c("property", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
-props_table <- as.tibble(data.sc_r[props_for_table])
-props_table_unnest <- unnest(props_table)
+```{r Make and save table with PCA mixed model properties}
+props_for_table_PCA <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
+props_table_unnest_PCA <- unnest(props_table_PCA)
 
   knitr::kable(
-  props_table_unnest,
+  props_table_unnest_PCA,
   digits = 5,
   caption = "Fit of measured membrane properties as a function of location"
 )
 
-write_csv(props_table_unnest, "results_model_table.csv")
+write_csv(props_table_unnest, "results_model_table_PCA.csv")
+```
+
+
+## Plot fits of mixed models of PCA data
+
+As above, we want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
+
+
+Extract model predictions ready to generate plots.
+```{r Format PCA mixed model fits ready for plotting}
+combined_intercepts_slopes_PCA <- prep_int_slopes(out.pca.x_g, "component", "mixedmodel_vsris")
+
+id_housing_PCA <-  distinct(out.pca.x, id, housing)
+
+combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing_PCA, by = "id")
+
+combined_intercepts_slopes_PCA$component_factors <- as.factor(combined_intercepts_slopes_PCA$component)
+
+combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_slopes_PCA$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
+
+```
+
+
+Now generate the plot.
+```{r Make facetted plot of PCA model fits}
+IS_figure_PCA_1_11 <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~component_factors) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in% c("PC1", "PC2", "PC3", "PC4", "PC5")), aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~component_factors, ncol = 5) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure_PCA_1_11
+IS_figure_PCA_1_5
 ```
 
 
 
-Plot fits of mixed models
-Generate plots to evaluate assumptions of mixed models
+## Evalaute PCA model with maximal random effects
 
-Carry out PCA
-Fit mixed models to principal components
-Generate summary table
-Plot fits of mixed models
-Generate plots to evaluate assumptions of mixed models
+Does the parameter contribute to random effects?
+Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
+
+Build models with multiple random effects. Fits fail to converge when use all possible random effects. Instead omit hemi and rectime as they generally show very little variance in the fits to the individual features.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mixedmodel_vsris_all = map(data, model_vsris_all_PC)) 
+```
+
+Show variance of each random effect in the maximal model
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(all_VarCorr = map(mixedmodel_vsris_all, VarCorr_helper)) %>%
+  mutate(all_VarCorr_sdcor = map(all_VarCorr,~.$sdcor)) %>%
+  mutate(all_VarCorr_grp = map(all_VarCorr,~.$grp))
+
+PCA_sdcor_frame <- select(out.pca.x_g, component, all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  unnest(all_VarCorr_sdcor, all_VarCorr_grp)
+
+PCA_sdcor_frame$component <- factor(PCA_sdcor_frame$component, levels =c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
+
+ggplot(PCA_sdcor_frame, aes(all_VarCorr_grp, all_VarCorr_sdcor)) +
+  geom_point(aes(colour = all_VarCorr_grp)) +
+  facet_wrap(~component)
+
+norm_helper <- function(df) {
+  df_sum <- sum(df)
+  df1 <- df / df_sum
+  df1
+}
+PCA_sdcor_frame <- PCA_sdcor_frame %>%
+  group_by(component) %>%
+  nest(all_VarCorr_sdcor, all_VarCorr_grp) %>%
+  mutate(all_VarCorr_sdcor = map(data, ~.$all_VarCorr_sdcor)) %>%
+  mutate(norm_sd = map(all_VarCorr_sdcor, norm_helper)) %>%
+  select(component, data, norm_sd) %>%
+  unnest()
+
+ggplot(PCA_sdcor_frame, aes(component, norm_sd)) +
+  geom_point(aes(colour = component)) +
+  facet_wrap(~all_VarCorr_grp)
+```
+
+## Evaluate removal of random effects from full models of PCA data
+
+Use step to remove random effect and then extract models identified.
+****** Warning: this may take several hours to run for vsris_all *******
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_step_all = map(mixedmodel_vsris_all, lmerTest::step)) %>%
+  mutate(mixedmodel_vsris_step = map(vsris_step_all, lmerTest::get_model))
+```
+
+Output from step indicates some models failed to converge. The larger model (mixedmodel_vsris_all) does converge and gives an indicate of the variance of each random effect. Failure appears to be associated with random effects with very small variance. Normalisation doesn't fix the problem. To check whether the selected models can be improved, run step again to further evaluate random effects and extract models identified. 
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_step_2 = map(mixedmodel_vsris_step, lmerTest::step))  %>%
+  mutate(mixedmodel_vsris_step2 = map(vsris_step_2, lmerTest::get_model))
+```
+
+Extract p-values for dorso-ventral dependence of each property using the step model.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_step_summary = map(mixedmodel_vsris_step2, summary)) %>%
+  mutate(vsris_step_coef = map(vsris_step_summary, ~.$coefficients)) %>%
+  mutate(vsris_step_varcor = map(vsris_step_summary, ~.$varcor)) %>%
+  mutate(vsris_step_dv_p = map(vsris_step_coef, ~.[10]))
+```
+
+Make tables to view properties of the step models
+```{r}
+
+kt <- function(df, cap) {knitr::kable(x = df, format = "pandoc", caption = paste("Property:", cap))}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_step_random = map(vsris_step_2, ~.$random)) %>%
+  mutate(vsris_step_ran_table = map2(vsris_step_random, property, kt)) %>%
+  mutate(vsris_step_varcor_table = map2(vsris_step_varcor, property, kt)) %>%
+  mutate(vsris_step_coef_table = map2(vsris_step_coef, property, kt))
+
+out.pca.x_g$vsris_step_ran_table
+out.pca.x_g$vsris_step_coef_table
+out.pca.x_g$vsris_step_varcor_table
+  
+```
+
+
+
+
+## Generate plots to evaluate assumptions of mixed models
+```{r}
+PCAplot <- ggpubr::ggarrange(pc1to5_plot, IS_figure_PCA_1_5, nrow = 2)
+
+PCAplot
+```
+
+
+
+
+## Save PCA plots
+

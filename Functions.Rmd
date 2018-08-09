@@ -5,18 +5,21 @@ date: "17/05/2018"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup_functions, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(ggthemes)
+library(optimx)
 ```
 
-Goals: functions for mixed model and related analysis of multiple electrophysiological properties. Functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
+
+# Functions {-}
+
+This document contains functions for code used in later sections.  The functions are removed from individual .Rmd documents so they can be re-used in multiple analyses.
 
 ----------------------- Models ------------------------
 
-# Model vs random intercept and slope. Use this model for all main analyses (see Barr et al. Journal of Memory and Language, 2013)
-model_to_fit 
+Model vs random intercept and slope.
 ```{r}
 model_to_fit <- function(df) {
   lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
@@ -27,14 +30,28 @@ model_to_fit <- function(df) {
  
 
 ```{r}
-# Model for random intercept and slope
+# Model for uncorrelated random intercept and slope
 model_vsris <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
-# Null model for random intercept and slope
+
+model_vsris_1 <- function(df) {
+  lme4::lmer(value ~ dvlocmm1 +(dvlocmm1||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_lT<- function(df) {
+  lmerTest::lmer(value ~ dvlocmm +(dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+# Null model for uncorrelated random intercept and slope
 model_vsris_null <- function(df) {
-  lme4::lmer(value ~ 1+dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm||id, data = df, REML = FALSE, na.action = na.exclude)
 }
+
+model_vsris_1_null <- function(df) {
+  lme4::lmer(value ~ dvlocmm1||id, data = df, REML = FALSE, na.action = na.exclude)
+}
+
 # Model vs random intercept.
 model_vsri <- function(df) {
     lme4::lmer(value ~ dvlocmm +(1|id), data = df, REML = FALSE, na.action = na.exclude)
@@ -45,23 +62,87 @@ model_vsri_null <- function(df) {
 }
 # Model vs correlated random intercept and slope.
 model_vscris <- function(df) {
-  lme4::lmer(value ~ dvlocmm +(1+dvlocmm|id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm +(dvlocmm|id), data = df, REML = FALSE, na.action = na.exclude)
 }
 # Null model vs correlated random intercept and slope.
 model_vscris_null <- function(df) {
-  lme4::lmer(value ~ 1+dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm|id, data = df, REML = FALSE, na.action = na.exclude)
+}
+
+# Model for uncorrelated random intercept and slope including housing as a fixed effect
+model_vsris_housing <- function(df) {
+  lme4::lmer(value ~ dvlocmm * housing + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+# Model for uncorrelated random intercept and slope including age as a fixed effect
+model_vsris_age <- function(df) {
+  df_na_remove <- filter(df, !is.na(age))
+  lme4::lmer(value ~ dvlocmm * age + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
+}
+
+# Control model with data points without age excluded
+model_vsris_age_con <- function(df) {
+  df_na_remove <- filter(df, !is.na(age))
+  lme4::lmer(value ~ dvlocmm + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
+}
+
+
+# Model for uncorrelated random intercept and slope for all possible random effects.
+model_vsris_all_lmerTest <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all <- function(df) {
+  df <- df %>% drop_na()
+  lme4::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all_PC <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_all_NM <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ="Nelder_Mead"))
+}
+
+model_vsris_all_BFGS <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='L-BFGS-B')))
+}
+
+model_vsris_all_nlminb <- function(df) {
+  df <- df %>% drop_na()
+  lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='nlminb')))
 }
 ```
 
  
+Linear models
 ```{r}
 linearmodel_to_fit <- function(df) {
   lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+}
+
+linearmodel_to_fit_1 <- function(df) {
+  lm(value ~ dvlocmm1, data = df, na.action = na.exclude)
+}
+
+linearmodel_age <- function(df) {
+  lm(value ~ dvlocmm * age, data = df, na.action = na.exclude)
+}
+
+linearmodel_housing <- function(df) {
+  lm(value ~ dvlocmm * housing, data = df, na.action = na.exclude)
 }
 ```
 - used in Interanimal.rmd
 - used in PCA.rmd
 
+
+Mixed models fit with nlme
 Alternative way to fit mixed model using nlme for compatibility with ANOVA.
 ```{r}
 # Gives error when random term incluces dvlocmm
@@ -73,7 +154,7 @@ nlmemodel_to_fit <- function(df) {
 
 ------------------ Helper functions ---------------------
 
-Helper function to return model coefficients in a tidy formt.
+Helper function to return model coefficients in a tidy format.
 ```{r}
 coef_df <- function(model_name) {
   mod_coef <- coef(model_name)
@@ -82,6 +163,20 @@ coef_df <- function(model_name) {
 ```
 - used in Internanmal.rmd
 - used in PCA.rmd
+
+Helper function to return model coefficients in a tidy format. This version also use gi to find the global intercept and returns global intercept and global intercept + slope.
+```{r}
+coef_df_2 <- function(model_name, gi) {
+  mod_coef <- coef(model_name)
+  tibble(id = row.names(mod_coef$id), ind_intercept = mod_coef$id[[1]], ind_slope = mod_coef$id[[2]], ind_intercept_slope = mod_coef$id[[1]] + mod_coef$id[[2]], global_intercept = gi, global_intercept_slope = gi + mod_coef$id[[2]])
+}
+
+coef_df_2_old <- function(model_name, gi) {
+  mod_coef <- coef(model_name)
+  tibble(id = row.names(mod_coef[[1]]), ind_intercept = mod_coef[[1]][[1]], ind_slope = mod_coef[[1]][[2]], ind_intercept_slope = mod_coef[[1]][[1]] + mod_coef[[1]][[2]], global_intercept = gi, global_intercept_slope = gi + mod_coef[[1]][[2]])
+}
+```
+
 
 Helper functions for chi-squared test to compare linear with mixed models.
 ```{r}
@@ -93,31 +188,29 @@ extractdf <- function(dev){
   attr(dev,"df")
 }
 
-# CAn this be improved? Returning a tibble / df seems a bit clunky.
-mixed_vs_linear_pchisqu <- function(df){
+# Can this be improved? Returning a tibble / df seems a bit clunky.
+mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
   df <- df %>%
-    mutate(dev_mixed = map(mixedmodel_vsris, devcalc)) %>%
-    mutate(dev_linear = map(linearmodel, devcalc)) %>%
+    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
+    mutate(dev_linear = map(!! rlang::sym(linearmod), devcalc)) %>%
     mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
     mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
     mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
     mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE))
-  tibble(dev_mixed = df$dev_mixed,
-         dev_linear = df$dev_linear,
-         devdiff = df$devdiff,
-         dev_mixed_df = df$dev_mixed_df,
-         dev_linear_df = df$dev_linear_df,
-         dfdiff = df$dfdiff,
-         pdiff = df$pdiff)
+    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) %>%
+    select(dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df, dfdiff, pdiff)
+  df
 }
+
+
+
 ```
 - used in Internanmal.rmd
 - used in PCA.rmd
 
 
-Function for presentation of data.
-```{r}
+Functions for presentation of data.
+```{r Model plot theme}
 hist_theme = theme(
     text = element_text(size=9),
     strip.background = element_blank(),
@@ -125,4 +218,117 @@ hist_theme = theme(
     axis.title.y=element_blank()
   )
 ```
+
+```{r PCA plot theme}
+PCA_theme = theme(
+    text = element_text(size=9),
+    strip.background = element_blank(),
+    axis.title.y=element_blank()
+  )
+```
+
+Helper function to normalise a vector
+```{r Normalise helper}
+normalize<-function(m){
+   (m - min(m, na.rm = TRUE))/(max(m, na.rm = TRUE)-min(m, na.rm = TRUE))
+}
+```
+
+
+Helper function to extract fit properties from a column of models stored in a dataframe and then add the output to the dataframe as additional columns.
+
+Use Broom (glance, tidy and augment) as returns values in data frames. Need to use summary to also obtain min, max and median slopes.
+
+df - a dataframe containing columns to work on
+mm_col - a column of df containing the mixed models fit with lmer
+
+Properties to extract are:
+Model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM).
+```{r Extract properties of models}
+mixedmod_extract <- function(df, mm_col){
+  # If want to use this for more than one model in the same data frame then will need to make names of new columns extensions of mm_col
+  df <- df %>%
+    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+    mutate(mm_aug = map(!! rlang::sym(mm_col), broom::augment)) %>%
+    mutate(mm_summary = map(!! rlang::sym(mm_col), summary)) 
+  
+  df <- df %>%
+    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+    mutate(gradient_slopes = map_dbl(mm_tidy, ~.$estimate[[2]])) %>%
+    mutate(extractR2 = map(!! rlang::sym(mm_col), r.squaredGLMM)) %>%
+    mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
+    mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]]))
+  # To reduce clutter could remove extractR2 and mm_tidy at this point so they don't get returned?
+  
+  df <- df %>%
+   mutate(mm_simcoefs = map(!! rlang::sym(mm_col), ~summary(coef(.x)[[1]][[2]]))) %>%
+    mutate(modelslope_min = map_dbl(mm_simcoefs, ~.[[1]])) %>%
+    mutate(modelslope_median = map_dbl(mm_simcoefs, ~.[[3]])) %>%
+   mutate(modelslope_max = map_dbl(mm_simcoefs, ~.[[6]]))
+  # could remove vsris_simcoefs at this point
+}
+```
+
+
+
+
+Helper function to extract model predictions in a dataframe ready for plotting.
+prep_int_slopes
+
+Inputs
+df - a dataframe containing columns to work on
+group_col - a column of df containing the names of each group
+mm_col - a column of df containing the mixed models fit with lmer
+
+Returns
+combined_intercepts_slopes - a data frame to be used to generate the plot
+
+```{r Extract model predictions for plotting}
+prep_int_slopes <- function(df, group_col, mm_col){
+
+# Use broom::tidy to extract model fit parameters for each feature.
+df <- df %>%
+  mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+  mutate(pop_intercepts = map_dbl(mm_tidy, ~.$estimate[[1]]))
+
+# Obtain individual intercepts and slopes for each feature as separate columns.
+# coef_df is a helper function to return model coefficients in a tidy formt.
+# coef_df_2 also calculate I+S, etc.
+df <- df %>%
+  mutate(coefs = map2(!! rlang::sym(mm_col), pop_intercepts, ~coef_df_2(.x, .y)))
+
+df_unnest <- unnest(df, coefs) %>%
+  select(!! rlang::sym(group_col), id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+# Make new tibble with model predictions ready for plotting
+ind_intercept <- select(df_unnest, !! rlang::sym(group_col), id, ind_intercept) %>%
+  mutate(measure = "ind_intercept") %>%
+  mutate(value_2 = ind_intercept)
+
+global_intercept <- select(df_unnest, !! rlang::sym(group_col), id, global_intercept) %>%
+  mutate(measure = "global_intercept") %>%
+  mutate(value_1 = global_intercept)
+
+ind_intercept_slope <- select(df_unnest, !! rlang::sym(group_col), id, ind_intercept_slope) %>%
+  mutate(measure = "ind_intercept_slope") %>%
+  mutate(value_2 = ind_intercept_slope)
+
+global_intercept_slope <- select(df_unnest, !! rlang::sym(group_col), id, global_intercept_slope) %>%
+  mutate(measure = "global_intercept_slope") %>%
+  mutate(value_1 = global_intercept_slope)
+
+combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+}
+```
+
+Helper function for copula transformation of data. Returns ranked data.
+```{r}
+edf <- function(x)
+{
+    n <- length(x)
+    rank(x)/(n+1)                       
+}
+```
+
 

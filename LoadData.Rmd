@@ -4,59 +4,86 @@ author: "Matt Nolan"
 date: "02/05/2018"
 output: html_document
 ---
-```{r setup, include=FALSE}
+```{r setup_LoadData, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 # Ensure access to libraries
 library(lmerTest)
 library(tidyverse)
-library(lme4)
-library(LMERConvenienceFunctions)
 ```
 
-## Goals
+# Load data {-}
 
-To load and preporocess data used for other analyses.
+To load and preprocess data used for other analyses.
 
 
-Specific properties for filtering data. Include animals ≥ 28 days.
-```{r}
-min_age <- 0
-```
-
-Import the data, remove rows with unknown locations and summarise numbers of observations and animals. 
+Import stellate cell data.
 ```{r import data, message = FALSE}
-# fname.sc <- "/Users/hughpastoll/Research/stellateintrinsic/Database/datatable.txt"
-fname.sc <- "/Users/mattnolan/Dropbox/Modules_data/stellateintrinsic/Database/datatable.txt"
-data.import <- read_tsv(fname.sc)
+fname.sc <- "datatable.txt"
+data.import.sc <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
-data.sc <- data.import %>% drop_na(dvloc)
+data.sc <- data.import.sc %>% drop_na(dvloc)
 
 # Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
 data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
-
-# Keep animals ≥ min_age
-data.sc.old <- filter(data.sc, age >= min_age)
-
-# Calculate total number of observations, and number in each environment
-length(data.sc.old$housing)
-count(data.sc.old, housing)
-
-# Calculate number of observations per animal
-counts.old <- data.sc.old %>% count(id)
-summary(counts.old)
 ```
 
-Recale predictors. Centre at sero and divide by SD.
+Import wfs1 cell data.
+```{r, message = FALSE}
+fname.wfs <- "datatable_cal.txt"
+data.import.wfs <- read_tsv(fname.wfs)
+data.wfs <- data.import.wfs %>% drop_na(dvloc)
+data.wfs <- mutate(data.wfs, dvlocmm = dvloc/1000)
+```
+
+
+Total number of cells recorded, and number in each environment:
 ```{r}
-normalize<-function(m){
-   (m - mean(m, na.rm = TRUE))/sd(m, na.rm = TRUE)
-}
-
-data.sc.norm <- as.data.frame(lapply(data.sc[1:12], normalize))
-data.sc.norm$dvlocmm <- data.sc$dvlocmm
-data.sc.norm$id <- data.sc$id
-data.sc.norm$housing <- data.sc$housing
-  
+length(data.sc$housing)
+count(data.sc, housing)
 ```
+
+Number of cells recorded per animal:
+```{r}
+counts <- data.sc %>% count(id)
+summary(counts)
+```
+
+
+Add new columns containing copula transformed data
+```{r}
+trans.properties <- apply(apply(data.sc %>% dplyr::select(vm:fi), 2, edf), 2, qnorm )
+trans.dvlocmm <- apply(apply(data.sc %>% dplyr::select(dvlocmm), 2, edf), 2, qnorm )
+data.sc <- bind_cols(data.sc, as.data.frame(trans.properties), as.data.frame(trans.dvlocmm))
+```
+
+
+
+
+Data is in a 'flat' format:
+```{r}
+head(data.sc)
+```
+
+
+Reformat data for use with map and other tidyverse functions. Properties vm:fi are the experimentally measured proprties, and vm1:fi1 are the transformed properties.
+```{r}
+data.sc_r <- data.sc %>%
+  dplyr::select(vm:fi, vm1:fi1, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi1) %>%
+  group_by(property) %>%
+  nest()
+```
+
+Now the data is organised as a frame containing nested frames for each measurement:
+```{r}
+head(data.sc_r)
+```
+
+The nested frame for membrane potential (vm) looks like this:
+```{r}
+head(filter(data.sc_r, property == "vm")$data)
+```
+
+
