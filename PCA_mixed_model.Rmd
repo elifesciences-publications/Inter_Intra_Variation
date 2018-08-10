@@ -1,0 +1,71 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r setup_Props_All, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+# PCA mixed model analysis
+
+Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
+
+A problem to address here is that we have less complete for fi than for the other measured prooperties. Initial analysis will exclude fi. Conisder carrying out a second PCA and using row or column bind to out.pca.x_g to include this in the analyses (alternatively analyse consecutively).
+
+Carry out PCA.
+```{r}
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
+
+cols_all.pca <- 1:11
+cols_sub.pca <- 1:11
+
+out_all.pca <- prcomp(data.pca[cols_all.pca],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+out_sub.pca <- prcomp(data.pca[cols_sub.pca],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(out_all.pca)
+summary(out_all.pca)
+biplot(out_all.pca)
+
+plot(out_sub.pca)
+summary(out_sub.pca)
+biplot(out_sub.pca)
+```
+
+## View relationships between principal components
+
+```{r Prepare data for fitting model to principal components}
+out.pca.x <- bind_cols(as_tibble(out.pca$x), data.pca)
+```
+
+
+```{r Plot principal components versus location}
+out.pca.x_g1_11 <- out.pca.x %>%
+  gather("component", "value", 1:11)
+
+pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
+  geom_point(aes(colour = id)) +
+  facet_wrap(~ component)
+
+out.pca.x_g1_5 <- out.pca.x %>%
+  gather("component", "value", 1:5)
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+  geom_point(alpha = 0.5) +
+  facet_wrap(~ component, ncol = 5) +
+  scale_x_continuous("DV location (mm)", c(0,1,2)) +
+  theme_classic() +
+  PCA_theme
+
+pc_plot
+pc1to5_plot
+```
