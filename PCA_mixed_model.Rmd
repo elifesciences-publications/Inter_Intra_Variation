@@ -16,19 +16,19 @@ Goal is to reduce the dimensionality of the dataset and then explore how dorsove
 
 A problem to address here is that we have less complete for fi than for the other measured prooperties. Initial analysis will exclude fi. Conisder carrying out a second PCA and using row or column bind to out.pca.x_g to include this in the analyses (alternatively analyse consecutively).
 
-Carry out PCA.
+Carry out PCA. The fi measurements are absent from a lot of cells. In data.all.pca include all columns but remove cells without fi measurments. In data.sc.pc exclude the fi column and so include more cells.
 ```{r}
-data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
+data.all.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  drop_na(fi)
 
-cols_all.pca <- 1:11
-cols_sub.pca <- 1:11
+data.sub.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
 
-out_all.pca <- prcomp(data.pca[cols_all.pca],
+out_all.pca <- prcomp(data.all.pca[1:12],
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
 
-out_sub.pca <- prcomp(data.pca[cols_sub.pca],
+out_sub.pca <- prcomp(data.sub.pca[1:11],
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
