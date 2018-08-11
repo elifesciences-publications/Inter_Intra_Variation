@@ -14,32 +14,45 @@ library(tidyverse)
 
 Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
 
-A problem to address here is that we have less complete for fi than for the other measured prooperties. Initial analysis will exclude fi. Conisder carrying out a second PCA and using row or column bind to out.pca.x_g to include this in the analyses (alternatively analyse consecutively).
-
-Carry out PCA. The fi measurements are absent from a lot of cells. In data.all.pca include all columns but remove cells without fi measurments. In data.sc.pc exclude the fi column and so include more cells.
+Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments.
 ```{r}
-data.all.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
   drop_na(fi)
 
-data.sub.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime)
-
-out_all.pca <- prcomp(data.all.pca[1:12],
+all.pca <- prcomp(drop_na(data.pca[1:12], fi),
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
 
-out_sub.pca <- prcomp(data.sub.pca[1:11],
+plot(all.pca)
+summary(all.pca)
+
+ggplot(all.pca$x,aes(x=PC1,y=PC3)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(all.pca$rotation,aes(x=PC1,y=PC3,color=row.names(as.data.frame(all.pca$rotation)))) +
+  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
+  geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0, vjust=0) +
+  theme_classic() +
+  theme(legend.position="none")
+
+plot(a, b, pch = 16, col = "blue", xaxt = "n", bty = "n", xlim = c(0,14), ylim = c(-4,10), xaxs = "i")
+axis(1, pos = 0)
+
+```
+
+ In second analysis exclude the fi column and so include more cells.
+```{r}
+sub.pca <- prcomp(data.sub.pca[1:11],
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
 
-plot(out_all.pca)
-summary(out_all.pca)
-biplot(out_all.pca)
 
-plot(out_sub.pca)
-summary(out_sub.pca)
-biplot(out_sub.pca)
+plot(sub.pca)
+summary(sub.pca)
+biplot(sub.pca)
 ```
 
 ## View relationships between principal components
