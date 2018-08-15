@@ -6,6 +6,8 @@ output: html_notebook
 
 ```{r setup_Props_All, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(lme4)
+library(MuMIn)
 library(tidyverse)
 ```
 
@@ -26,25 +28,24 @@ all.pca <- prcomp(drop_na(data.pca[1:12], fi),
 
 plot(all.pca)
 summary(all.pca)
+# difficult to read so plotted separately below using ggplot
+#biplot(all.pca)
 
-ggplot(all.pca$x,aes(x=PC1,y=PC3)) +
+ggplot(as.data.frame(all.pca$x),aes(x=PC1,y=PC2)) +
   geom_point() +
   theme_classic()
 
-ggplot(all.pca$rotation,aes(x=PC1,y=PC3,color=row.names(as.data.frame(all.pca$rotation)))) +
+ggplot(as.data.frame(all.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(all.pca$rotation)))) +
   geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-  geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0, vjust=0) +
+  geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0.5, vjust=1) +
   theme_classic() +
   theme(legend.position="none")
-
-plot(a, b, pch = 16, col = "blue", xaxt = "n", bty = "n", xlim = c(0,14), ylim = c(-4,10), xaxs = "i")
-axis(1, pos = 0)
 
 ```
 
  In second analysis exclude the fi column and so include more cells.
 ```{r}
-sub.pca <- prcomp(data.sub.pca[1:11],
+sub.pca <- prcomp(data.pca[1:11],
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
@@ -52,18 +53,31 @@ sub.pca <- prcomp(data.sub.pca[1:11],
 
 plot(sub.pca)
 summary(sub.pca)
-biplot(sub.pca)
+#biplot(sub.pca)
+
+ggplot(as.data.frame(sub.pca$x),aes(x=PC1,y=PC2)) +
+  geom_point() +
+  theme_classic()
+
+ggplot(as.data.frame(sub.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(sub.pca$rotation)))) +
+  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
+  geom_text(aes(label=row.names(as.data.frame(sub.pca$rotation))),hjust=0.5, vjust=1) +
+  theme_classic() +
+  theme(legend.position="none")
+
 ```
 
 ## View relationships between principal components
 
 ```{r Prepare data for fitting model to principal components}
-out.pca.x <- bind_cols(as_tibble(out.pca$x), data.pca)
+all.pca.x <- bind_cols(as_tibble(all.pca$x), drop_na(data.pca, fi))
+sub.pca.x <- bind_cols(as_tibble(sub.pca$x), drop_na(data.pca, fi))
 ```
 
 
 ```{r Plot principal components versus location}
-out.pca.x_g1_11 <- out.pca.x %>%
+# For alternative analysis could replace all.pca.x with sub.pca.x
+out.pca.x_g1_11 <- all.pca.x %>%
   gather("component", "value", 1:11)
 
 pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
@@ -82,3 +96,124 @@ pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, 
 pc_plot
 pc1to5_plot
 ```
+
+## Fit mixed models to principal components
+
+Fit mixed models to all measured properties using lmer.
+```{r}
+# Reform data for use with dplyr.
+out.pca.x_g <- out.pca.x %>%
+  gather("component", "value", 1:11) %>%
+  group_by(component) %>%
+  nest()
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris)) %>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null)) %>%
+  mutate(mixedmodel_vsri = map(data, model_vsri)) %>%
+  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))
+```
+
+## Compare fits of mixed models to one another and to population level linear model
+
+Extract AIC for all models
+```{r Extract AIC for PCA models}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
+  mutate(AIC_vsris = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(AIC_vsris_null = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(AIC_vsri = map_dbl(vsri_glance, ~.$AIC))
+```
+
+
+Test whether effects of animal id are significant.
+```{r Compare mixed with linear PCA models using chisq}
+## linearmodel_to_fit fits: lm(value ~ dvlocmm, data = df, na.action = na.exclude)
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit))
+
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, "mixedmodel_vsris", "linearmodel"))
+```
+
+
+## Extract other summary data from the model fits
+
+Focus on the model with random intercept and slope (mixedmodel_vsris).
+
+Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
+```{r Extract model properties, warning=FALSE}
+out.pca.x_g <- mixedmod_extract(out.pca.x_g, "mixedmodel_vsris")
+
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+
+```
+
+
+## Generate summary table for PCA
+
+Show model fitting results as a table.
+```{r Make and save table with PCA mixed model properties}
+props_for_table_PCA <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
+props_table_unnest_PCA <- unnest(props_table_PCA)
+
+  knitr::kable(
+  props_table_unnest_PCA,
+  digits = 5,
+  caption = "Fit of measured membrane properties as a function of location"
+)
+
+write_csv(props_table_unnest_PCA, "results_model_table_PCA.csv")
+```
+
+
+## Plot fits of mixed models of PCA data
+
+As above, we want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
+
+
+Extract model predictions ready to generate plots.
+```{r Format PCA mixed model fits ready for plotting, warning=FALSE}
+combined_intercepts_slopes_PCA <- prep_int_slopes(out.pca.x_g, "component", "mixedmodel_vsris")
+
+id_housing_PCA <-  distinct(out.pca.x, id, housing)
+
+combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing_PCA, by = "id")
+
+combined_intercepts_slopes_PCA$component_factors <- as.factor(combined_intercepts_slopes_PCA$component)
+
+combined_intercepts_slopes_PCA$component_factors = factor(combined_intercepts_slopes_PCA$component_factors, c("PC1", "PC2", "PC3", "PC4", "PC5", "PC6", "PC7", "PC8", "PC9", "PC10", "PC11"))
+
+```
+
+
+Now generate the plot.
+```{r Make facetted plot of PCA model fits}
+IS_figure_PCA_1_11 <- ggplot(combined_intercepts_slopes_PCA, aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~component_factors) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in% c("PC1", "PC2", "PC3", "PC4", "PC5")), aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  facet_wrap(~component_factors, ncol = 5) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+IS_figure_PCA_1_11
+IS_figure_PCA_1_5
+```
+
