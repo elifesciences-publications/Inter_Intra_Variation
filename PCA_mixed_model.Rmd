@@ -84,7 +84,7 @@ pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
   geom_point(aes(colour = id)) +
   facet_wrap(~ component)
 
-out.pca.x_g1_5 <- out.pca.x %>%
+out.pca.x_g1_5 <- all.pca.x %>%
   gather("component", "value", 1:5)
 pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.5) +
@@ -102,7 +102,7 @@ pc1to5_plot
 Fit mixed models to all measured properties using lmer.
 ```{r}
 # Reform data for use with dplyr.
-out.pca.x_g <- out.pca.x %>%
+out.pca.x_g <- all.pca.x %>%
   gather("component", "value", 1:11) %>%
   group_by(component) %>%
   nest()
@@ -182,7 +182,7 @@ Extract model predictions ready to generate plots.
 ```{r Format PCA mixed model fits ready for plotting, warning=FALSE}
 combined_intercepts_slopes_PCA <- prep_int_slopes(out.pca.x_g, "component", "mixedmodel_vsris")
 
-id_housing_PCA <-  distinct(out.pca.x, id, housing)
+id_housing_PCA <-  distinct(all.pca.x, id, housing)
 
 combined_intercepts_slopes_PCA <- left_join(combined_intercepts_slopes_PCA, id_housing_PCA, by = "id")
 
