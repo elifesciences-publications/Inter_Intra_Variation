@@ -8,3 +8,5 @@ _bookdown_files/
 *.html
 Concept_figure.png
 housing_age_table.csv
+results_model_table.csv
+results_model_table_PCA.csv
