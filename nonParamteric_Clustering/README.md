@@ -11,7 +11,7 @@ This is a repository for the Kernel Density Estimate Clustering undertaken on a 
 ### example.r
 	Example code highlighting use of KDE clustering and t-SNE library included in KDEfunc. Outputs a datatable with cluster IDs and figure summarising principal component and t-SNE remapping and the clusters identified in each.
 	
-### example.r
+### pc_vs_sc.r
 	Proof of concept script similiar to example which highlights the utility of remapping and KDE clustering on stellate cells vs calbindin cells.
 	
 ### KDEClustering.Rmd
