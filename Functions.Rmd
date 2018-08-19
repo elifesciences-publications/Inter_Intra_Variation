@@ -117,6 +117,12 @@ model_vsris_all_nlminb <- function(df) {
   df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='nlminb')))
 }
+
+# Models for uncorrelated random intercept and slope with additional fixed effects
+model_vsris_full_fixed <- function(df) {
+  df <- df %>% drop_na()
+  lme4::lmer(value ~ dvlocmm + age + housing + dvlocmm:age + dvlocmm:housing + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
 ```
 
  

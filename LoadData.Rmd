@@ -27,6 +27,10 @@ data.sc <- data.import.sc %>% drop_na(dvloc)
 
 # Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
 data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
+# Make sure id, hemi, housing, expr, patchdir are factors
+col_facs <- c("id", "hemi", "housing", "expr", "patchdir")
+data.sc[col_facs] <- lapply(data.sc[col_facs], factor)
 ```
 
 Import wfs1 cell data.
