@@ -96,16 +96,16 @@ KDESummaryFig<-function(data.sc,PCstats,TSNEstats,dr){
   # Summary FIgure Plotting
   TSNEplotCol = distinctColorPalette(k = nrow(TSNEstats$AggModes), altCol = TRUE, runTsne = FALSE)
   PCplotCol = distinctColorPalette(k = nrow(PCstats$AggModes), altCol = TRUE, runTsne = FALSE)
-  expCol = distinctColorPalette(k = length(unique(data.sc.norm$expr)), altCol = TRUE, runTsne = FALSE)
+  expCol = distinctColorPalette(k = length(unique(data.sc.norm$expr)), altCol = FALSE, runTsne = FALSE)
   mouseCol = distinctColorPalette(k = length(unique(data.sc.norm$id)), altCol = TRUE, runTsne = FALSE)
   
   
   psize = 1.2
   msize = 2.5
   
-  pdf(file=paste('figures/','summaryFig.pdf',sep=''),
-      width=20, height=10)
-  par(mfrow=c(2,4))
+  pdf(file=paste('figures/','SCvsPCsummaryFig.pdf',sep=''),
+      width=25, height=10)
+  par(mfrow=c(2,5))
   # Plot 1
   plot(c(),main='t-SNE Map',xlab='t-SNE 1',ylab='t-SNE 2',xlim=range(dr[,1])*1.2,ylim=range(dr[,2])*1.2)
   points(dr[,1],dr[,2],pch=20,cex=psize,col='black')
@@ -133,14 +133,16 @@ KDESummaryFig<-function(data.sc,PCstats,TSNEstats,dr){
     points(dr[data.sc.norm$expr==E,1],dr[data.sc.norm$expr==E,2],pch=20,cex=psize,col=expCol[i]) # Plot t-sne points
     i=i+1
   }
+  legend("topright",legend=c("HP", "DG"),col=expCol,pch=19,cex=1.4)
   
-  # # Plot 5
-  # plot(c(),main='t-SNE by Mouse',xlab='t-SNE 1',ylab='t-SNE 2',xlim=range(dr[,1])*1.2,ylim=range(dr[,2])*1.2)
-  # i=1
-  # for(M in unique(data.sc.norm$id)){
-  #   points(dr[data.sc.norm$id==M,1],dr[data.sc.norm$id==M,2],pch=20,cex=psize,col=mouseCol[i]) # Plot t-sne points
-  #   i=i+1
-  # }
+  # Plot 5
+  plot(c(),main='t-SNE by Celltype',xlab='t-SNE 1',ylab='t-SNE 2',xlim=range(dr[,1])*1.2,ylim=range(dr[,2])*1.2)
+  i=1
+  for(M in unique(data.sc.norm$id)){
+    points(dr[data.sc.norm$id==M,1],dr[data.sc.norm$id==M,2],pch=20,cex=psize,col=mouseCol[i]) # Plot t-sne points
+    i=i+1
+  }
+  legend("topright",legend=c("Calbindin", "SC"),col=mouseCol,pch=19,cex=1.4) # Relevant only for cell type comparisons
   
   # Plot 6
   plot(c(),main='PC Map',xlab='PC 1',ylab='PC 2',xlim=range(data.sc.pca[,1])*1.2,ylim=range(data.sc.pca[,2])*1.2)
@@ -169,15 +171,16 @@ KDESummaryFig<-function(data.sc,PCstats,TSNEstats,dr){
     points(data.sc.pca[data.sc.norm$expr==E,1],data.sc.pca[data.sc.norm$expr==E,2],pch=20,cex=psize,col=expCol[i]) # Plot t-sne points
     i=i+1
   }
+  legend("topright",legend=c("HP", "DG"),col=expCol,pch=19,cex=1.4)
   
-#   # Plot 10
-#   plot(c(),main='PC by Mouse',xlab='PC 1',ylab='PC 2',xlim=range(data.sc.pca[,1])*1.2,ylim=range(data.sc.pca[,2])*1.2)
-#   i=1
-#   for(M in unique(data.sc.norm$id)){
-#     points(data.sc.pca[data.sc.norm$id==M,1],data.sc.pca[data.sc.norm$id==M,2],pch=20,cex=psize,col=mouseCol[i]) # Plot t-sne points
-#     i=i+1
-#   }
-  
+  # Plot 10
+  plot(c(),main='PC by Cell Type',xlab='PC 1',ylab='PC 2',xlim=range(data.sc.pca[,1])*1.2,ylim=range(data.sc.pca[,2])*1.2)
+  i=1
+  for(M in unique(data.sc.norm$id)){
+    points(data.sc.pca[data.sc.norm$id==M,1],data.sc.pca[data.sc.norm$id==M,2],pch=20,cex=psize,col=mouseCol[i]) # Plot t-sne points
+    i=i+1
+  }
+  legend("topright",legend=c("Calbindin", "SC"),col=mouseCol,pch=19,cex=1.4) # Relevant only for cell type comparisons
   dev.off()
 }
 
