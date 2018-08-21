@@ -386,14 +386,138 @@ ggplot(filter(randoms_unnest_1[stringr::str_detect(randoms_unnest$property,"1$")
 ```
 
 
-## Evalaute model with maximal effects
+## Do SC properties depend on age, housing, or experimental procedures?
 
-Does including other parameters improve the model or alter conclusions derived from the model? Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time
+Does including other parameters improve the model or alter conclusions derived from the model? Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time.
 
 Should parameters be added as fixed or randomw effects? We take this definition from Gelman (2004), "We define effects (or coefficients) in a multilevel model as constant if they are identical for all groups in a population and varying if they are allowed to differ from group to group." See also discussion here: 
 https://stats.stackexchange.com/questions/4700/what-is-the-difference-between-fixed-effect-random-effect-and-mixed-effect-mode. From this discussion (answer from Ben Boljer), "You usually can’t use random effects when the grouping variable has fewer than five levels, and random effects variance estimates are unstable with fewer than eight levels, because you are trying to estimate a variance from a very small sample". See also: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification.
 
 On this bases additional parameters are all fixed effects.
+
+We will adopt strategy of first evaluating each fixed effect and it's possible interaction with dvlocmm. Later on we will consider possible interactions. For these analyses we use type II ANOVA provided by the car package.
+
+Housing
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  mutate(mm_vsris_housing_ANOVA = map(mm_vsris_housing, car::Anova)) %>%
+  mutate(mm_vsris_housing_ANOVA_dvlocmm = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_housing_ANOVA_housing = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_housing_ANOVA_dvlocmm_housing = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_housing_ANOVA_dvlocmm,
+                         mm_vsris_housing_ANOVA_housing,
+                         mm_vsris_housing_ANOVA_dvlocmm_housing)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+Age
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_age_ANOVA_dvlocmm,
+                         mm_vsris_age_ANOVA_age,
+                         mm_vsris_age_ANOVA_dvlocmm_age)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+Mediolateral position.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
+  mutate(mm_vsris_ml_ANOVA = map(mm_vsris_ml, car::Anova)) %>%
+  mutate(mm_vsris_ml_ANOVA_dvlocmm = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_ml_ANOVA_ml = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_ml_ANOVA_dvlocmm_ml = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_ml_ANOVA_dvlocmm,
+                         mm_vsris_ml_ANOVA_ml,
+                         mm_vsris_ml_ANOVA_dvlocmm_ml)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+Hemisphere
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  mutate(mm_vsris_hemi_ANOVA = map(mm_vsris_hemi, car::Anova)) %>%
+  mutate(mm_vsris_hemi_ANOVA_dvlocmm = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_hemi_ANOVA_hemi = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_hemi_ANOVA_dvlocmm_hemi = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_hemi_ANOVA_dvlocmm,
+                         mm_vsris_hemi_ANOVA_hemi,
+                         mm_vsris_hemi_ANOVA_dvlocmm_hemi)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+Experimenter
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_exp = map(data, model_vsris_exp)) %>%
+  mutate(mm_vsris_exp_ANOVA = map(mm_vsris_exp, car::Anova)) %>%
+  mutate(mm_vsris_exp_ANOVA_dvlocmm = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_exp_ANOVA_exp = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_exp_ANOVA_dvlocmm_exp = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_exp_ANOVA_dvlocmm,
+                         mm_vsris_exp_ANOVA_exp,
+                         mm_vsris_exp_ANOVA_dvlocmm_exp)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+
+Patch direction
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  mutate(mm_vsris_dir_ANOVA = map(mm_vsris_dir, car::Anova)) %>%
+  mutate(mm_vsris_dir_ANOVA_dvlocmm = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_dir_ANOVA_dir = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_dir_ANOVA_dvlocmm_dir = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_dir_ANOVA_dvlocmm,
+                         mm_vsris_dir_ANOVA_dir,
+                         mm_vsris_dir_ANOVA_dvlocmm_dir)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+
+Recording time
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  mutate(mm_vsris_rect_ANOVA = map(mm_vsris_rect, car::Anova)) %>%
+  mutate(mm_vsris_rect_ANOVA_dvlocmm = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_rect_ANOVA_rect = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_rect_ANOVA_dvlocmm_rect = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+
+kableExtra::kable(select(data.sc_r[1:12,],
+                         property,
+                         mm_vsris_rect_ANOVA_dvlocmm,
+                         mm_vsris_rect_ANOVA_rect,
+                         mm_vsris_rect_ANOVA_dvlocmm_rect)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
 
 
 ```{r}
@@ -419,3 +543,5 @@ print(summary(m.reml.test,ddf="Kenward-Roger"),correlation=FALSE)
 anova(m.test, type ="I")
 ```
 
+
+## Do inter-animal differences depend on experimental procedures?
