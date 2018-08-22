@@ -397,7 +397,8 @@ On this bases additional parameters are all fixed effects.
 
 We will adopt strategy of first evaluating each fixed effect and it's possible interaction with dvlocmm. Later on we will consider possible interactions. For these analyses we use type II ANOVA provided by the car package.
 
-Housing
+Housing.
+We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
@@ -420,20 +421,19 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
-All ages
+All ages.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
   mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
-  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
-  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
+  mutate(ngrps_age = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs_age = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 
-summary(data.sc_r$mm_vsris_age[[1]])$devcomp$dims[1]
 
 Look at age including only animals above P32.
 ```{r}
@@ -446,13 +446,14 @@ data.sc_r_f <- filter(data.sc, age > 32) %>%
 data.sc_r_f <- data.sc_r_f  %>%
   mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
   mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
-  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
-  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
+  mutate(ngrps_age = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs_age = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
+
 Look at age including only animals above P32 and below P45.
 ```{r}
 data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
@@ -465,8 +466,8 @@ data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
 data.sc_r_f2 <- data.sc_r_f2  %>%
   mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
   mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
-  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
-  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
+  mutate(ngrps_age = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs_age = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
@@ -481,38 +482,24 @@ df_age_table <- cbind(select(data.sc_r[1:12,],
                          mm_vsris_age_ANOVA_dvlocmm,
                          mm_vsris_age_ANOVA_age,
                          mm_vsris_age_ANOVA_dvlocmm_age,
-                         ngrps,
-                         nobs),
+                         ngrps_age,
+                         nobs_age),
                       select(data.sc_r_f[1:12,],
                          mm_vsris_age_ANOVA_dvlocmm,
                          mm_vsris_age_ANOVA_age,
                          mm_vsris_age_ANOVA_dvlocmm_age,
-                         ngrps,
-                         nobs),
+                         ngrps_age,
+                         nobs_age),
                       select(data.sc_r_f2[1:12,],
                          mm_vsris_age_ANOVA_dvlocmm,
                          mm_vsris_age_ANOVA_age,
                          mm_vsris_age_ANOVA_dvlocmm_age,
-                         ngrps,
-                         nobs))
+                         ngrps_age,
+                         nobs_age))
 
 kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
-  
-```
-
-
-```{r}
-df <- data.frame(a = "a", x=rnorm(10), y=rnorm(10))
-  
-kableExtra::kable(df, col.names = c("a", "b", "c"), digits = c(10, 4,1))
-
-typeof(df$x)
-
-kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(3,15)))
-
-typeof(df_age_table$ngrps)
 ```
 
 
@@ -520,16 +507,23 @@ Mediolateral position.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
+  mutate(mm_vsris_ml_sum = map(mm_vsris_ml, summary)) %>%
+  mutate(ngrps_ml = map_dbl(mm_vsris_ml_sum, ~.$ngrps)) %>%  
+  mutate(nobs_ml = map_dbl(mm_vsris_ml_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_ml_ANOVA = map(mm_vsris_ml, car::Anova)) %>%
-  mutate(mm_vsris_ml_ANOVA_dvlocmm = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_ml_ANOVA_ml = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_ml_ANOVA_dvlocmm_ml = map(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_ml_ANOVA_dvlocmm = map_dbl(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_ml_ANOVA_ml = map_dbl(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_ml_ANOVA_dvlocmm_ml = map_dbl(mm_vsris_ml_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         ngrps_ml,
+                         nobs_ml,
                          mm_vsris_ml_ANOVA_dvlocmm,
                          mm_vsris_ml_ANOVA_ml,
-                         mm_vsris_ml_ANOVA_dvlocmm_ml)) %>%
+                         mm_vsris_ml_ANOVA_dvlocmm_ml),
+                  col.names = c("property", "N", "n", "dvloc", "ml", "dvloc:ml"),
+                  digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
@@ -537,16 +531,23 @@ Hemisphere
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  mutate(mm_vsris_hemi_sum = map(mm_vsris_hemi, summary)) %>%
+  mutate(ngrps_hemi = map_dbl(mm_vsris_hemi_sum, ~.$ngrps)) %>%  
+  mutate(nobs_hemi = map_dbl(mm_vsris_hemi_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_hemi_ANOVA = map(mm_vsris_hemi, car::Anova)) %>%
-  mutate(mm_vsris_hemi_ANOVA_dvlocmm = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_hemi_ANOVA_hemi = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_hemi_ANOVA_dvlocmm_hemi = map(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_hemi_ANOVA_dvlocmm = map_dbl(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_hemi_ANOVA_hemi = map_dbl(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_hemi_ANOVA_dvlocmm_hemi = map_dbl(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         ngrps_hemi,
+                         nobs_hemi,
                          mm_vsris_hemi_ANOVA_dvlocmm,
                          mm_vsris_hemi_ANOVA_hemi,
-                         mm_vsris_hemi_ANOVA_dvlocmm_hemi)) %>%
+                         mm_vsris_hemi_ANOVA_dvlocmm_hemi),
+                  col.names = c("property", "N", "n", "dvloc", "hemi", "dvloc:hemi"),
+                  digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
@@ -554,16 +555,23 @@ Experimenter
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_exp = map(data, model_vsris_exp)) %>%
+  mutate(mm_vsris_exp_sum = map(mm_vsris_exp, summary)) %>%
+  mutate(ngrps_exp = map_dbl(mm_vsris_exp_sum, ~.$ngrps)) %>%  
+  mutate(nobs_exp = map_dbl(mm_vsris_exp_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_exp_ANOVA = map(mm_vsris_exp, car::Anova)) %>%
-  mutate(mm_vsris_exp_ANOVA_dvlocmm = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_exp_ANOVA_exp = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_exp_ANOVA_dvlocmm_exp = map(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_exp_ANOVA_dvlocmm = map_dbl(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_exp_ANOVA_exp = map_dbl(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_exp_ANOVA_dvlocmm_exp = map_dbl(mm_vsris_exp_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         ngrps_exp,
+                         nobs_exp,
                          mm_vsris_exp_ANOVA_dvlocmm,
                          mm_vsris_exp_ANOVA_exp,
-                         mm_vsris_exp_ANOVA_dvlocmm_exp)) %>%
+                         mm_vsris_exp_ANOVA_dvlocmm_exp),
+                  col.names = c("property", "N", "n", "dvloc", "exp", "dvloc:exp"),
+                  digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
@@ -572,16 +580,23 @@ Patch direction
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  mutate(mm_vsris_dir_sum = map(mm_vsris_dir, summary)) %>%
+  mutate(ngrps_dir = map_dbl(mm_vsris_dir_sum, ~.$ngrps)) %>%  
+  mutate(nobs_dir = map_dbl(mm_vsris_dir_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_dir_ANOVA = map(mm_vsris_dir, car::Anova)) %>%
-  mutate(mm_vsris_dir_ANOVA_dvlocmm = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_dir_ANOVA_dir = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_dir_ANOVA_dvlocmm_dir = map(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_dir_ANOVA_dvlocmm = map_dbl(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_dir_ANOVA_dir = map_dbl(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_dir_ANOVA_dvlocmm_dir = map_dbl(mm_vsris_dir_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         ngrps_dir,
+                         nobs_dir,
                          mm_vsris_dir_ANOVA_dvlocmm,
                          mm_vsris_dir_ANOVA_dir,
-                         mm_vsris_dir_ANOVA_dvlocmm_dir)) %>%
+                         mm_vsris_dir_ANOVA_dvlocmm_dir),
+                  col.names = c("property", "N", "n", "dvloc", "dir", "dvloc:dir"),
+                  digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
@@ -590,16 +605,23 @@ Recording time
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  mutate(mm_vsris_rect_sum = map(mm_vsris_rect, summary)) %>%
+  mutate(ngrps_rect = map_dbl(mm_vsris_rect_sum, ~.$ngrps)) %>%  
+  mutate(nobs_rect = map_dbl(mm_vsris_rect_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_rect_ANOVA = map(mm_vsris_rect, car::Anova)) %>%
-  mutate(mm_vsris_rect_ANOVA_dvlocmm = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_rect_ANOVA_rect = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_rect_ANOVA_dvlocmm_rect = map(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_rect_ANOVA_dvlocmm = map_dbl(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_rect_ANOVA_rect = map_dbl(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_rect_ANOVA_dvlocmm_rect = map_dbl(mm_vsris_rect_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         ngrps_rect,
+                         nobs_rect,
                          mm_vsris_rect_ANOVA_dvlocmm,
                          mm_vsris_rect_ANOVA_rect,
-                         mm_vsris_rect_ANOVA_dvlocmm_rect)) %>%
+                         mm_vsris_rect_ANOVA_dvlocmm_rect),
+                  col.names = c("property", "N", "n", "dvloc", "rectime", "dvloc:rectime"),
+                  digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
