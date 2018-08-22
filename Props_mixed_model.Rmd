@@ -414,22 +414,88 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
-Age
+All ages
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
+  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
+  mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+```
+
+summary(data.sc_r$mm_vsris_age[[1]])$devcomp$dims[1]
+
+Look at age including only animals above P32.
+```{r}
+data.sc_r_f <- filter(data.sc, age > 32) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+data.sc_r_f <- data.sc_r_f  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
+  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
+  mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+```
+Look at age including only animals above P32 and below P45.
+```{r}
+data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+
+data.sc_r_f2 <- data.sc_r_f2  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  mutate(mm_vsris_age_sum = map(mm_vsris_age, summary)) %>%
+  mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
+  mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
-kableExtra::kable(select(data.sc_r[1:12,],
+```
+
+Combined table for age. Including n and N.
+```{r}
+df_age_table <- cbind(select(data.sc_r[1:12,],
                          property,
                          mm_vsris_age_ANOVA_dvlocmm,
                          mm_vsris_age_ANOVA_age,
-                         mm_vsris_age_ANOVA_dvlocmm_age)) %>%
+                         mm_vsris_age_ANOVA_dvlocmm_age,
+                         ngrps,
+                         nobs),
+                      select(data.sc_r_f[1:12,],
+                         mm_vsris_age_ANOVA_dvlocmm,
+                         mm_vsris_age_ANOVA_age,
+                         mm_vsris_age_ANOVA_dvlocmm_age,
+                         ngrps,
+                         nobs),
+                      select(data.sc_r_f2[1:12,],
+                         mm_vsris_age_ANOVA_dvlocmm,
+                         mm_vsris_age_ANOVA_age,
+                         mm_vsris_age_ANOVA_dvlocmm_age,
+                         ngrps,
+                         nobs))
+
+kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3))) %>%
+  kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
+  
 ```
+
 
 Mediolateral position.
 ```{r}

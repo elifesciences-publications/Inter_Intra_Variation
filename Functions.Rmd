@@ -89,73 +89,59 @@ model_vsris_age_con <- function(df) {
 
 # Model for uncorrelated random intercept and slope for all possible random effects.
 model_vsris_all_lmerTest <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all_PC <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all_NM <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ="Nelder_Mead"))
 }
 
 model_vsris_all_BFGS <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='L-BFGS-B')))
 }
 
 model_vsris_all_nlminb <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='nlminb')))
 }
 
 # Models for uncorrelated random intercept and slope with additional fixed effects
 model_vsris_housing <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm +  housing + dvlocmm:housing + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_age <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm +  age + dvlocmm:age + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_ml <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm +  mlpos + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_hemi <-  function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm +  hemi + dvlocmm:hemi + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_exp <-  function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm +  expr + dvlocmm:expr + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_dir <-  function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm + patchdir + dvlocmm:patchdir + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_rect <-  function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm + rectime + dvlocmm:rectime + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_full_fixed <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm + age + expr + rectime + housing + dvlocmm:age + dvlocmm:housing+ dvlocmm:patchdir + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 ```
