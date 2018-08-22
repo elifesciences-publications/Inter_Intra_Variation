@@ -401,16 +401,22 @@ Housing
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  mutate(mm_vsris_housing_sum = map(mm_vsris_housing, summary)) %>%
+  mutate(mm_housing_ngrps = map_dbl(mm_vsris_housing_sum, ~.$ngrps)) %>%  
+  mutate(mm_housing_nobs = map_dbl(mm_vsris_housing_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_housing_ANOVA = map(mm_vsris_housing, car::Anova)) %>%
-  mutate(mm_vsris_housing_ANOVA_dvlocmm = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_housing_ANOVA_housing = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_housing_ANOVA_dvlocmm_housing = map(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_housing_ANOVA_dvlocmm = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_housing_ANOVA_housing = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_housing_ANOVA_dvlocmm_housing = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
+                         mm_housing_ngrps,
+                         mm_housing_nobs,
                          mm_vsris_housing_ANOVA_dvlocmm,
                          mm_vsris_housing_ANOVA_housing,
-                         mm_vsris_housing_ANOVA_dvlocmm_housing)) %>%
+                         mm_vsris_housing_ANOVA_dvlocmm_housing),
+                  col.names = c("property", "N", "n", "dvloc", "housing", "dvloc:housing")) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
@@ -490,7 +496,7 @@ df_age_table <- cbind(select(data.sc_r[1:12,],
                          ngrps,
                          nobs))
 
-kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(4,15))) %>%
+kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
   
