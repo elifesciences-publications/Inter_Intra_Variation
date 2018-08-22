@@ -422,9 +422,9 @@ data.sc_r <- data.sc_r %>%
   mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
   mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 
 summary(data.sc_r$mm_vsris_age[[1]])$devcomp$dims[1]
@@ -443,9 +443,9 @@ data.sc_r_f <- data.sc_r_f  %>%
   mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
   mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 Look at age including only animals above P32 and below P45.
 ```{r}
@@ -462,9 +462,9 @@ data.sc_r_f2 <- data.sc_r_f2  %>%
   mutate(ngrps = map_dbl(mm_vsris_age_sum, ~.$ngrps)) %>%  
   mutate(nobs = map_dbl(mm_vsris_age_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_age_ANOVA = map(mm_vsris_age, car::Anova)) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
-  mutate(mm_vsris_age_ANOVA_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
+  mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 ```
 
@@ -490,10 +490,23 @@ df_age_table <- cbind(select(data.sc_r[1:12,],
                          ngrps,
                          nobs))
 
-kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3))) %>%
+kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(4,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
   
+```
+
+
+```{r}
+df <- data.frame(a = "a", x=rnorm(10), y=rnorm(10))
+  
+kableExtra::kable(df, col.names = c("a", "b", "c"), digits = c(10, 4,1))
+
+typeof(df$x)
+
+kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(3,15)))
+
+typeof(df_age_table$ngrps)
 ```
 
 
