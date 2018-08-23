@@ -434,6 +434,18 @@ data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 
+Look at fixed effects for Vm, IR and sag.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+```
+
 
 Look at age including only animals above P32.
 ```{r}
@@ -452,6 +464,18 @@ data.sc_r_f <- data.sc_r_f  %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_age_ANOVA_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+```
+
+Look at fixed effects for Vm, IR and sag.
+```{r}
+plotFE_sd(filter(data.sc_r_f, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r_f, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
 ```
 
 Look at age including only animals above P32 and below P45.
@@ -474,6 +498,20 @@ data.sc_r_f2 <- data.sc_r_f2  %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
 ```
+
+Look at fixed effects.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+```
+
+
 
 Combined table for age. Including n and N.
 ```{r}
@@ -539,7 +577,7 @@ data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_hemi_ANOVA_hemi = map_dbl(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
   mutate(mm_vsris_hemi_ANOVA_dvlocmm_hemi = map_dbl(mm_vsris_hemi_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 
-kableExtra::kable(select(data.sc_r[1:12,],
+kableExtra::kable(dplyr::select(data.sc_r[1:12,],
                          property,
                          ngrps_hemi,
                          nobs_hemi,
@@ -550,6 +588,19 @@ kableExtra::kable(select(data.sc_r[1:12,],
                   digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
+
+
+Look at fixed effects for sag and resonance magnitude.
+```{r}
+fe_hemi_sag <- merTools::FEsim(filter(data.sc_r, property == "sag")$mm_vsris_hemi[[1]])
+
+merTools::plotFEsim(fe_hemi_sag) + ggtitle("Fixed effects for sag")
+
+fe_hemi_resmag <- merTools::FEsim(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]])
+
+merTools::plotFEsim(fe_hemi_resmag) + ggtitle("Fixed effects for resonance magnitude")
+```
+
 
 Experimenter
 ```{r}

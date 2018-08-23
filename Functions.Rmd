@@ -358,3 +358,20 @@ edf <- function(x)
 }
 ```
 
+Function for plotting effects estimated with merTools ± SD. 
+```{r}
+plotFE_sd <- function(df) {
+  df_FE <- merTools::FEsim(df)
+  
+  df_FE <- df_FE  %>%
+  mutate(upper = mean + sd) %>%
+  mutate (lower = mean - sd)
+  
+  ggplot(df_FE[2:4,], aes(term, mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = upper, ymax = lower)) +
+  coord_flip()
+}
+```
+
+
