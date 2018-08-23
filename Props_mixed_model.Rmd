@@ -565,6 +565,20 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
+Look at fixed effects for IR, membrane time constant and spike AHP.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for IR")
+
+plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r, property == "ahp")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for  spike AHP")
+
+```
+
+
 Hemisphere
 ```{r}
 data.sc_r <- data.sc_r %>%
@@ -592,13 +606,11 @@ kableExtra::kable(dplyr::select(data.sc_r[1:12,],
 
 Look at fixed effects for sag and resonance magnitude.
 ```{r}
-fe_hemi_sag <- merTools::FEsim(filter(data.sc_r, property == "sag")$mm_vsris_hemi[[1]])
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_hemi[[1]]) +
+  ggtitle("Fixed effects for membrane potential sag response")
 
-merTools::plotFEsim(fe_hemi_sag) + ggtitle("Fixed effects for sag")
-
-fe_hemi_resmag <- merTools::FEsim(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]])
-
-merTools::plotFEsim(fe_hemi_resmag) + ggtitle("Fixed effects for resonance magnitude")
+plotFE_sd(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]]) +
+  ggtitle("Fixed effects for resonance magnitude")
 ```
 
 
@@ -626,6 +638,17 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
+Look at fixed effects for input resistance, resonance frequency and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for resonance frequency")
+
+plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
+```
 
 Patch direction
 ```{r}
@@ -649,6 +672,18 @@ kableExtra::kable(select(data.sc_r[1:12,],
                   col.names = c("property", "N", "n", "dvloc", "dir", "dvloc:dir"),
                   digits = c(NA, rep(5, 5))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
+```
+
+Look at fixed effects for membrane potential, membrane time constant and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for membrane potential")
+
+plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
 ```
 
 
@@ -676,6 +711,17 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
+Look at fixed effects for membrane potential, resonance frquency and spike threshold.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for membrane potential")
+
+plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
+```
 
 
 ```{r}
