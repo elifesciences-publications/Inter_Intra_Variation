@@ -3,4 +3,4 @@ delete_merged_file: true
 language:
   ui:
     chapter_name: "Figure "
-rmd_files: ["index.Rmd", "Functions.Rmd", "LoadData.Rmd", "ConceptualFigures.Rmd", "Props_Example.Rmd", "Props_All.Rmd", "Props_mixed_model.Rmd", "PCA_mixed_model.Rmd"]
+rmd_files: ["index.Rmd", "Functions.Rmd", "LoadData.Rmd", "ConceptualFigures.Rmd", "Props_Example.Rmd", "Props_All.Rmd", "Props_mixed_model.Rmd", "Props_FixedEffects.Rmd", "PCA_mixed_model.Rmd"]
