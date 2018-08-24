@@ -617,6 +617,11 @@ ggplot(filter(data.sc_r, property == "resf")$data[[1]], aes(mlpos,value, colour 
   ggtitle("Resonance frequency")
 ```
 
+Look at all properties as a function of dorsoventral location.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, mlpos), "mlpos")
+```
+
 
 
 Hemisphere
@@ -653,15 +658,9 @@ plotFE_sd(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]]) +
   ggtitle("Fixed effects for resonance magnitude")
 ```
 
-Look at effect of hmemisphere on sag and resonance magnitude plotted as a function of location.
+Look at effect of properties plotted as a function of location.
 ```{r}
-ggplot(drop_na(filter(data.sc_r, property == "sag")$data[[1]]), aes(dvlocmm, value, colour = hemi)) +
-  geom_point() +
-  geom_smooth(method='lm')
-
-ggplot(drop_na(filter(data.sc_r, property == "resmag")$data[[1]]), aes(dvlocmm, value, colour = hemi)) +
-  geom_point() +
-  geom_smooth(method='lm')
+all_by_fac(select(data.sc, vm:fi, dvlocmm, hemi), "hemi")
 ```
 
 
@@ -700,6 +699,13 @@ plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_exp[[1]]) +
 plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_exp[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
+
+
+Look at all properties separated by experimenter.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
+```
+
 
 Patch direction
 ```{r}

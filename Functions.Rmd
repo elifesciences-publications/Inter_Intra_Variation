@@ -374,4 +374,19 @@ plotFE_sd <- function(df) {
 }
 ```
 
+Function for plotting all date separated by a factor.
+Requires a tidy dataframe containing columns vm:fi and then an additional column with the factor. 
+An example of df is select(data.sc, vm:fi, dvlocmm, hemi).
+```{r}
+all_by_fac <- function(df, fac_col) {
+  df_g <- df %>%
+    gather("property", "value", vm:fi) %>%
+    drop_na()
+ggplot(df_g, aes(dvlocmm, value, colour = !! rlang::sym(fac_col))) +
+  geom_point(alpha=0.2) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~property, scales = "free")
+}
+```
+
 
