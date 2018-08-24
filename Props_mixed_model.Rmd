@@ -421,6 +421,15 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
+Look at fixed effects for sag and rheobase.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r, property == "rheo")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for rheobase")
+```
+
 All ages.
 ```{r}
 data.sc_r <- data.sc_r %>%
@@ -434,7 +443,7 @@ data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 
-Look at fixed effects for Vm, IR and sag.
+Look at fixed effects for Vm, IR, sag and resonant frequncy.
 ```{r}
 plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for Vm")
@@ -444,6 +453,9 @@ plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_age[[1]]) +
 
 plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
 ```
 
 
@@ -466,7 +478,7 @@ data.sc_r_f <- data.sc_r_f  %>%
   mutate(mm_vsris_age_ANOVA_dvlocmm_age = map_dbl(mm_vsris_age_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
 ```
 
-Look at fixed effects for Vm, IR and sag.
+Look at fixed effects for Vm, IR and sag and resonance frequency.
 ```{r}
 plotFE_sd(filter(data.sc_r_f, property == "vm")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for Vm")
@@ -476,6 +488,9 @@ plotFE_sd(filter(data.sc_r_f, property == "ir")$mm_vsris_age[[1]]) +
 
 plotFE_sd(filter(data.sc_r_f, property == "sag")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
 ```
 
 Look at age including only animals above P32 and below P45.
@@ -509,6 +524,9 @@ plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_age[[1]]) +
 
 plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
 ```
 
 
@@ -565,18 +583,40 @@ kableExtra::kable(select(data.sc_r[1:12,],
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
-Look at fixed effects for IR, membrane time constant and spike AHP.
+Look at fixed effects for IR, sag, membrane time constant, resf and spike AHP.
 ```{r}
 plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for IR")
 
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for membrane potential sag")
+
 plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for resonance frequency")
 
 plotFE_sd(filter(data.sc_r, property == "ahp")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for  spike AHP")
 
 ```
+
+Compare medial with lateral sections.
+```{r}
+ggplot(filter(data.sc_r, property == "ir")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Input resistance")
+
+ggplot(filter(data.sc_r, property == "sag")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Membrane potential sag")
+
+ggplot(filter(data.sc_r, property == "resf")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Resonance frequency")
+```
+
 
 
 Hemisphere
@@ -611,6 +651,17 @@ plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_hemi[[1]]) +
 
 plotFE_sd(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]]) +
   ggtitle("Fixed effects for resonance magnitude")
+```
+
+Look at effect of hmemisphere on sag and resonance magnitude plotted as a function of location.
+```{r}
+ggplot(drop_na(filter(data.sc_r, property == "sag")$data[[1]]), aes(dvlocmm, value, colour = hemi)) +
+  geom_point() +
+  geom_smooth(method='lm')
+
+ggplot(drop_na(filter(data.sc_r, property == "resmag")$data[[1]]), aes(dvlocmm, value, colour = hemi)) +
+  geom_point() +
+  geom_smooth(method='lm')
 ```
 
 
@@ -722,6 +773,8 @@ plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_rect[[1]]) +
 plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
+
+## Look for correlations between fixed effects
 
 
 ```{r}
