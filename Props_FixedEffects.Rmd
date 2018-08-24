@@ -25,7 +25,7 @@ On this bases additional parameters are all fixed effects.
 
 We will adopt strategy of first evaluating each fixed effect and it's possible interaction with dvlocmm. Later on we will consider possible interactions. For these analyses we use type II ANOVA provided by the car package.
 
-Housing.
+## Housing.
 We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
 data.sc_r <- data.sc_r %>%
@@ -187,7 +187,7 @@ kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age",
 ```
 
 
-Mediolateral position.
+## Mediolateral position.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
@@ -252,7 +252,7 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, mlpos), "mlpos")
 
 
 
-Hemisphere
+## Hemisphere
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
@@ -292,7 +292,7 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, hemi), "hemi")
 ```
 
 
-Experimenter
+## Experimenter
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_exp = map(data, model_vsris_exp)) %>%
@@ -335,7 +335,7 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
 ```
 
 
-Patch direction
+## Patch direction
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
@@ -377,7 +377,7 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, patchdir), "patchdir")
 ```
 
 
-Recording time
+## Recording time
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
