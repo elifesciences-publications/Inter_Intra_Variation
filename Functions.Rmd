@@ -389,4 +389,16 @@ ggplot(df_g, aes(dvlocmm, value, colour = !! rlang::sym(fac_col))) +
 }
 ```
 
+Plot predictions for model fit for individual animals.
+```{r}
+predict_plot <- function(df, model) {
+  prediction = predict(model)
+  df <- cbind(df,prediction)
+  
+  predictplot <- ggplot(df, aes(x = dvlocmm, y = value, group = id)) +
+    geom_line(aes(y = prediction)) +
+    theme_classic()
+}
+```
+
 
