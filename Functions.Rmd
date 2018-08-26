@@ -396,9 +396,43 @@ predict_plot <- function(df, model) {
   df <- cbind(df,prediction)
   
   predictplot <- ggplot(df, aes(x = dvlocmm, y = value, group = id)) +
-    geom_line(aes(y = prediction)) +
+    geom_line(aes(y = prediction, colour = "red"))
+}
+```
+
+Format ggplot of input resistance as a function of location.
+```{r}
+gg_ir_format <- function(gg, ylim_min = 0, ylim_max = 60) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("IR (MΩ)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
     theme_classic()
 }
 ```
 
+Format ggplot of rheobase as a function of location.
+```{r}
+gg_rheo_format <- function(gg, ylim_min = 0, ylim_max = 600) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("Rheobase (pA)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
+    theme_classic() 
+}
+```
 
+
+Format ggplot of resonance frequency as a function of location.
+```{r}
+gg_resf_format <- function(gg, ylim_min = 0, ylim_max = 12) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("F (Hz)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
+    theme_classic() 
+}
+```
