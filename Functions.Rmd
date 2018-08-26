@@ -396,7 +396,7 @@ predict_plot <- function(df, model) {
   df <- cbind(df,prediction)
   
   predictplot <- ggplot(df, aes(x = dvlocmm, y = value, group = id)) +
-    geom_line(aes(y = prediction, colour = "red"))
+    geom_line(aes(y = prediction))
 }
 ```
 

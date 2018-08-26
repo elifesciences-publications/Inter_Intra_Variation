@@ -176,8 +176,8 @@ props_table_unnest <- unnest(props_table)
 
 props_table_unnest %>%
   knitr::kable(
-  digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+    digits = 5,
+    caption = "Fit of measured membrane properties as a function of location"
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 
@@ -208,62 +208,6 @@ props_table_1_unnest %>%
   caption = "Fit of measured membrane properties as a function of location"
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
-```
-
-
-
-## Evaluate age and housing
-
-Evaluate inclusion of housing as fixed effect.
-```{r, warning=FALSE}
-data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris_housing = map(data, model_vsris_housing)) %>%
-  mutate(anova_housing = map2(mixedmodel_vsris, mixedmodel_vsris_housing, ~anova(.x,.y))) %>%
-  mutate(tidy_anova_housing = map(anova_housing, broom::tidy)) %>% 
-  mutate(p_housing = map_dbl(tidy_anova_housing, ~.$p.value[2]))
-```
-
-Evaluate inclusion of age as fixed effect 
-```{r, warning=FALSE}
-data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris_age_null = map(data, model_vsris_age_con)) %>%
-  mutate(mixedmodel_vsris_age = map(data, model_vsris_age)) %>%
-  mutate(anova_age = map2(mixedmodel_vsris_age_null, mixedmodel_vsris_age, ~anova(.x,.y))) %>%
-  mutate(tidy_anova_age = map(anova_age, broom::tidy)) %>% 
-  mutate(p_age = map_dbl(tidy_anova_age, ~.$p.value[2]))
-  
-```
-
-Compare models that include id as random effect in models that include housing with conventional linear models.
-```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(linearmodel_vsris_housing = map(data, linearmodel_housing))
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_housing", "linearmodel_vsris_housing"))
-```
-
-Compare models that include id as random effect in models that include age with conventional linear models.
-```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(linearmodel_vsris_age = map(data, linearmodel_age))
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
-```
-
-
-Make a table to summarise effects of housing and age.
-Bwe careful with pdiff1 and pdiff2 - if mixed_vs_linear_pchisqu has been called more than once for each variable then names will be incorrect.
-```{r}
-props_for_table <- c("property", "p_housing", "pdiff1", "p_age", "pdiff2")
-props_table <- as.tibble(data.sc_r[props_for_table])
-props_table_unnest <- unnest(props_table)
-
-props_table_unnest %>%
-  knitr::kable(
-  digits = 5,
-  caption = "Additional fits with housing and age as fixd effects"
-) %>%
-    kableExtra::kable_styling()
-
-write_csv(props_table_unnest, "housing_age_table.csv")
 ```
 
 
