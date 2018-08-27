@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(lme4)
 library(MuMIn)
 library(tidyverse)
+library(cowplot)
 ```
 
 # Mixed model analysis of electrophysiological features
@@ -234,7 +235,7 @@ Now generate the plot.
 ```{r Facetted_plot_of_model_fits}
 labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
-IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
@@ -246,9 +247,27 @@ IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, co
 IS_figure
 ```
 
+Make combined figure.
+```{r warning=FALSE}
+ggdraw() +
+  draw_plot(rheo_predictplot, x = 0, y = .5, width = .18, height = .4) +
+  draw_plot(mm_rheo_predictplot, x = 0, y = 0, width = .18, height = .4) +
+  draw_plot(resf_predictplot, x = 0.2, y = .5, width = .18, height = .4) +
+  draw_plot(mm_resf_predictplot, x = 0.2, y = 0, width = .18, height = .4) +
+  draw_plot(IS_figure, x = 0.4, y = 0, width = .6, height = 1) +
+  draw_plot_label(label = c("A", "B", "C"), size = 15,
+                  x = c(0, 0, 0.4), y = c(1, 0.5, 1)) +
+  draw_plot_label(label = c("Independent fits", "Mixed model fits"), size = 12,
+                  x = c(0.006, 0.006), y = c(0.99, 0.49))
+  
+  
+```
+
+
+
 Save the figure.
 ```{r Save plot of model fits}
-ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
+ggsave("I_S_figure.png", width = 220, height = 120, units = "mm")
 ```
 
 
