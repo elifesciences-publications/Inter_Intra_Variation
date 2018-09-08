@@ -138,7 +138,7 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel")) %>%
+data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel") %>%
   mutate(pdiff_adj= 1)
 data.sc_r$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
 data.sc_r$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
@@ -148,7 +148,7 @@ And, do the same thing for the transformed data:
 data.sc_r_1 <- data.sc_r_1 %>%
   mutate(linearmodel = map(data, linearmodel_to_fit_1))
 
-data.sc_r_1 <- bind_cols(data.sc_r_1, mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel"))%>%
+data.sc_r_1 <- mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel") %>%
   mutate(pdiff_adj= 1)
 data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
 data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")

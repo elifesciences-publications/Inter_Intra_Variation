@@ -19,7 +19,7 @@ library(tidyverse)
 Does including other parameters improve the model or alter conclusions derived from the model? Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time.
 
 Should parameters be added as fixed or randomw effects? We take this definition from Gelman (2004), "We define effects (or coefficients) in a multilevel model as constant if they are identical for all groups in a population and varying if they are allowed to differ from group to group." See also discussion here: 
-https://stats.stackexchange.com/questions/4700/what-is-the-difference-between-fixed-effect-random-effect-and-mixed-effect-mode. From this discussion (answer from Ben Boljer), "You usually can’t use random effects when the grouping variable has fewer than five levels, and random effects variance estimates are unstable with fewer than eight levels, because you are trying to estimate a variance from a very small sample". See also: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification.
+https://stats.stackexchange.com/questions/4700/what-is-the-difference-between-fixed-effect-random-effect-and-mixed-effect-mode. From this discussion (answer from Ben Bolker), "You usually can’t use random effects when the grouping variable has fewer than five levels, and random effects variance estimates are unstable with fewer than eight levels, because you are trying to estimate a variance from a very small sample". See also: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification.
 
 On this bases additional parameters are all fixed effects.
 

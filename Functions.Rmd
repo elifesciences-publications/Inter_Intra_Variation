@@ -215,7 +215,7 @@ extractdf <- function(dev){
   attr(dev,"df")
 }
 
-# Can this be improved? Returning a tibble / df seems a bit clunky.
+# Performs chi-square test to compre models in two list-columns. Returns the dataframe with additional result columns appended.
 mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
   df <- df %>%
     mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
@@ -224,8 +224,7 @@ mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
     mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
     mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
     mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) %>%
-    select(dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df, dfdiff, pdiff)
+    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) 
   df
 }
 
