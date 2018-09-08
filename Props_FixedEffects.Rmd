@@ -25,6 +25,8 @@ On this bases additional parameters are all fixed effects.
 
 We will adopt strategy of first evaluating each fixed effect and it's possible interaction with dvlocmm. Later on we will consider possible interactions. For these analyses we use type II ANOVA provided by the car package.
 
+This code requires first running Props_mixed_model.Rmd.
+
 ## Housing.
 We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
@@ -57,6 +59,30 @@ plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_housing[[1]]) +
 plotFE_sd(filter(data.sc_r, property == "rheo")$mm_vsris_housing[[1]]) +
   ggtitle("Fixed effects for rheobase")
 ```
+
+
+Plot sag intecept and slope.
+```{r}
+Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == "sag" & measure == "ind_intercept"), aes(x = housing, y = value_2, colour = housing)) +
+  geom_jitter(width = 0.1) +
+  labs(y = "Sag", x = "Housing") +
+  theme(legend.position="none")
+
+Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag"), aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) 
+
++
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+Sag_housing_intercepts
+
+
+```
+
 
 All ages.
 ```{r}

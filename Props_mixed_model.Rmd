@@ -138,31 +138,44 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
+data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel")) %>%
+  mutate(pdiff_adj= 1)
+data.sc_r$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
+data.sc_r$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
 ```
 And, do the same thing for the transformed data:
 ```{r}
 data.sc_r_1 <- data.sc_r_1 %>%
   mutate(linearmodel = map(data, linearmodel_to_fit_1))
 
-data.sc_r_1 <- bind_cols(data.sc_r_1, mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel"))
+data.sc_r_1 <- bind_cols(data.sc_r_1, mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel"))%>%
+  mutate(pdiff_adj= 1)
+data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
+data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
 ```
 
 
 ## Compare the model with a null model containing only id as a random effect
 Use ANOVA to compare the model with the null model.
+To do: compare with car::Anova.
 ```{r Compare to null model, warning=FALSE}
 data.sc_r <- data.sc_r %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val_adj = 1)
+data.sc_r$anova_p_val_adj[1:12] <- p.adjust(data.sc_r$anova_p_val[1:12], method = "BH")
+data.sc_r$anova_p_val_adj[13:24] <- p.adjust(data.sc_r$anova_p_val[13:24], method = "BH")
 ```
 And, again for the transformed data:
 ```{r, warning=FALSE}
 data.sc_r_1 <- data.sc_r_1 %>%
   mutate(anova = map2(mixedmodel_vsris_1, mixedmodel_vsris_1_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))%>%
+  mutate(anova_p_val_adj = 1)
+data.sc_r_1$anova_p_val_adj[1:12] <- p.adjust(data.sc_r$anova_p_val[1:12], method = "BH")
+data.sc_r_1$anova_p_val_adj[13:24] <- p.adjust(data.sc_r$anova_p_val[13:24], method = "BH")
 ```
 
 
@@ -171,7 +184,7 @@ data.sc_r_1 <- data.sc_r_1 %>%
 
 Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
-props_for_table <- c("property", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff", "gradient_slopes", "modelslope_min", "modelslope_max")
+props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "marginal.r2", "conditional.r2", "pdiff", "pdiff_adj", "gradient_slopes", "modelslope_min", "modelslope_max")
 props_table <- as.tibble(data.sc_r[props_for_table][1:12,])
 props_table_unnest <- unnest(props_table)
 
