@@ -3,7 +3,7 @@ title: "R Notebook"
 output: html_notebook
 ---
 
-```{r setup_Feates_mixedmod, include=FALSE}
+```{r setup_Feates_FixedEffects, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 # Ensure access to libraries
@@ -69,9 +69,7 @@ Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == 
   theme(legend.position="none")
 
 Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag"), aes(x = measure, y = value_1, colour = housing)) +
-  geom_line(aes(group = id)) 
-
-+
+  geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
   theme_classic() +

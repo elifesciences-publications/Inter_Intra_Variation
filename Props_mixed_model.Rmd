@@ -150,8 +150,8 @@ data.sc_r_1 <- data.sc_r_1 %>%
 
 data.sc_r_1 <- mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel") %>%
   mutate(pdiff_adj= 1)
-data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
-data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
+data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r_1$pdiff[1:12], method = "BH")
+data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r_1$pdiff[13:24], method = "BH")
 ```
 
 
@@ -174,8 +174,8 @@ data.sc_r_1 <- data.sc_r_1 %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))%>%
   mutate(anova_p_val_adj = 1)
-data.sc_r_1$anova_p_val_adj[1:12] <- p.adjust(data.sc_r$anova_p_val[1:12], method = "BH")
-data.sc_r_1$anova_p_val_adj[13:24] <- p.adjust(data.sc_r$anova_p_val[13:24], method = "BH")
+data.sc_r_1$anova_p_val_adj[1:12] <- p.adjust(data.sc_r_1$anova_p_val[1:12], method = "BH")
+data.sc_r_1$anova_p_val_adj[13:24] <- p.adjust(data.sc_r_1$anova_p_val[13:24], method = "BH")
 ```
 
 
