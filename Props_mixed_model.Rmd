@@ -154,6 +154,16 @@ data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r_1$pdiff[1:12], method = "BH")
 data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r_1$pdiff[13:24], method = "BH")
 ```
 
+Alternative approaches to compare the mixed model with the reduced model. See: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#testing-significance-of-random-effects. Example below uses ANOVA directly. Note, this doesn't work when calling the model stored within data.sc_r (commented out).
+```{r, warning=FALSE}
+#a <- data.sc_r$linearmodel[[1]]
+#b <- data.sc_r$mixedmodel_vsris[[1]]
+a <- lmer(vm ~ dvlocmm + (dvlocmm||id), data = data.sc)
+b <- lm(vm ~ dvlocmm, data = data.sc)
+anova(a, b)
+```
+
+
 
 ## Compare the model with a null model containing only id as a random effect
 Use ANOVA to compare the model with the null model.
