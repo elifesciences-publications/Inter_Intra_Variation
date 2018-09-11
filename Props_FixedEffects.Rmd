@@ -36,18 +36,22 @@ data.sc_r <- data.sc_r %>%
   mutate(mm_housing_ngrps = map_dbl(mm_vsris_housing_sum, ~.$ngrps)) %>%  
   mutate(mm_housing_nobs = map_dbl(mm_vsris_housing_sum, ~.$devcomp$dims[1])) %>%
   mutate(mm_vsris_housing_ANOVA = map(mm_vsris_housing, car::Anova)) %>%
-  mutate(mm_vsris_housing_ANOVA_dvlocmm = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
+  mutate(mm_housing_dvlocmm = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[1]])) %>%
   mutate(mm_vsris_housing_ANOVA_housing = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[2]])) %>%
-  mutate(mm_vsris_housing_ANOVA_dvlocmm_housing = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[3]]))
+  mutate(mm_vsris_housing_ANOVA_dvlocmm_housing = map_dbl(mm_vsris_housing_ANOVA, ~.$`Pr(>Chisq)`[[3]])) %>%
+  mutate(mm_housing_dvlocmm_adj = 1)
+
+data.sc_r$mm_housing_dvlocmm_adj <- p.adjust(data.sc_r$mm_housing_dvlocmm, method = "BH")
 
 kableExtra::kable(select(data.sc_r[1:12,],
                          property,
                          mm_housing_ngrps,
                          mm_housing_nobs,
-                         mm_vsris_housing_ANOVA_dvlocmm,
+                         mm_housing_dvlocmm,
+                         mm_housing_dvlocmm_adj,
                          mm_vsris_housing_ANOVA_housing,
                          mm_vsris_housing_ANOVA_dvlocmm_housing),
-                  col.names = c("property", "N", "n", "dvloc", "housing", "dvloc:housing")) %>%
+                  col.names = c("property", "N", "n", "dvloc", "dvloc_adj", "housing", "dvloc:housing")) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 

@@ -373,7 +373,46 @@ plotFE_sd <- function(df) {
 }
 ```
 
-Function for plotting all date separated by a factor.
+
+## Functions used for analysis of additional fixed effects
+
+Function for adding model summary statistics to the main data frame.
+summary_2fixedeffects(data.sc_r, mm_vsris_housing, "housing")
+```{r}
+summary_2fixedeffects <- function(df, model, name) {
+  model <- enquo(model)
+  sum_name <- sym(paste0(quo_name(name), "_sum"))
+  ngrps_name <-sym(paste0(quo_name(name), "_ngrps"))
+  nobs_name <- sym(paste0(quo_name(name), "_nobs"))
+  ANOVA_name <- sym(paste0(quo_name(name), "_ANOVA"))
+  dv_name <- sym(paste0(quo_name(name), "_dv"))
+  housing_name <- sym(paste0(quo_name(name), "_housing"))
+  dv_housing_name <- sym(paste0(quo_name(name), "_dv_housing"))
+  dv_adj_name <- sym(paste0(quo_name(name), "_adj_dv"))
+  housing_adj_name <- sym(paste0(quo_name(name), "_adj_housing"))
+  dv_housing_adj_name <- sym(paste0(quo_name(name), "_adj_dv_housing"))
+  
+  mutate(df,
+         !! sum_name := map(!! model, summary),
+         !! ngrps_name := map_dbl(!!sum_name, ~.$ngrps),
+         !! nobs_name := map_dbl(!!sum_name, ~.$devcomp$dims[1]),
+         !! ANOVA_name := map(!!model, car::Anova),
+         !! dv_name := map_dbl(!!ANOVA_name, ~.$`Pr(>Chisq)`[[1]]),
+         !! housing_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[2]]),
+         !! dv_housing_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]]),
+         !! dv_adj_name := 1,
+         !! housing_adj_name := 1,
+         !! dv_housing_adj_name := 1
+         )
+}
+```
+
+data.sc_r$mm_housing_dvlocmm_adj <- p.adjust(data.sc_r$mm_housing_dvlocmm, method = "BH")
+
+
+
+
+Function for plotting all data separated by a factor.
 Requires a tidy dataframe containing columns vm:fi and then an additional column with the factor. 
 An example of df is select(data.sc, vm:fi, dvlocmm, hemi).
 ```{r}
