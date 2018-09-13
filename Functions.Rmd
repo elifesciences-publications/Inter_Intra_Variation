@@ -383,40 +383,57 @@ plotFE_sd <- function(df) {
 ## Functions used for analysis of additional fixed effects
 
 Function for adding model summary statistics to the main data frame.
-summary_2fixedeffects(data.sc_r, mm_vsris_housing, "housing")
 ```{r}
 summary_2fixedeffects <- function(df, model, name) {
   model <- enquo(model)
-  sum_name <- sym(paste0(quo_name(name), "_sum"))
-  ngrps_name <-sym(paste0(quo_name(name), "_ngrps"))
-  nobs_name <- sym(paste0(quo_name(name), "_nobs"))
-  ANOVA_name <- sym(paste0(quo_name(name), "_ANOVA"))
-  dv_name <- sym(paste0(quo_name(name), "_dv"))
-  housing_name <- sym(paste0(quo_name(name), "_housing"))
-  dv_housing_name <- sym(paste0(quo_name(name), "_dv_housing"))
-  dv_adj_name <- sym(paste0(quo_name(name), "_adj_dv"))
-  housing_adj_name <- sym(paste0(quo_name(name), "_adj_housing"))
-  dv_housing_adj_name <- sym(paste0(quo_name(name), "_adj_dv_housing"))
+  sum_name <- sym(paste0("mm_", quo_name(name), "_sum"))
+  ngrps_name <-sym(paste0("mm_", quo_name(name), "_ngrps"))
+  nobs_name <- sym(paste0("mm_", quo_name(name), "_nobs"))
+  ANOVA_name <- sym(paste0("mm_", quo_name(name), "_ANOVA"))
+  dv_name <- sym(paste0("mm_", quo_name(name), "_dv"))
+  name_name <- sym(paste0("mm_", quo_name(name), "_", quo_name(name)))
+  dv_name_name <- sym(paste0("mm_", quo_name(name), "_dv_", quo_name(name)))
   
-
-    mutate(df,
+  mutate(df,
          !! sum_name := map(!! model, summary),
          !! ngrps_name := map_dbl(!!sum_name, ~.$ngrps),
          !! nobs_name := map_dbl(!!sum_name, ~.$devcomp$dims[1]),
          !! ANOVA_name := map(!!model, car::Anova),
          !! dv_name := map_dbl(!!ANOVA_name, ~.$`Pr(>Chisq)`[[1]]),
-         !! housing_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[2]]),
-         !! dv_housing_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]]),
-         !! dv_adj_name := 1,
-         !! housing_adj_name := 1,
-         !! dv_housing_adj_name := 1
+         !! name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[2]]),
+         !! dv_name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]])
          )
+  
 }
 ```
 
-data.sc_r$mm_housing_dvlocmm_adj <- p.adjust(data.sc_r$mm_housing_dvlocmm, method = "BH")
-
-
+Function to make table summarising additional fixed effects
+FE_table(data.sc_r, "rect")
+```{r}
+FE_table <- function(df, name) {
+  ngrps <- sym(paste0("mm_", name, "_ngrps"))
+  nobs <- sym(paste0("mm_", name, "_nobs"))
+  name_dv <- sym(paste0("mm_", name, "_dv"))
+  name_dv_adj <- sym(paste0("mm_", name, "_dv_adj"))
+  name_name <- sym(paste0("mm_", name, "_", name))
+  name_name_adj <- sym(paste0("mm_", name, "_", name, "_adj"))
+  name_dv_name <- sym(paste0("mm_", name, "_dv_", name))
+  name_dv_name_adj <- sym(paste0("mm_", name, "_dv_", name, "_adj"))
+  
+  kableExtra::kable(select(df,
+                           property,
+                           !! ngrps,
+                           !! nobs,
+                           !! name_dv,
+                           !! name_dv_adj,
+                           !! name_name,
+                           !! name_name_adj,
+                           !! name_dv_name,
+                           !! name_dv_name_adj),
+                    col.names = c("property", "N", "n", "dvloc", "dvloc_adj", paste0(name), paste0(name,"_adj"), paste0("dv:", name), paste0("dv:", name, "_adj"))) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```
 
 
 Function for plotting all data separated by a factor.
