@@ -34,21 +34,21 @@ Generate plots to evaluate assumptions of mixed models
 Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
-  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
-  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
-  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
-  mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
-  mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
+  mutate(mm_vsris = map(data, model_vsris))%>%
+  mutate(mm_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mm_vsri = map(data, model_vsri))%>%
+  mutate(mm_vsri_null = map(data, model_vsri_null))%>%
+  mutate(mm_vscris = map(data, model_vscris))%>%
+  mutate(mm_vscris_null = map(data, model_vscris)) %>%
+  mutate(mm_vsris_lT = map(data, model_vsris_lT))
 ```
 Similar to above, but additional models using the transformed properties, or the transformed properties and transformed dvlocmm (vsris_1). Transformations were carried out in LoadData.Rmd. 
 ```{r}
 data.sc_TP_r <- data.sc_TP_r %>%
-  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
-  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsris_1 = map(data, model_vsris_1))%>%
-  mutate(mixedmodel_vsris_1_null = map(data, model_vsris_1_null))
+  mutate(mm_vsris = map(data, model_vsris))%>%
+  mutate(mm_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mm_vsris_1 = map(data, model_vsris_1))%>%
+  mutate(mm_vsris_1_null = map(data, model_vsris_1_null))
 ```
 
 
@@ -59,20 +59,20 @@ data.sc_TP_r <- data.sc_TP_r %>%
 Extract AIC for all models.
 ```{r Extract AIC}
 data.sc_r <- data.sc_r %>% 
-  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
-  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
-  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
-  mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
+  mutate(vsris_glance = map(mm_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mm_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mm_vsri, broom::glance)) %>%
+  mutate(vscris_glance = map(mm_vscris, broom::glance)) %>%
   mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
   mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
   mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
   mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
 
 data.sc_TP_r <- data.sc_TP_r %>%
-  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
-  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
-  mutate(vsris_1_glance = map(mixedmodel_vsris_1, broom::glance)) %>%
-  mutate(vsris_1_null_glance = map(mixedmodel_vsris_1_null, broom::glance)) %>%
+  mutate(vsris_glance = map(mm_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mm_vsris_null, broom::glance)) %>%
+  mutate(vsris_1_glance = map(mm_vsris_1, broom::glance)) %>%
+  mutate(vsris_1_null_glance = map(mm_vsris_1_null, broom::glance)) %>%
   mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
   mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
   mutate(vsris_1_AIC = map_dbl(vsris_1_glance, ~.$AIC)) %>%
@@ -91,7 +91,7 @@ ir_predictplot <- ggplot(filter(data.sc_r, property == "ir")$data[[1]], aes(x = 
 ir_predictplot <- gg_ir_format(ir_predictplot, 0, 60)
 
 mm_ir_predictplot <- predict_plot(filter(data.sc_r, property == "ir")$data[[1]],
-                               filter(data.sc_r, property == "ir")$mixedmodel_vsris[[1]])
+                               filter(data.sc_r, property == "ir")$mm_vsris[[1]])
 mm_ir_predictplot <- gg_ir_format(mm_ir_predictplot, 0, 60)
 
 ir_predictplot
@@ -105,7 +105,7 @@ rheo_predictplot <-  ggplot(filter(data.sc_r, property == "rheo")$data[[1]], aes
 rheo_predictplot <- gg_rheo_format(rheo_predictplot, 0, 600)
 
 mm_rheo_predictplot <- predict_plot(filter(data.sc_r, property == "rheo")$data[[1]],
-                               filter(data.sc_r, property == "rheo")$mixedmodel_vsris[[1]])
+                               filter(data.sc_r, property == "rheo")$mm_vsris[[1]])
 mm_rheo_predictplot  <- gg_rheo_format(mm_rheo_predictplot, 0, 600)
 
 rheo_predictplot
@@ -122,7 +122,7 @@ resf_predictplot <- gg_resf_format(resf_predictplot, 0, 12)
 
 
 mm_resf_predictplot <- predict_plot(filter(data.sc_r, property == "resf")$data[[1]],
-                               filter(data.sc_r, property == "resf")$mixedmodel_vsris[[1]])
+                               filter(data.sc_r, property == "resf")$mm_vsris[[1]])
 
 mm_resf_predictplot  <- gg_resf_format(mm_resf_predictplot, 0, 12)
 
@@ -136,10 +136,10 @@ mm_resf_predictplot
 
 ## Extract summary statistics from models.
 
-The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
+The function mixedmod_extract is used to return statistics for mm_vsris. Focus on the model with random intercept and slope (mm_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
 ```{r Extract Summary statistics, warning=FALSE}
-data.sc_r <- mixedmod_extract(data.sc_r, mixedmodel_vsris)
-data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mixedmodel_vsris)
+data.sc_r <- mixedmod_extract(data.sc_r, mm_vsris)
+data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mm_vsris)
 ```
 
 
@@ -151,27 +151,34 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel") %>%
-  mutate(pdiff_adj= 1)
-data.sc_r$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
-data.sc_r$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
+data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, mm_vsris, linearmodel) 
+data.sc_r <- data.sc_r %>%
+  mutate(pdiff_adj= p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH"))
 ```
 
 And, do the same thing for the transformed data:
 ```{r}
-data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(linearmodel = map(data, linearmodel_to_fit_1))
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit)) %>%
+  mutate(linearmodel_1 = map(data, linearmodel_to_fit_1))
 
-data.sc_r_1 <- mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel") %>%
-  mutate(pdiff_adj= 1)
-data.sc_r_1$pdiff_adj[1:12] = p.adjust(data.sc_r_1$pdiff[1:12], method = "BH")
-data.sc_r_1$pdiff_adj[13:24] = p.adjust(data.sc_r_1$pdiff[13:24], method = "BH")
+data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris, linearmodel)
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(pdiff_adj = p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")) 
+
+data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris_1, linearmodel_1)
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(pdiff_1_adj = p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH"))
+  
+
 ```
 
 Alternative approaches to compare the mixed model with the reduced model. See: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#testing-significance-of-random-effects. Example below uses ANOVA directly. Note, this doesn't work when calling the model stored within data.sc_r (commented out).
 ```{r, warning=FALSE}
 #a <- data.sc_r$linearmodel[[1]]
-#b <- data.sc_r$mixedmodel_vsris[[1]]
+#b <- data.sc_r$mm_vsris[[1]]
 a <- lmer(vm ~ dvlocmm + (dvlocmm||id), data = data.sc)
 b <- lm(vm ~ dvlocmm, data = data.sc)
 anova(a, b)
@@ -184,7 +191,7 @@ Use ANOVA to compare the model with the null model.
 To do: compare with car::Anova.
 ```{r Compare to null model, warning=FALSE}
 data.sc_r <- data.sc_r %>%
-  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
+  mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
   mutate(anova_p_val_adj = 1)
@@ -194,7 +201,7 @@ data.sc_r$anova_p_val_adj[13:24] <- p.adjust(data.sc_r$anova_p_val[13:24], metho
 And, again for the transformed data:
 ```{r, warning=FALSE}
 data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(anova = map2(mixedmodel_vsris_1, mixedmodel_vsris_1_null, ~anova(.x,.y))) %>%
+  mutate(anova = map2(mm_vsris_1, mm_vsris_1_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
         mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))%>%
   mutate(anova_p_val_adj = 1)
@@ -257,7 +264,7 @@ We want to plot for each model the prediction at location = 0 for each animal (I
 Reformat the data to generate plots.
 Call to prep_int_slopes extracts model predictions ready for plotting. To use only measured values, rather than also including transformed values, only the first 12 rows of data.sc_r are used.
 ```{r Format mixed model outputs ready for plotting, warning=FALSE}
-combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mixedmodel_vsris")
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mm_vsris")
 
 id_housing <-  distinct(data.sc, id, housing)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
@@ -389,7 +396,7 @@ ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),],
 First for models fit to raw data. Note, this code plots ± 1SD, whereas merTools::plotREsim plots 95% confidence intervals by default.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(randoms = map(mixedmodel_vsris, merTools::REsim))
+  mutate(randoms = map(mm_vsris, merTools::REsim))
 randoms_unnest <- unnest(data.sc_r, randoms)
 
 ggplot(filter(randoms_unnest[!stringr::str_detect(randoms_unnest$property,"1$"),], term == "(Intercept)"), aes(x = groupID, y = mean)) +
@@ -423,7 +430,7 @@ ggplot(filter(randoms_unnest[stringr::str_detect(randoms_unnest$property,"1$"),]
 Now plot for models with measured properties and dvlocmm transformed.
 ```{r}
 data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(randoms = map(mixedmodel_vsris, merTools::REsim))
+  mutate(randoms = map(mm_vsris, merTools::REsim))
 randoms_unnest_1 <- unnest(data.sc_r_1, randoms)
 
 ggplot(filter(randoms_unnest_1[stringr::str_detect(randoms_unnest$property,"1$"),], term == "(Intercept)"), aes(x = groupID, y = mean)) +

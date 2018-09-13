@@ -206,6 +206,8 @@ coef_df_2_old <- function(model_name, gi) {
 
 
 Helper functions for chi-squared test to compare linear with mixed models.
+Performs chi-square test to compre models in two list-columns. Returns the dataframe with additional result columns appended.
+dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df will be over-written if the function is used more than once on the samde dataframe.
 ```{r}
 devcalc <- function(df){
   dev <- -2*logLik(df)
@@ -215,24 +217,22 @@ extractdf <- function(dev){
   attr(dev,"df")
 }
 
-# Performs chi-square test to compre models in two list-columns. Returns the dataframe with additional result columns appended.
 mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
-  df <- df %>%
-    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
-    mutate(dev_linear = map(!! rlang::sym(linearmod), devcalc)) %>%
-    mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
-    mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
-    mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
-    mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) 
-  df
-}
+  mixedmod <- enquo(mixedmod)
+  linearmod <- enquo(linearmod)
+  dfdiff <- sym(paste0(quo_name(mixedmod), "_vslinear_dfdiff"))
+  pdiff <- sym(paste0(quo_name(mixedmod), "_vslinear_pdiff"))
 
-
-
+  mutate(df,
+         dev_mixed = map(!! mixedmod, devcalc),
+         dev_linear = map(!! linearmod, devcalc),
+         devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed),
+         dev_mixed_df = map(dev_mixed, extractdf),
+         dev_linear_df = map(dev_linear, extractdf),
+         !! dfdiff := as.numeric(dev_mixed_df) - as.numeric(dev_linear_df),
+         !! pdiff := pchisq(devdiff,!! dfdiff,lower.tail=FALSE))
+  }
 ```
-- used in Internanmal.rmd
-- used in PCA.rmd
 
 
 Functions for presentation of data.
