@@ -153,8 +153,7 @@ data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
 data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, mm_vsris, linearmodel) 
-data.sc_r <- data.sc_r %>%
-  mutate(pdiff_adj= p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH"))
+data.sc_r$pdiff_adj <- p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH")
 ```
 
 And, do the same thing for the transformed data:
@@ -165,14 +164,11 @@ data.sc_TP_r <- data.sc_TP_r %>%
 
 data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris, linearmodel)
 
-data.sc_TP_r <- data.sc_TP_r %>%
-  mutate(pdiff_adj = p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")) 
+data.sc_TP_r$pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")
 
 data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris_1, linearmodel_1)
 
-data.sc_TP_r <- data.sc_TP_r %>%
-  mutate(pdiff_1_adj = p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH"))
-  
+data.sc_TP_r$pdiff_1_adj <- p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH")
 
 ```
 
@@ -194,7 +190,9 @@ To do: compare with car::Anova.
 data.sc_r <- data.sc_r %>%
   mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>%
-  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+data.sc_r <- data.sc_r %>%
   mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
 ```
 And, again for the transformed data:
@@ -203,13 +201,15 @@ And, again for the transformed data:
 data.sc_TP_r <- data.sc_TP_r %>%
   mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+data.sc_TP_r <- data.sc_TP_r %>%
   mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
 
 data.sc_TP_r <- data.sc_TP_r %>%
   mutate(anova_1 = map2(mm_vsris_1, mm_vsris_1_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova_1 = map(anova_1, broom::tidy)) %>%
-  mutate(anova_p_val_1 = map_dbl(tidy_anova_1, ~.$p.value[2])) %>%
+  mutate(anova_p_val_1 = map_dbl(tidy_anova_1, ~.$p.value[2]))
+data.sc_TP_r <- data.sc_TP_r %>%
   mutate(anova_p_val_adj_1 = p.adjust(data.sc_TP_r$anova_p_val_1, method = "BH"))
 ```
 
