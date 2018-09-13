@@ -140,6 +140,7 @@ The function mixedmod_extract is used to return statistics for mm_vsris. Focus o
 ```{r Extract Summary statistics, warning=FALSE}
 data.sc_r <- mixedmod_extract(data.sc_r, mm_vsris)
 data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mm_vsris)
+data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mm_vsris_1)
 ```
 
 
@@ -192,37 +193,40 @@ To do: compare with car::Anova.
 ```{r Compare to null model, warning=FALSE}
 data.sc_r <- data.sc_r %>%
   mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
-  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
-  mutate(anova_p_val_adj = 1)
-data.sc_r$anova_p_val_adj[1:12] <- p.adjust(data.sc_r$anova_p_val[1:12], method = "BH")
-data.sc_r$anova_p_val_adj[13:24] <- p.adjust(data.sc_r$anova_p_val[13:24], method = "BH")
+  mutate(tidy_anova = map(anova, broom::tidy)) %>%
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
 ```
 And, again for the transformed data:
 ```{r, warning=FALSE}
-data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(anova = map2(mm_vsris_1, mm_vsris_1_null, ~anova(.x,.y))) %>%
-  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))%>%
-  mutate(anova_p_val_adj = 1)
-data.sc_r_1$anova_p_val_adj[1:12] <- p.adjust(data.sc_r_1$anova_p_val[1:12], method = "BH")
-data.sc_r_1$anova_p_val_adj[13:24] <- p.adjust(data.sc_r_1$anova_p_val[13:24], method = "BH")
-```
 
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova_1 = map2(mm_vsris_1, mm_vsris_1_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_1 = map(anova_1, broom::tidy)) %>%
+  mutate(anova_p_val_1 = map_dbl(tidy_anova_1, ~.$p.value[2])) %>%
+  mutate(anova_p_val_adj_1 = p.adjust(data.sc_TP_r$anova_p_val_1, method = "BH"))
+```
 
 
 ## Generate summary tables
 
 Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
-props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "marginal.r2", "conditional.r2", "pdiff", "pdiff_adj", "gradient_slopes", "modelslope_min", "modelslope_max")
+props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_vslinear_pdiff", "pdiff_adj", "mm_vsris_gradient_slopes", "mm_vsris_slope_min", "mm_vsris_slope_max")
 props_table <- as.tibble(data.sc_r[props_for_table][1:12,])
 props_table_unnest <- unnest(props_table)
 
 props_table_unnest %>%
   knitr::kable(
     digits = 5,
-    caption = "Fit of measured membrane properties as a function of location"
+    caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 
@@ -231,26 +235,29 @@ write_csv(props_table_unnest, "results_model_table.csv")
 
 Parameters from fitting models with properties transformed.
 ```{r Table_mixed_model_properties_t}
-props_table_t <- as.tibble(data.sc_r[props_for_table][13:24,])
+props_table_t <- as.tibble(data.sc_TP_r[props_for_table])
 props_table_t_unnest <- unnest(props_table_t)
 
 props_table_t_unnest %>%
   knitr::kable(
   digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+  caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 Parameters from fitting models with properties and dvlocmm transformed.
 ```{r Table_mixed_model_properties_1}
-props_table_1 <- as.tibble(data.sc_r_1[props_for_table][13:24,])
+props_for_table <- c("property", "anova_p_val_1", "anova_p_val_adj_1", "mm_vsris_1_marginal.r2", "mm_vsris_1_conditional.r2", "mm_vsris_1_vslinear_pdiff", "pdiff_1_adj", "mm_vsris_1_gradient_slopes", "mm_vsris_1_slope_min", "mm_vsris_1_slope_max")
+props_table_1 <- as.tibble(data.sc_TP_r[props_for_table])
 props_table_1_unnest <- unnest(props_table_1)
 
 props_table_1_unnest %>%
   knitr::kable(
   digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+  caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 ```
