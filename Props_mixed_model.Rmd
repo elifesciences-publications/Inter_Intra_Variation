@@ -31,19 +31,26 @@ Generate plots to evaluate assumptions of mixed models
 
 ## Fit mixed models
 
-Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). An additional model uses the transformation of dvlocmm (vsris_1) carried out in LoadData.Rmd. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
+Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
   mutate(mixedmodel_vsris = map(data, model_vsris))%>%
   mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsris_1 = map(data, model_vsris_1))%>%
-  mutate(mixedmodel_vsris_1_null = map(data, model_vsris_1_null))%>%
   mutate(mixedmodel_vsri = map(data, model_vsri))%>%
   mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
   mutate(mixedmodel_vscris = map(data, model_vscris))%>%
   mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
   mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
 ```
+Similar to above, but additional models using the transformed properties, or the transformed properties and transformed dvlocmm (vsris_1). Transformations were carried out in LoadData.Rmd. 
+```{r}
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
+  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mixedmodel_vsris_1 = map(data, model_vsris_1))%>%
+  mutate(mixedmodel_vsris_1_null = map(data, model_vsris_1_null))
+```
+
 
 
 
@@ -54,16 +61,22 @@ Extract AIC for all models.
 data.sc_r <- data.sc_r %>% 
   mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
   mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
-  mutate(vsris_1_glance = map(mixedmodel_vsris_1, broom::glance)) %>%
-  mutate(vsris_1_null_glance = map(mixedmodel_vsris_1_null, broom::glance)) %>%
   mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
   mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
   mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
   mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
-  mutate(vsris_1_AIC = map_dbl(vsris_1_glance, ~.$AIC)) %>%
-  mutate(vsris_1_null_AIC = map_dbl(vsris_1_null_glance, ~.$AIC)) %>%
   mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
   mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
+  mutate(vsris_1_glance = map(mixedmodel_vsris_1, broom::glance)) %>%
+  mutate(vsris_1_null_glance = map(mixedmodel_vsris_1_null, broom::glance)) %>%
+  mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsris_1_AIC = map_dbl(vsris_1_glance, ~.$AIC)) %>%
+  mutate(vsris_1_null_AIC = map_dbl(vsris_1_null_glance, ~.$AIC))
 ```
 
 In general vsris and vscris have similar AIC (compare columns in data.sc_r). We focus the subsequent analysis on vsris. For discussion of maximal models versus random intercept only models see Barr et al. Journal of Memory and Language, 2013.
@@ -125,8 +138,8 @@ mm_resf_predictplot
 
 The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
 ```{r Extract Summary statistics, warning=FALSE}
-data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
-data.sc_r_1 <- mixedmod_extract(data.sc_r, "mixedmodel_vsris_1")
+data.sc_r <- mixedmod_extract(data.sc_r, mixedmodel_vsris)
+data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mixedmodel_vsris)
 ```
 
 
@@ -143,6 +156,7 @@ data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel
 data.sc_r$pdiff_adj[1:12] = p.adjust(data.sc_r$pdiff[1:12], method = "BH")
 data.sc_r$pdiff_adj[13:24] = p.adjust(data.sc_r$pdiff[13:24], method = "BH")
 ```
+
 And, do the same thing for the transformed data:
 ```{r}
 data.sc_r_1 <- data.sc_r_1 %>%

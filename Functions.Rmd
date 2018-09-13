@@ -272,26 +272,32 @@ Properties to extract are:
 Model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM).
 ```{r Extract properties of models}
 mixedmod_extract <- function(df, mm_col){
-  # If want to use this for more than one model in the same data frame then will need to make names of new columns extensions of mm_col
-  df <- df %>%
-    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
-    mutate(mm_aug = map(!! rlang::sym(mm_col), broom::augment)) %>%
-    mutate(mm_summary = map(!! rlang::sym(mm_col), summary)) 
-  
-  df <- df %>%
-    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
-    mutate(gradient_slopes = map_dbl(mm_tidy, ~.$estimate[[2]])) %>%
-    mutate(extractR2 = map(!! rlang::sym(mm_col), r.squaredGLMM)) %>%
-    mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
-    mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]]))
-  # To reduce clutter could remove extractR2 and mm_tidy at this point so they don't get returned?
-  
-  df <- df %>%
-   mutate(mm_simcoefs = map(!! rlang::sym(mm_col), ~summary(coef(.x)[[1]][[2]]))) %>%
-    mutate(modelslope_min = map_dbl(mm_simcoefs, ~.[[1]])) %>%
-    mutate(modelslope_median = map_dbl(mm_simcoefs, ~.[[3]])) %>%
-   mutate(modelslope_max = map_dbl(mm_simcoefs, ~.[[6]]))
-  # could remove vsris_simcoefs at this point
+  mm_col <- enquo(mm_col)
+  mm_tidy <- sym(paste0(quo_name(mm_col),"_tidy"))
+  mm_aug <- sym(paste0(quo_name(mm_col),"_aug"))
+  mm_summary <- sym(paste0(quo_name(mm_col),"_summary"))
+  gradient_slopes <- sym(paste0(quo_name(mm_col),"_gradient_slopes"))
+  extractR2 <- sym(paste0(quo_name(mm_col),"_extractR2"))
+  marginal.r2 <- sym(paste0(quo_name(mm_col),"_marginal.r2"))
+  conditional.r2 <- sym(paste0(quo_name(mm_col),"_conditional.r2"))
+  mm_simcoefs <- sym(paste0(quo_name(mm_col),"_simcoefs"))
+  modelslope_min <- sym(paste0(quo_name(mm_col),"_slope_min"))
+  modelslope_median <- sym(paste0(quo_name(mm_col),"_slope_median"))
+  modelslope_max <- sym(paste0(quo_name(mm_col),"_slope_max"))
+    
+  mutate(df,
+         !! mm_tidy := map(!! mm_col, broom::tidy),
+         !! mm_aug := map(!! mm_col, broom::augment),
+         !! mm_summary := map(!! mm_col, summary),
+         !! gradient_slopes := map_dbl(!! mm_tidy, ~.$estimate[[2]]),
+         !! extractR2 := map(!! mm_col, r.squaredGLMM),
+         !! marginal.r2 := map_dbl(!! extractR2, ~.[[1]]),
+         !! conditional.r2 := map_dbl(!! extractR2, ~.[[2]]),
+         !! mm_simcoefs := map(!! mm_col, ~summary(coef(.x)[[1]][[2]])),
+         !! modelslope_min := map_dbl(!! mm_simcoefs, ~.[[1]]),
+         !! modelslope_median := map_dbl(!! mm_simcoefs, ~.[[3]]),
+         !! modelslope_max := map_dbl(!! mm_simcoefs, ~.[[6]]))
+  # To reduce clutter could remove extractR2, mm_tidy and vsris_simcoefs so they don't get returned?
 }
 ```
 
@@ -392,7 +398,8 @@ summary_2fixedeffects <- function(df, model, name) {
   housing_adj_name <- sym(paste0(quo_name(name), "_adj_housing"))
   dv_housing_adj_name <- sym(paste0(quo_name(name), "_adj_dv_housing"))
   
-  mutate(df,
+
+    mutate(df,
          !! sum_name := map(!! model, summary),
          !! ngrps_name := map_dbl(!!sum_name, ~.$ngrps),
          !! nobs_name := map_dbl(!!sum_name, ~.$devcomp$dims[1]),

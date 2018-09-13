@@ -54,11 +54,12 @@ summary(counts)
 ```
 
 
-Add new columns containing copula transformed data
+Add new columns containing copula transformed data. Make a new data frame _TP to contain the transformed data. This data frame has a column 'dvlocmm' with absolute locations and a column 'dvlocmm1' with transformed locations.
 ```{r}
 trans.properties <- apply(apply(data.sc %>% dplyr::select(vm:fi), 2, edf), 2, qnorm )
 trans.dvlocmm <- apply(apply(data.sc %>% dplyr::select(dvlocmm), 2, edf), 2, qnorm )
-data.sc <- bind_cols(data.sc, as.data.frame(trans.properties), as.data.frame(trans.dvlocmm))
+data.sc_TP <- bind_cols(as.data.frame(trans.properties), dplyr::select(data.sc,-(vm:fi)), as.data.frame(trans.dvlocmm)) %>%
+  as.tibble()
 ```
 
 
@@ -70,13 +71,20 @@ head(data.sc)
 ```
 
 
-Reformat data for use with map and other tidyverse functions. Properties vm:fi are the experimentally measured proprties, and vm1:fi1 are the transformed properties.
+Reformat data for use with map and other tidyverse functions. data.sc_R contains the experimentally measured proprties. data.sc_TP_r contains the transformed properties.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, vm1:fi1, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  gather("property", "value", vm:fi1) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
+
+data.sc_TP_r <- data.sc_TP %>%
+  dplyr::select(vm:fi, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
 ```
 
 Now the data is organised as a frame containing nested frames for each measurement:
