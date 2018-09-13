@@ -393,31 +393,50 @@ plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
 
-## Look for correlations between fixed effects
-
-
+## Do random effects remain significant in a model with additional fixed effects included?
+Fit mixed model including dvloc, age, expr, rectime, housing as fixed effects, and equivalent linear model.
 ```{r}
 data.sc_r_all <- data.sc_r %>%
   select(property, data) %>%
-  mutate(mixedmodel_vsris_full_fixed = map(data, model_vsris_full_fixed)) %>%
-  mutate(mm_vsris_ff_FEsim = map(mixedmodel_vsris_full_fixed, merTools::FEsim))
+  mutate(mm_full_fixed = map(data, model_vsris_full_fixed),
+         mm_full_fixed_linear = map(data, model_vsris_full_fixed_linear))
 ```
 
+Carry out ANOVA to evaluate effects within the full model.
 ```{r}
-m <- data.sc_r_all$mixedmodel_vsris_full_fixed[[2]]
-car::Anova(m,type="II",test.statistic="Chisq")
+update.2 <- function(mod) {update(mod, REML = TRUE)}
+car.ANOVA <- function(fit) {car::Anova(fit, type="II",test.statistic="F")}
+data.sc_r_all <- data.sc_r_all %>%
+  mutate(m.reml = map(mm_full_fixed, update.2),
+         ANOVA = map(m.reml, car.ANOVA))
+```
 
-m.reml <- update(m,REML=TRUE)
-car::Anova(m.reml,type="II",test.statistic="F")
+Compare the full mixed with the equivalent linear model.
+```{r}
+data.sc_r_all <- mixed_vs_linear_pchisqu(data.sc_r_all,
+                                         mm_full_fixed,
+                                         mm_full_fixed_linear)
+```
 
-m.test <- lmerTest::as_lmerModLmerTest(m)
-print(summary(m.test,ddf="lme4"),correlation=FALSE)
-print(summary(m.test,ddf="Satterthwaite"),correlation=FALSE)
-m.reml.test <- lmerTest::as_lmerModLmerTest(m.reml)
-print(summary(m.reml.test,ddf="Kenward-Roger"),correlation=FALSE)
+Make table to summarise comparison of the full mixed with the equivalent linear model.
+```{r}
+data.sc_r_all <- mutate(data.sc_r_all,
+                        dev_mixed_num = map_dbl(dev_mixed, as.numeric),
+                        dev_linear_num = map_dbl(dev_linear, as.numeric),
+                        dev_mixed_df_num = map_dbl(dev_mixed_df, as.numeric),
+                        dev_linear_df_num = map_dbl(dev_linear_df, as.numeric))
+data.sc_r_all$pdiff_adj <- p.adjust(data.sc_r_all$mm_full_fixed_vslinear_pdiff, method = "BH")
 
-anova(m.test, type ="I")
+comp_table <- select(data.sc_r_all, property, dev_mixed_num, dev_linear_num, dev_mixed_df_num, dev_linear_df_num, mm_full_fixed_vslinear_pdiff, pdiff_adj)
+
+comp_table$mm_full_fixed_vslinear_pdiff <- format(comp_table$mm_full_fixed_vslinear_pdiff, digits = 3)
+comp_table$pdiff_adj <- format(comp_table$pdiff_adj, digits = 3)
+
+
+kableExtra::kable(comp_table, col.names = c("property", "deviance (mixed)", "deviance (linear)", "df (mixed)", "df (linear)", "p", "p_adj"), digits = c(2,2,2,4,4,10,10)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
 
-## Do inter-animal differences depend on experimental procedures?
+## Do random effects remain significant in a minimal model?
+
