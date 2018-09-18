@@ -153,7 +153,9 @@ data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
 data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, mm_vsris, linearmodel) 
-data.sc_r$pdiff_adj <- p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH")
+data.sc_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_r, "mm_vsris_vslinear", "property")
 ```
 
 And, do the same thing for the transformed data:
@@ -163,13 +165,14 @@ data.sc_TP_r <- data.sc_TP_r %>%
   mutate(linearmodel_1 = map(data, linearmodel_to_fit_1))
 
 data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris, linearmodel)
+data.sc_TP_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")
 
-data.sc_TP_r$pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")
+table_mixedvslinear(data.sc_TP_r, "mm_vsris_vslinear", "property")
 
 data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris_1, linearmodel_1)
+data.sc_TP_r$mm_vsris_1_vslinear_pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH")
 
-data.sc_TP_r$pdiff_1_adj <- p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH")
-
+table_mixedvslinear(data.sc_TP_r, "mm_vsris_1_vslinear", "property")
 ```
 
 Alternative approaches to compare the mixed model with the reduced model. See: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#testing-significance-of-random-effects. Example below uses ANOVA directly. Note, this doesn't work when calling the model stored within data.sc_r (commented out).

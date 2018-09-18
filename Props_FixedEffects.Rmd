@@ -67,6 +67,9 @@ Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag
   theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
 
 Sag_housing_intercepts
+Sag_housing_slopes
+
+ggsave("housingplot.png", width = 100, height = 50, units = "mm")
 ```
 
 
@@ -86,19 +89,20 @@ age_table <- FE_table(data.sc_r, "age")
 age_table
 ```
 
-Look at fixed effects for Vm, IR, sag and resonant frequncy.
+Look at fixed effects for IR, sag resonant frequncy and resonance magnitude.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_age[[1]]) +
-  ggtitle("Fixed effects for Vm")
-
-plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r, property == "ir")$mm_age[[1]]) +
   ggtitle("Fixed effects for input resistance")
 
-plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_age[[1]]) +
   ggtitle("Fixed effects for the sag response")
 
-plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r, property == "resf")$mm_age[[1]]) +
   ggtitle("Fixed effects for membrane resonance frequency")
+
+plotFE_sd(filter(data.sc_r, property == "resmag")$mm_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
 ```
 
 
@@ -420,23 +424,60 @@ data.sc_r_all <- mixed_vs_linear_pchisqu(data.sc_r_all,
 
 Make table to summarise comparison of the full mixed with the equivalent linear model.
 ```{r}
-data.sc_r_all <- mutate(data.sc_r_all,
-                        dev_mixed_num = map_dbl(dev_mixed, as.numeric),
-                        dev_linear_num = map_dbl(dev_linear, as.numeric),
-                        dev_mixed_df_num = map_dbl(dev_mixed_df, as.numeric),
-                        dev_linear_df_num = map_dbl(dev_linear_df, as.numeric))
-data.sc_r_all$pdiff_adj <- p.adjust(data.sc_r_all$mm_full_fixed_vslinear_pdiff, method = "BH")
-
-comp_table <- select(data.sc_r_all, property, dev_mixed_num, dev_linear_num, dev_mixed_df_num, dev_linear_df_num, mm_full_fixed_vslinear_pdiff, pdiff_adj)
-
-comp_table$mm_full_fixed_vslinear_pdiff <- format(comp_table$mm_full_fixed_vslinear_pdiff, digits = 3)
-comp_table$pdiff_adj <- format(comp_table$pdiff_adj, digits = 3)
-
-
-kableExtra::kable(comp_table, col.names = c("property", "deviance (mixed)", "deviance (linear)", "df (mixed)", "df (linear)", "p", "p_adj"), digits = c(2,2,2,4,4,10,10)) %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+data.sc_r_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_all$mm_full_fixed_vslinear_pdiff, method = "BH")
+table_mixedvslinear(data.sc_r_all, "mm_full_fixed_vslinear")
 ```
 
 
 ## Do random effects remain significant in a minimal model?
 
+Rationale is to remove factors above identified as contributing to variability between animals, account for factors that contribute to variability within animals, and then test for whether mixed model still gives a better account of the data than a linear model.
+
+Test 1. Focus on mice aged above P32 and below P45, housed in a standard homecage, with exclusively medial slices and exclusively experiments by HP. 
+
+```{r}
+filter_test1 <- function(df) {
+  dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Medial" & expr == "HP")
+}
+
+data.sc_r <- data.sc_r %>%
+  mutate(data_test1 = map(data, filter_test1),
+         mm_min1 = map(data_test1, model_vsris),
+         lin_min1 = map(data_test1, linearmodel_to_fit))
+```
+
+Compare the full mixed with the equivalent linear model.
+```{r}
+data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r,
+                                         mm_min1,
+                                         lin_min1)
+
+data.sc_r$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_min1_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_r, "mm_min1_vslinear")
+```
+
+
+Test 2. Focus on mice aged above P32 and below P45, housed in a standard homecage, with exclusively lateral slices and exclusively experiments by HP. 
+
+```{r}
+filter_test1 <- function(df) {
+  dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Lateral" & expr == "HP")
+}
+
+data.sc_r <- data.sc_r %>%
+  mutate(data_test1 = map(data, filter_test1),
+         mm_min1 = map(data_test1, model_vsris),
+         lin_min1 = map(data_test1, linearmodel_to_fit))
+```
+
+Compare the full mixed with the equivalent linear model.
+```{r}
+data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r,
+                                         mm_min1,
+                                         lin_min1)
+
+data.sc_r$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_min1_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_r, "mm_min1_vslinear")
+```

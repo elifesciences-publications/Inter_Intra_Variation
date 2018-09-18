@@ -134,7 +134,11 @@ Test whether effects of animal id are significant.
 out.pca.x_g <- out.pca.x_g %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, "mixedmodel_vsris", "linearmodel"))
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, mixedmodel_vsris, linearmodel))
+
+out.pca.x_g$mixedmodel_vsris_vslinear_pdiff_adj <- p.adjust(out.pca.x_g$mixedmodel_vsris_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(out.pca.x_g, "mixedmodel_vsris_vslinear", "component")
 ```
 
 
@@ -144,7 +148,7 @@ Focus on the model with random intercept and slope (mixedmodel_vsris).
 
 Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
 ```{r Extract model properties for PCA, warning=FALSE}
-out.pca.x_g <- mixedmod_extract(out.pca.x_g, "mixedmodel_vsris")
+out.pca.x_g <- mixedmod_extract(out.pca.x_g, mixedmodel_vsris)
 
 out.pca.x_g <- out.pca.x_g %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%

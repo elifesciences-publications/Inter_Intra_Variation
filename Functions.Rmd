@@ -503,3 +503,31 @@ gg_resf_format <- function(gg, ylim_min = 0, ylim_max = 12) {
     theme_classic() 
 }
 ```
+
+
+Make table to compare fit of mixed effect with linear model.
+```{r}
+table_mixedvslinear <- function(df, name, group_name = "property"){
+  p_name <- sym(paste0(quo_name(name),"_pdiff"))
+  padj_name <- sym(paste0(quo_name(name),"_pdiff_adj"))
+  group_name <- sym(paste0(quo_name(group_name)))
+  
+  df <- mutate(df,
+               dev_mixed_num = map_dbl(dev_mixed, as.numeric),
+               dev_linear_num = map_dbl(dev_linear, as.numeric),
+               dev_mixed_df_num = map_dbl(dev_mixed_df, as.numeric),
+               dev_linear_df_num = map_dbl(dev_linear_df, as.numeric),
+               pdiff = !!p_name,
+               pdiff_adj = !!padj_name,
+               group = !! group_name)
+
+  df <- select(df, group, dev_mixed_num, dev_linear_num, dev_mixed_df_num, dev_linear_df_num, pdiff, pdiff_adj)
+  
+  df$pdiff <- format(df$pdiff, digits = 3)
+  df$pdiff_adj <- format(df$pdiff_adj, digits = 3)
+
+kableExtra::kable(df, col.names = c(paste0(quo_name(group_name)), "deviance (mixed)", "deviance (linear)", "df (mixed)", "df (linear)", "p", "p_adj"), digits = c(2,2,2,4,4,10,10)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```  
+
