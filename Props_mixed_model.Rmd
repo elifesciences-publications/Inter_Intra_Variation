@@ -219,11 +219,12 @@ data.sc_TP_r <- data.sc_TP_r %>%
 
 ## Generate summary tables
 
+props_table_unnest
+
 Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
-props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_vslinear_pdiff", "pdiff_adj", "mm_vsris_gradient_slopes", "mm_vsris_slope_min", "mm_vsris_slope_max")
-props_table <- as.tibble(data.sc_r[props_for_table][1:12,])
-props_table_unnest <- unnest(props_table)
+props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_vslinear_pdiff", "mm_vsris_vslinear_pdiff_adj", "mm_vsris_gradient_slopes", "mm_vsris_slope_min", "mm_vsris_slope_max")
+props_table_unnest <- unnest(data.sc_r[props_for_table])
 
 props_table_unnest %>%
   knitr::kable(
@@ -234,6 +235,21 @@ props_table_unnest %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 
 write_csv(props_table_unnest, "results_model_table.csv")
+
+# reduced version for the manuscript
+props_man_table <- c("property", "mm_vsris_gradient_slopes", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_slope_min", "mm_vsris_slope_max", "mm_vsris_vslinear_pdiff_adj")
+man_table <- unnest(data.sc_r[props_man_table])
+
+man_table$anova_p_val_adj <- format(man_table$anova_p_val_adj, digits = 3)
+man_table$mm_vsris_vslinear_pdiff_adj <- format(man_table$mm_vsris_vslinear_pdiff_adj, digits = 3)
+man_table$property <- c("Vm", "IR", "Sag", "Tm", "Res. frequency", "Res. magnitude", "Spike thresold", "Spike maximum", "Spike width", "Rheobase", "Spike AHP", "I-F slope")
+
+man_table %>%
+  knitr::kable(
+    digits = 4,
+    col.names = c("Property", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 Parameters from fitting models with properties transformed.
