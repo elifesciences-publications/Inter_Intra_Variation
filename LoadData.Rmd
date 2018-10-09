@@ -47,12 +47,17 @@ length(data.sc$housing)
 count(data.sc, housing)
 ```
 
-Number of cells recorded per animal:
+Number of stellate cells recorded per animal:
 ```{r}
 counts <- data.sc %>% count(id, age, housing, dvloc)
 summary(counts)
 summary(filter(counts, housing == "Standard"))
 summary(filter(counts, housing == "Large"))
+```
+
+Number of wfs1 cells recorded per animal:
+```{r}
+count(data.wfs, id, classification)
 ```
 
 
