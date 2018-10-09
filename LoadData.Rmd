@@ -49,8 +49,10 @@ count(data.sc, housing)
 
 Number of cells recorded per animal:
 ```{r}
-counts <- data.sc %>% count(id)
+counts <- data.sc %>% count(id, age, housing, dvloc)
 summary(counts)
+summary(filter(counts, housing == "Standard"))
+summary(filter(counts, housing == "Large"))
 ```
 
 
