@@ -191,23 +191,64 @@ Figure to summmarise results of mixed effects analyses.
 
 First generate the data.
 ```{r}
-results_sim <- tibble(feat_1 = c(runif(40, 0.5, 1), runif(40, 0.3, 0.8)),
+results_sim <- tibble(dvloc = c(seq(0, 1, length.out = 40), seq(0, 1, length.out = 40)),
+                      feat_1 = c(rnorm(80, 0, 0.1)),
                       feat_2 = c(rnorm(40, 0.3, 0.1), rnorm(40, 0.7, 0.1)),
                       cellid = c(rep("a", 40), rep("b", 40)))
-results_sim$dvloc <- results_sim$feat_1 + rnorm(40, 0, 0.1)
+results_sim$feat_1[1:40] <- results_sim$feat_1[41:80] + results_sim$dvloc[1:40]
+results_sim$feat_1[41:80] <- results_sim$feat_1[41:80] + results_sim$dvloc[41:80] * 1.2 + 0.4
 ```
 
 Now plot the data.
 ```{r}
-ggplot(results_sim, aes(feat_1, feat_2, shape = cellid, colour = cellid)) +
-  geom_point()
+sum_feat <- ggplot(results_sim, aes(feat_1, feat_2, colour = cellid)) +
+  geom_point() +
+  xlim(-0.2, 1.8) +
+  ylim(-0.2,1.2) +
+  labs(x = "Feature 1", y = "Feature 2", colour = "Animal ID") +
+  theme_classic() +
+  theme(strip.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom")
 
-ggplot(results_sim, aes(dvloc, feat_1, shape = cellid, colour = cellid)) +
-  geom_point()
+sum_feat1 <- ggplot(results_sim, aes(dvloc, feat_1, colour = cellid)) +
+  geom_point()  +
+  xlim(-0.2, 1.2) +
+  ylim(-0.4, 2) +
+  labs(x = "DV location", y = "Feature 1", colour = "Animal ID") +
+  theme_classic() +
+  theme(strip.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom")
 
-ggplot(results_sim, aes(dvloc, feat_2, shape = cellid, colour = cellid)) +
-  geom_point()
+sum_feat2 <- ggplot(results_sim, aes(dvloc, feat_2, colour = cellid)) +
+  geom_point()  +
+  xlim(-0.2, 1.2) +
+  ylim(-0.2,1.2)+
+  labs(x = "DV location", y = "Feature 2", colour = "Animal ID") +
+  theme_classic() +
+  theme(strip.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        legend.position = "bottom")
+
+sum_feat
+sum_feat1
+sum_feat2
 ```
 
+Assemble into a single plot.
+```{r}
+SummaryFigure <- grid.arrange(sum_feat, sum_feat1, sum_feat2,
+             ncol = 5,
+             widths = c(1, 0.1, 1, 0.1, 1),
+             layout_matrix = rbind(c(1, NA, 2, NA, 3)))
+
+SummaryFigure
+
+ggsave("SummaryFigure.png", SummaryFigure, width = 140, height = 60, units = "mm")
+```
 
 
