@@ -1,6 +1,8 @@
 ---
 title: "R Notebook"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 
@@ -84,12 +86,15 @@ man_table$anova_p_val_adj <- format(man_table$anova_p_val_adj, digits = 3)
 man_table$mm_vsris_vslinear_pdiff_adj <- format(man_table$mm_vsris_vslinear_pdiff_adj, digits = 3)
 man_table$property <- c("Vm", "IR", "Sag", "Tm", "Res. frequency", "Res. magnitude", "Spike thresold", "Spike maximum", "Spike width", "Rheobase", "Spike AHP", "I-F slope")
 
-man_table %>%
+man_table <- man_table %>%
   knitr::kable(
     digits = 4,
     col.names = c("Property", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
 ) %>%
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  kableExtra::save_kable(file = "TableS1.html", self_contained = T)
+
+man_table
 ```
 
 
@@ -144,5 +149,9 @@ ggplot(plot_all_raw_data_wfs, aes(dvlocmm,value)) +
   theme_classic() +
   theme(legend.position = "bottom")
 
+```
+
+```{r}
+remove(list = c("plot_all_raw_data", "plot_all_raw_data_wfs", "plot_wfs", "plot_sc_wfs"))
 ```
 

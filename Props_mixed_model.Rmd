@@ -268,7 +268,8 @@ props_table_t_unnest %>%
 
 Parameters from fitting models with properties and dvlocmm transformed.
 ```{r Table_mixed_model_properties_1}
-props_for_table <- c("property", "anova_p_val_1", "anova_p_val_adj_1", "mm_vsris_1_marginal.r2", "mm_vsris_1_conditional.r2", "mm_vsris_1_vslinear_pdiff", "pdiff_1_adj", "mm_vsris_1_gradient_slopes", "mm_vsris_1_slope_min", "mm_vsris_1_slope_max")
+props_for_table <- c("property", "anova_p_val_1", "anova_p_val_adj_1", "mm_vsris_1_marginal.r2", "mm_vsris_1_conditional.r2", "mm_vsris_1_vslinear_pdiff", "mm_vsris_1_vslinear_pdiff_adj", "mm_vsris_1_gradient_slopes", "mm_vsris_1_slope_min", "mm_vsris_1_slope_max")
+
 props_table_1 <- as.tibble(data.sc_TP_r[props_for_table])
 props_table_1_unnest <- unnest(props_table_1)
 

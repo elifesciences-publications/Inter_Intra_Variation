@@ -115,9 +115,9 @@ data.sc_r_f <- filter(data.sc, age > 32) %>%
   nest()
 
 data.sc_r_f <- data.sc_r_f  %>%
-  mutate(mm_age = map(data, model_vsris_age))
+  mutate(mm_vsris_age = map(data, model_vsris_age))
 
-data.sc_r_f <- summary_2fixedeffects(data.sc_r_f, mm_age, "age")
+data.sc_r_f <- summary_2fixedeffects(data.sc_r_f, mm_vsris_age, "age")
 
 data.sc_r_f$mm_age_dv_adj <- p.adjust(data.sc_r_f$mm_age_dv, method = "BH")
 data.sc_r_f$mm_age_age_adj <- p.adjust(data.sc_r_f$mm_age_age, method = "BH")
