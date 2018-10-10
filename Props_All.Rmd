@@ -129,3 +129,20 @@ ggplot(plot_all_tall_data, aes(dvlocmm1,value)) +
   geom_point() +
   facet_wrap(~property, scales = "free_y")
 ```
+
+
+## Plot Wfs1 pyramidal cell data as a function of location
+```{r}
+plot_all_raw_data_wfs <- data.wfs %>%
+  filter(classification == "Pyr") %>%
+  select(vm:fi, dvlocmm, id) %>%
+  gather("property", "value", vm:fi)
+
+ggplot(plot_all_raw_data_wfs, aes(dvlocmm,value)) +
+  geom_point(aes(colour = id)) +
+  facet_wrap(~property, scales = "free_y", labeller = labeller(property = c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)"))) +
+  theme_classic() +
+  theme(legend.position = "bottom")
+
+```
+
