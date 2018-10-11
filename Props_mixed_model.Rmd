@@ -242,14 +242,15 @@ man_table <- unnest(data.sc_r[props_man_table])
 
 man_table$anova_p_val_adj <- format(man_table$anova_p_val_adj, digits = 3)
 man_table$mm_vsris_vslinear_pdiff_adj <- format(man_table$mm_vsris_vslinear_pdiff_adj, digits = 3)
-man_table$property <- c("Vm", "IR", "Sag", "Tm", "Res. frequency", "Res. magnitude", "Spike thresold", "Spike maximum", "Spike width", "Rheobase", "Spike AHP", "I-F slope")
+man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA")
 
 man_table %>%
   knitr::kable(
     digits = 4,
-    col.names = c("Property", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
+    col.names = c("Feature", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
 ) %>%
-  kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  kableExtra::save_kable(file = "Table1.html", self_contained = T)
 ```
 
 Parameters from fitting models with properties transformed.

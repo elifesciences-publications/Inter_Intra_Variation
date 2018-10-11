@@ -163,7 +163,7 @@ out.pca.x_g <- out.pca.x_g %>%
 
 Show model fitting results as a table.
 ```{r Make and save table with PCA mixed model properties}
-props_for_table_PCA <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "anova_p_val", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_vslinear_pdiff_adj")
 props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
 props_table_unnest_PCA <- unnest(props_table_PCA)
 
