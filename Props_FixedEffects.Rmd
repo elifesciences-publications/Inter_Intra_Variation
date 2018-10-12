@@ -27,51 +27,6 @@ We will adopt strategy of first evaluating each fixed effect and it's possible i
 
 This code requires first running Props_mixed_model.Rmd.
 
-## Housing.
-We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
-```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(mm_vsris_housing = map(data, model_vsris_housing))
-
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_housing, "housing")
-
-data.sc_r$mm_housing_dv_adj <- p.adjust(data.sc_r$mm_housing_dv, method = "BH")
-data.sc_r$mm_housing_housing_adj <- p.adjust(data.sc_r$mm_housing_housing, method = "BH")
-data.sc_r$mm_housing_dv_housing_adj <- p.adjust(data.sc_r$mm_housing_dv_housing, method = "BH")
-
-housing_table <- FE_table(data.sc_r, "housing")
-
-housing_table
-```
-
-Look at fixed effects for sag and rheobase.
-```{r}
-plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_housing[[1]]) +
-  ggtitle("Fixed effects for the sag response")
-```
-
-
-Plot sag intecept and slope.
-```{r}
-Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == "sag" & measure == "ind_intercept"), aes(x = housing, y = value_2, colour = housing)) +
-  geom_jitter(width = 0.1) +
-  labs(y = "Sag", x = "Housing") +
-  theme(legend.position="none")
-
-Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag"), aes(x = measure, y = value_1, colour = housing)) +
-  geom_line(aes(group = id)) +
-  geom_jitter(aes(y = value_2), width = 0.2) +
-  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
-  theme_classic() +
-  hist_theme +
-  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
-
-Sag_housing_intercepts
-Sag_housing_slopes
-
-ggsave("housingplot.png", width = 100, height = 50, units = "mm")
-```
-
 
 All ages.
 ```{r}
@@ -80,9 +35,12 @@ data.sc_r <- data.sc_r %>%
 
 data.sc_r <- summary_2fixedeffects(data.sc_r, mm_age, "age")
 
-data.sc_r$mm_age_dv_adj <- p.adjust(data.sc_r$mm_age_dv, method = "BH")
-data.sc_r$mm_age_age_adj <- p.adjust(data.sc_r$mm_age_age, method = "BH")
-data.sc_r$mm_age_dv_age_adj <- p.adjust(data.sc_r$mm_age_dv_age, method = "BH")
+data.sc_r$mm_age_dv_adj <- p.adjust(data.sc_r$mm_age_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r$mm_age_age_adj <- p.adjust(data.sc_r$mm_age_age, method = "BH") %>%
+  format(digits = 3)
+data.sc_r$mm_age_dv_age_adj <- p.adjust(data.sc_r$mm_age_dv_age, method = "BH") %>%
+  format(digits = 3)
 
 age_table <- FE_table(data.sc_r, "age")
 
@@ -111,7 +69,7 @@ Look at age including only animals above P32.
 data.sc_r_f <- filter(data.sc, age > 32) %>%
   dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
   gather("property", "value", vm:fi) %>%
-  group_by(property) %>%
+  group_by(property) %>% 
   nest()
 
 data.sc_r_f <- data.sc_r_f  %>%
@@ -119,9 +77,12 @@ data.sc_r_f <- data.sc_r_f  %>%
 
 data.sc_r_f <- summary_2fixedeffects(data.sc_r_f, mm_vsris_age, "age")
 
-data.sc_r_f$mm_age_dv_adj <- p.adjust(data.sc_r_f$mm_age_dv, method = "BH")
-data.sc_r_f$mm_age_age_adj <- p.adjust(data.sc_r_f$mm_age_age, method = "BH")
-data.sc_r_f$mm_age_dv_age_adj <- p.adjust(data.sc_r_f$mm_age_dv_age, method = "BH")
+data.sc_r_f$mm_age_dv_adj <- p.adjust(data.sc_r_f$mm_age_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f$mm_age_age_adj <- p.adjust(data.sc_r_f$mm_age_age, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f$mm_age_dv_age_adj <- p.adjust(data.sc_r_f$mm_age_dv_age, method = "BH") %>%
+  format(digits = 3)
 
 age_f_table <- FE_table(data.sc_r_f, "age")
 
@@ -161,9 +122,12 @@ data.sc_r_f2 <- data.sc_r_f2  %>%
 
 data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_age, "age")
 
-data.sc_r_f2$mm_age_dv_adj <- p.adjust(data.sc_r_f2$mm_age_dv, method = "BH")
-data.sc_r_f2$mm_age_age_adj <- p.adjust(data.sc_r_f2$mm_age_age, method = "BH")
-data.sc_r_f2$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2$mm_age_dv_age, method = "BH")
+data.sc_r_f2$mm_age_dv_adj <- p.adjust(data.sc_r_f2$mm_age_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_age_age_adj <- p.adjust(data.sc_r_f2$mm_age_age, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2$mm_age_dv_age, method = "BH") %>%
+  format(digits = 3)
 
 age_f2_table <- FE_table(data.sc_r_f2, "age")
 
@@ -211,8 +175,64 @@ df_age_table <- cbind(select(data.sc_r[1:12,],
 
 kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+  kableExtra::kable_styling(bootstrap_options = "striped") %>%
+  kableExtra::save_kable(file = "TableS2.html", self_contained = T)
 ```
+
+For analyses below exclude the p18 animal.
+
+## Housing.
+We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing))
+
+data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_housing, "housing")
+
+data.sc_r_f2$mm_housing_dv_adj <- p.adjust(data.sc_r_f2$mm_housing_dv, method = "BH") %>%
+  format(digits = 3) %>%
+  format(digits = 3)
+data.sc_r_f2$mm_housing_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_housing, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_housing_dv_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_dv_housing, method = "BH") %>%
+  format(digits = 3)
+
+housing_table <- FE_table(data.sc_r_f2, "housing")
+
+housing_table
+```
+
+Look at fixed effects for sag and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for the spike half-width")
+```
+
+
+Plot sag intecept and slope.
+```{r}
+Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == "sag" & measure == "ind_intercept" & age > 32 & age < 45), aes(x = housing, y = value_2, colour = housing)) +
+  geom_jitter(width = 0.1) +
+  labs(y = "Sag", x = "Housing") +
+  theme(legend.position="none")
+
+Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag"), aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+Sag_housing_intercepts
+Sag_housing_slopes
+
+ggsave("housingplot.png", width = 100, height = 50, units = "mm")
+```
+
 
 
 ## Mediolateral position.

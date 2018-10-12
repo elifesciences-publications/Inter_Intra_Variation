@@ -294,7 +294,7 @@ Call to prep_int_slopes extracts model predictions ready for plotting. To use on
 ```{r Format mixed model outputs ready for plotting, warning=FALSE}
 combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mm_vsris")
 
-id_housing <-  distinct(data.sc, id, housing)
+id_housing <-  distinct(data.sc, id, housing, age)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
 
 combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)

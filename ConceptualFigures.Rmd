@@ -170,10 +170,11 @@ IntraAnimalPlot
 
 Plot all together. Blank columns are to allow white space for insertion of labels.
 ```{r plot_concept_fig}
-ConceptFigure <- grid.arrange(CF_plot, IntraAnimalPlot,
-             ncol = 4,
-             widths = c(0.1, 1, 0.1, 1.2),
-             layout_matrix = rbind(c(NA, 1, NA, 2)))
+ConceptFigure <- ggdraw() +
+  draw_plot(CF_plot, x =0.02, y = 0, width = 0.45, height = 1) +
+  draw_plot(IntraAnimalPlot, x = 0.52, y = 0, width = 0.45, height = 1) +
+  draw_plot_label(label = c("A", "B"), size = 15,
+                  x = c(0, 0.5), y = c(1, 1))
 
 ConceptFigure
 ```
