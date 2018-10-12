@@ -173,10 +173,11 @@ df_age_table <- cbind(select(data.sc_r[1:12,],
                          mm_age_ngrps,
                          mm_age_nobs))
 
-kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
+(df_age_table <- kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
-  kableExtra::kable_styling(bootstrap_options = "striped") %>%
-  kableExtra::save_kable(file = "TableS2.html", self_contained = T)
+  kableExtra::kable_styling(bootstrap_options = "striped")) 
+
+df_age_table %>% kableExtra::save_kable(file = "TableS2.html", self_contained = T)
 ```
 
 For analyses below exclude the p18 animal.
@@ -190,16 +191,16 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_housing, "housing")
 
 data.sc_r_f2$mm_housing_dv_adj <- p.adjust(data.sc_r_f2$mm_housing_dv, method = "BH") %>%
-  format(digits = 3) %>%
   format(digits = 3)
 data.sc_r_f2$mm_housing_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_housing, method = "BH") %>%
   format(digits = 3)
 data.sc_r_f2$mm_housing_dv_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_dv_housing, method = "BH") %>%
   format(digits = 3)
 
-housing_table <- FE_table(data.sc_r_f2, "housing")
+(housing_table <- FE_table(data.sc_r_f2, "housing"))
 
-housing_table
+housing_table %>%
+  kableExtra::save_kable(file = "TableS3.html", self_contained = T)
 ```
 
 Look at fixed effects for sag and spike half-width.
@@ -219,7 +220,7 @@ Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == 
   labs(y = "Sag", x = "Housing") +
   theme(legend.position="none")
 
-Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag"), aes(x = measure, y = value_1, colour = housing)) +
+Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag" & age > 32 & age < 45), aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
@@ -237,17 +238,21 @@ ggsave("housingplot.png", width = 100, height = 50, units = "mm")
 
 ## Mediolateral position.
 ```{r}
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_ml = map(data, model_vsris_ml))
 
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_ml, "ml")
+data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_ml, "ml")
 
-data.sc_r$mm_ml_dv_adj <- p.adjust(data.sc_r$mm_ml_dv, method = "BH")
-data.sc_r$mm_ml_ml_adj <- p.adjust(data.sc_r$mm_ml_ml, method = "BH")
-data.sc_r$mm_ml_dv_ml_adj <- p.adjust(data.sc_r$mm_ml_dv_ml, method = "BH")
+data.sc_r_f2$mm_ml_dv_adj <- p.adjust(data.sc_r_f2$mm_ml_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_ml_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_ml, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_ml_dv_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_dv_ml, method = "BH") %>%
+  format(digits = 3)
 
-ml_table <- FE_table(data.sc_r, "ml")
-ml_table
+(ml_table <- FE_table(data.sc_r_f2, "ml"))
+
+ml_table %>% kableExtra::save_kable(file = "TableS4.html", self_contained = T)
 
 ```
 
