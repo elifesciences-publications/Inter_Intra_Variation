@@ -30,94 +30,7 @@ This code requires first running Props_mixed_model.Rmd.
 
 All ages.
 ```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(mm_age = map(data, model_vsris_age))
-
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_age, "age")
-
-data.sc_r$mm_age_dv_adj <- p.adjust(data.sc_r$mm_age_dv, method = "BH") %>%
-  format(digits = 3)
-data.sc_r$mm_age_age_adj <- p.adjust(data.sc_r$mm_age_age, method = "BH") %>%
-  format(digits = 3)
-data.sc_r$mm_age_dv_age_adj <- p.adjust(data.sc_r$mm_age_dv_age, method = "BH") %>%
-  format(digits = 3)
-
-age_table <- FE_table(data.sc_r, "age")
-
-age_table
-```
-
-Look at fixed effects for IR, sag resonant frequncy and resonance magnitude.
-```{r}
-plotFE_sd(filter(data.sc_r, property == "ir")$mm_age[[1]]) +
-  ggtitle("Fixed effects for input resistance")
-
-plotFE_sd(filter(data.sc_r, property == "sag")$mm_age[[1]]) +
-  ggtitle("Fixed effects for the sag response")
-
-plotFE_sd(filter(data.sc_r, property == "resf")$mm_age[[1]]) +
-  ggtitle("Fixed effects for membrane resonance frequency")
-
-plotFE_sd(filter(data.sc_r, property == "resmag")$mm_age[[1]]) +
-  ggtitle("Fixed effects for Vm")
-
-```
-
-
-Look at age including only animals above P32.
-```{r}
-data.sc_r_f <- filter(data.sc, age > 32) %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  gather("property", "value", vm:fi) %>%
-  group_by(property) %>% 
-  nest()
-
-data.sc_r_f <- data.sc_r_f  %>%
-  mutate(mm_vsris_age = map(data, model_vsris_age))
-
-data.sc_r_f <- summary_2fixedeffects(data.sc_r_f, mm_vsris_age, "age")
-
-data.sc_r_f$mm_age_dv_adj <- p.adjust(data.sc_r_f$mm_age_dv, method = "BH") %>%
-  format(digits = 3)
-data.sc_r_f$mm_age_age_adj <- p.adjust(data.sc_r_f$mm_age_age, method = "BH") %>%
-  format(digits = 3)
-data.sc_r_f$mm_age_dv_age_adj <- p.adjust(data.sc_r_f$mm_age_dv_age, method = "BH") %>%
-  format(digits = 3)
-
-age_f_table <- FE_table(data.sc_r_f, "age")
-
-age_f_table
-  
-```
-
-Look at fixed effects for Vm, IR and sag and resonance frequency.
-```{r}
-plotFE_sd(filter(data.sc_r_f, property == "vm")$mm_vsris_age[[1]]) +
-  ggtitle("Fixed effects for Vm")
-
-plotFE_sd(filter(data.sc_r_f, property == "ir")$mm_vsris_age[[1]]) +
-  ggtitle("Fixed effects for input resistance")
-
-plotFE_sd(filter(data.sc_r_f, property == "sag")$mm_vsris_age[[1]]) +
-  ggtitle("Fixed effects for the sag response")
-
-plotFE_sd(filter(data.sc_r_f, property == "resf")$mm_vsris_age[[1]]) +
-  ggtitle("Fixed effects for membrane resonance frequency")
-```
-
-Look at age including only animals above P32 and below P45.
-```{r}
-data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  gather("property", "value", vm:fi) %>%
-  group_by(property) %>%
-  nest()
-
-
-data.sc_r_f2 <- data.sc_r_f2  %>%
-  mutate(mm_vsris_age = map(data, model_vsris_age)) 
-
-data.sc_r_f2 <- data.sc_r_f2  %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_age = map(data, model_vsris_age))
 
 data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_age, "age")
@@ -129,23 +42,110 @@ data.sc_r_f2$mm_age_age_adj <- p.adjust(data.sc_r_f2$mm_age_age, method = "BH") 
 data.sc_r_f2$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2$mm_age_dv_age, method = "BH") %>%
   format(digits = 3)
 
-age_f2_table <- FE_table(data.sc_r_f2, "age")
+age_table <- FE_table(data.sc_r_f2, "age")
+
+age_table
+```
+
+Look at fixed effects for IR, sag resonant frequncy and resonance magnitude.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resmag")$mm_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+```
+
+
+Look at age including only animals above P32.
+```{r}
+data.sc_r_f2_f <- filter(data.sc, age > 32) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>% 
+  nest()
+
+data.sc_r_f2_f <- data.sc_r_f2_f  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age))
+
+data.sc_r_f2_f <- summary_2fixedeffects(data.sc_r_f2_f, mm_vsris_age, "age")
+
+data.sc_r_f2_f$mm_age_dv_adj <- p.adjust(data.sc_r_f2_f$mm_age_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2_f$mm_age_age_adj <- p.adjust(data.sc_r_f2_f$mm_age_age, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2_f$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2_f$mm_age_dv_age, method = "BH") %>%
+  format(digits = 3)
+
+age_f_table <- FE_table(data.sc_r_f2_f, "age")
+
+age_f_table
+  
+```
+
+Look at fixed effects for Vm, IR and sag and resonance frequency.
+```{r}
+plotFE_sd(filter(data.sc_r_f2_f, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r_f2_f, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f2_f, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2_f, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
+```
+
+Look at age including only animals above P32 and below P45.
+```{r}
+data.sc_r_f2_f2 <- filter(data.sc, age > 32 & age < 45) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+
+data.sc_r_f2_f2 <- data.sc_r_f2_f2  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) 
+
+data.sc_r_f2_f2 <- data.sc_r_f2_f2  %>%
+  mutate(mm_age = map(data, model_vsris_age))
+
+data.sc_r_f2_f2 <- summary_2fixedeffects(data.sc_r_f2_f2, mm_age, "age")
+
+data.sc_r_f2_f2$mm_age_dv_adj <- p.adjust(data.sc_r_f2_f2$mm_age_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2_f2$mm_age_age_adj <- p.adjust(data.sc_r_f2_f2$mm_age_age, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2_f2$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2_f2$mm_age_dv_age, method = "BH") %>%
+  format(digits = 3)
+
+age_f2_table <- FE_table(data.sc_r_f2_f2, "age")
 
 age_f2_table
 ```
 
 Look at fixed effects.
 ```{r}
-plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "vm")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for Vm")
 
-plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "ir")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for input resistance")
 
-plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "sag")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for the sag response")
 
-plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_age[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "resf")$mm_vsris_age[[1]]) +
   ggtitle("Fixed effects for membrane resonance frequency")
 ```
 
@@ -153,20 +153,20 @@ plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_age[[1]]) +
 
 Combined table for age. Including n and N.
 ```{r}
-df_age_table <- cbind(select(data.sc_r[1:12,],
+df_age_table <- cbind(select(data.sc_r_f2[1:12,],
                          property,
                          mm_age_dv_adj,
                          mm_age_age_adj,
                          mm_age_dv_age_adj,
                          mm_age_ngrps,
                          mm_age_nobs),
-                      select(data.sc_r_f[1:12,],
+                      select(data.sc_r_f2_f[1:12,],
                          mm_age_dv_adj,
                          mm_age_age_adj,
                          mm_age_dv_age_adj,
                          mm_age_ngrps,
                          mm_age_nobs),
-                      select(data.sc_r_f2[1:12,],
+                      select(data.sc_r_f2_f2[1:12,],
                          mm_age_dv_adj,
                          mm_age_age_adj,
                          mm_age_dv_age_adj,
@@ -185,19 +185,19 @@ For analyses below exclude the p18 animal.
 ## Housing.
 We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
-data.sc_r_f2 <- data.sc_r_f2 %>%
+data.sc_r_f2_f2 <- data.sc_r_f2_f2 %>%
   mutate(mm_vsris_housing = map(data, model_vsris_housing))
 
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_housing, "housing")
+data.sc_r_f2_f2 <- summary_2fixedeffects(data.sc_r_f2_f2, mm_vsris_housing, "housing")
 
-data.sc_r_f2$mm_housing_dv_adj <- p.adjust(data.sc_r_f2$mm_housing_dv, method = "BH") %>%
+data.sc_r_f2_f2$mm_housing_dv_adj <- p.adjust(data.sc_r_f2_f2$mm_housing_dv, method = "BH") %>%
   format(digits = 3)
-data.sc_r_f2$mm_housing_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_housing, method = "BH") %>%
+data.sc_r_f2_f2$mm_housing_housing_adj <- p.adjust(data.sc_r_f2_f2$mm_housing_housing, method = "BH") %>%
   format(digits = 3)
-data.sc_r_f2$mm_housing_dv_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_dv_housing, method = "BH") %>%
+data.sc_r_f2_f2$mm_housing_dv_housing_adj <- p.adjust(data.sc_r_f2_f2$mm_housing_dv_housing, method = "BH") %>%
   format(digits = 3)
 
-(housing_table <- FE_table(data.sc_r_f2, "housing"))
+(housing_table <- FE_table(data.sc_r_f2_f2, "housing"))
 
 housing_table %>%
   kableExtra::save_kable(file = "TableS3.html", self_contained = T)
@@ -205,10 +205,10 @@ housing_table %>%
 
 Look at fixed effects for sag and spike half-width.
 ```{r}
-plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_housing[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "sag")$mm_vsris_housing[[1]]) +
   ggtitle("Fixed effects for the sag response")
 
-plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_housing[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "spkhlf")$mm_vsris_housing[[1]]) +
   ggtitle("Fixed effects for the spike half-width")
 ```
 
@@ -238,19 +238,19 @@ ggsave("housingplot.png", width = 100, height = 50, units = "mm")
 
 ## Mediolateral position.
 ```{r}
-data.sc_r_f2 <- data.sc_r_f2 %>%
+data.sc_r_f2_f2 <- data.sc_r_f2_f2 %>%
   mutate(mm_vsris_ml = map(data, model_vsris_ml))
 
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_ml, "ml")
+data.sc_r_f2_f2 <- summary_2fixedeffects(data.sc_r_f2_f2, mm_vsris_ml, "ml")
 
-data.sc_r_f2$mm_ml_dv_adj <- p.adjust(data.sc_r_f2$mm_ml_dv, method = "BH") %>%
+data.sc_r_f2_f2$mm_ml_dv_adj <- p.adjust(data.sc_r_f2_f2$mm_ml_dv, method = "BH") %>%
   format(digits = 3)
-data.sc_r_f2$mm_ml_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_ml, method = "BH") %>%
+data.sc_r_f2_f2$mm_ml_ml_adj <- p.adjust(data.sc_r_f2_f2$mm_ml_ml, method = "BH") %>%
   format(digits = 3)
-data.sc_r_f2$mm_ml_dv_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_dv_ml, method = "BH") %>%
+data.sc_r_f2_f2$mm_ml_dv_ml_adj <- p.adjust(data.sc_r_f2_f2$mm_ml_dv_ml, method = "BH") %>%
   format(digits = 3)
 
-(ml_table <- FE_table(data.sc_r_f2, "ml"))
+(ml_table <- FE_table(data.sc_r_f2_f2, "ml"))
 
 ml_table %>% kableExtra::save_kable(file = "TableS4.html", self_contained = T)
 
@@ -258,34 +258,34 @@ ml_table %>% kableExtra::save_kable(file = "TableS4.html", self_contained = T)
 
 Look at fixed effects for IR, sag, membrane time constant, resf and spike AHP.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_ml[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "ir")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for IR")
 
-plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_ml[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "sag")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for membrane potential sag")
 
-plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_ml[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "tau")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for membrane time constant")
 
-plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_ml[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "resf")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for resonance frequency")
 
-plotFE_sd(filter(data.sc_r, property == "ahp")$mm_vsris_ml[[1]]) +
+plotFE_sd(filter(data.sc_r_f2_f2, property == "ahp")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for  spike AHP")
 
 ```
 
 Compare medial with lateral sections.
 ```{r}
-ggplot(filter(data.sc_r, property == "ir")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+ggplot(filter(data.sc_r_f2_f2, property == "ir")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
   geom_boxplot() +
   ggtitle("Input resistance")
 
-ggplot(filter(data.sc_r, property == "sag")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+ggplot(filter(data.sc_r_f2_f2, property == "sag")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
   geom_boxplot() +
   ggtitle("Membrane potential sag")
 
-ggplot(filter(data.sc_r, property == "resf")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+ggplot(filter(data.sc_r_f2_f2, property == "resf")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
   geom_boxplot() +
   ggtitle("Resonance frequency")
 ```
@@ -299,26 +299,30 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, mlpos), "mlpos")
 
 ## Hemisphere
 ```{r}
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2_f2 <- data.sc_r_f2_f2 %>%
   mutate(mm_vsris_hemi = map(data, model_vsris_hemi))
 
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_hemi, "hemi")
+data.sc_r_f2_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_hemi, "hemi")
 
-data.sc_r$mm_hemi_dv_adj <- p.adjust(data.sc_r$mm_hemi_dv, method = "BH")
-data.sc_r$mm_hemi_hemi_adj <- p.adjust(data.sc_r$mm_hemi_hemi, method = "BH")
-data.sc_r$mm_hemi_dv_hemi_adj <- p.adjust(data.sc_r$mm_hemi_dv_hemi, method = "BH")
+data.sc_r_f2$mm_hemi_dv_adj <- p.adjust(data.sc_r_f2$mm_hemi_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_hemi_hemi_adj <- p.adjust(data.sc_r_f2$mm_hemi_hemi, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_hemi_dv_hemi_adj <- p.adjust(data.sc_r_f2$mm_hemi_dv_hemi, method = "BH") %>%
+  format(digits = 3)
 
-hemi_table <- FE_table(data.sc_r, "hemi")
-hemi_table
+(hemi_table <- FE_table(data.sc_r_f2, "hemi"))
+
+hemi_table %>% kableExtra::save_kable(file = "TableS5.html", self_contained = T)
 ```
 
 
 Look at fixed effects for sag and resonance magnitude.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "sag")$mm_vsris_hemi[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_hemi[[1]]) +
   ggtitle("Fixed effects for membrane potential sag response")
 
-plotFE_sd(filter(data.sc_r, property == "resmag")$mm_vsris_hemi[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "resmag")$mm_vsris_hemi[[1]]) +
   ggtitle("Fixed effects for resonance magnitude")
 ```
 
@@ -330,28 +334,31 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, hemi), "hemi")
 
 ## Experimenter
 ```{r}
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_exp = map(data, model_vsris_exp))
 
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_exp, "exp")
+data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_exp, "exp")
 
-data.sc_r$mm_exp_dv_adj <- p.adjust(data.sc_r$mm_exp_dv, method = "BH")
-data.sc_r$mm_exp_exp_adj <- p.adjust(data.sc_r$mm_exp_exp, method = "BH")
-data.sc_r$mm_exp_dv_exp_adj <- p.adjust(data.sc_r$mm_exp_dv_exp, method = "BH")
+data.sc_r_f2$mm_exp_dv_adj <- p.adjust(data.sc_r_f2$mm_exp_dv, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_exp_exp_adj <- p.adjust(data.sc_r_f2$mm_exp_exp, method = "BH") %>%
+  format(digits = 3)
+data.sc_r_f2$mm_exp_dv_exp_adj <- p.adjust(data.sc_r_f2$mm_exp_dv_exp, method = "BH") %>%
+  format(digits = 3)
 
-exp_table <- FE_table(data.sc_r, "exp")
-exp_table
+(exp_table <- FE_table(data.sc_r_f2, "exp"))
+exp_table  %>% kableExtra::save_kable(file = "TableS6.html", self_contained = T)
 ```
 
 Look at fixed effects for input resistance, resonance frequency and spike half-width.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "ir")$mm_vsris_exp[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_exp[[1]]) +
   ggtitle("Fixed effects for input resistance")
 
-plotFE_sd(filter(data.sc_r, property == "resf")$mm_vsris_exp[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_exp[[1]]) +
   ggtitle("Fixed effects for resonance frequency")
 
-plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_exp[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_exp[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
 
@@ -364,28 +371,28 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
 
 ## Patch direction
 ```{r}
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_dir = map(data, model_vsris_dir)) 
 
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_dir, "dir")
+data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_dir, "dir")
 
-data.sc_r$mm_dir_dv_adj <- p.adjust(data.sc_r$mm_dir_dv, method = "BH")
-data.sc_r$mm_dir_dir_adj <- p.adjust(data.sc_r$mm_dir_dir, method = "BH")
-data.sc_r$mm_dir_dv_dir_adj <- p.adjust(data.sc_r$mm_dir_dv_dir, method = "BH")
+data.sc_r_f2$mm_dir_dv_adj <- p.adjust(data.sc_r_f2$mm_dir_dv, method = "BH") %>% format(digits = 3)
+data.sc_r_f2$mm_dir_dir_adj <- p.adjust(data.sc_r_f2$mm_dir_dir, method = "BH") %>% format(digits = 3)
+data.sc_r_f2$mm_dir_dv_dir_adj <- p.adjust(data.sc_r_f2$mm_dir_dv_dir, method = "BH") %>% format(digits = 3)
 
-dir_table <- FE_table(data.sc_r, "dir")
-dir_table
+(dir_table <- FE_table(data.sc_r_f2, "dir"))
+dir_table  %>% kableExtra::save_kable(file = "TableS7.html", self_contained = T)
 ```
 
 Look at fixed effects for membrane potential, membrane time constant and spike half-width.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_dir[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_dir[[1]]) +
   ggtitle("Fixed effects for membrane potential")
 
-plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_dir[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_dir[[1]]) +
   ggtitle("Fixed effects for membrane time constant")
 
-plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_dir[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_dir[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
 
@@ -397,35 +404,35 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, patchdir), "patchdir")
 
 ## Recording time
 ```{r}
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_rect = map(data, model_vsris_rect)) 
 
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_vsris_rect, "rect")
+data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_rect, "rect")
 
-data.sc_r$mm_rect_dv_adj <- p.adjust(data.sc_r$mm_rect_dv, method = "BH")
-data.sc_r$mm_rect_rect_adj <- p.adjust(data.sc_r$mm_rect_rect, method = "BH")
-data.sc_r$mm_rect_dv_rect_adj <- p.adjust(data.sc_r$mm_rect_dv_rect, method = "BH")
+data.sc_r_f2$mm_rect_dv_adj <- p.adjust(data.sc_r_f2$mm_rect_dv, method = "BH")
+data.sc_r_f2$mm_rect_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_rect, method = "BH")
+data.sc_r_f2$mm_rect_dv_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_dv_rect, method = "BH")
 
-rect_table <- FE_table(data.sc_r, "rect")
+rect_table <- FE_table(data.sc_r_f2, "rect")
 rect_table
 ```
 
 Look at fixed effects for membrane potential, resonance frquency and spike threshold.
 ```{r}
-plotFE_sd(filter(data.sc_r, property == "vm")$mm_vsris_rect[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for membrane potential")
 
-plotFE_sd(filter(data.sc_r, property == "tau")$mm_vsris_rect[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for membrane time constant")
 
-plotFE_sd(filter(data.sc_r, property == "spkhlf")$mm_vsris_rect[[1]]) +
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
 
 ## Do random effects remain significant in a model with additional fixed effects included?
 Fit mixed model including dvloc, age, expr, rectime, housing as fixed effects, and equivalent linear model.
 ```{r}
-data.sc_r_all <- data.sc_r %>%
+data.sc_r_f2_all <- data.sc_r_f2 %>%
   select(property, data) %>%
   mutate(mm_full_fixed = map(data, model_vsris_full_fixed),
          mm_full_fixed_linear = map(data, model_vsris_full_fixed_linear))
@@ -435,22 +442,22 @@ Carry out ANOVA to evaluate effects within the full model.
 ```{r}
 update.2 <- function(mod) {update(mod, REML = TRUE)}
 car.ANOVA <- function(fit) {car::Anova(fit, type="II",test.statistic="F")}
-data.sc_r_all <- data.sc_r_all %>%
+data.sc_r_f2_all <- data.sc_r_f2_all %>%
   mutate(m.reml = map(mm_full_fixed, update.2),
          ANOVA = map(m.reml, car.ANOVA))
 ```
 
 Compare the full mixed with the equivalent linear model.
 ```{r}
-data.sc_r_all <- mixed_vs_linear_pchisqu(data.sc_r_all,
+data.sc_r_f2_all <- mixed_vs_linear_pchisqu(data.sc_r_f2_all,
                                          mm_full_fixed,
                                          mm_full_fixed_linear)
 ```
 
 Make table to summarise comparison of the full mixed with the equivalent linear model.
 ```{r}
-data.sc_r_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_all$mm_full_fixed_vslinear_pdiff, method = "BH")
-table_mixedvslinear(data.sc_r_all, "mm_full_fixed_vslinear")
+data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff, method = "BH")
+table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear")
 ```
 
 
@@ -465,7 +472,7 @@ filter_test1 <- function(df) {
   dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Medial" & expr == "HP")
 }
 
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(data_test1 = map(data, filter_test1),
          mm_min1 = map(data_test1, model_vsris),
          lin_min1 = map(data_test1, linearmodel_to_fit))
@@ -473,13 +480,13 @@ data.sc_r <- data.sc_r %>%
 
 Compare the full mixed with the equivalent linear model.
 ```{r}
-data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r,
+data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
                                          mm_min1,
                                          lin_min1)
 
-data.sc_r$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_min1_vslinear_pdiff, method = "BH")
+data.sc_r_f2$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_min1_vslinear_pdiff, method = "BH")
 
-table_mixedvslinear(data.sc_r, "mm_min1_vslinear")
+table_mixedvslinear(data.sc_r_f2, "mm_min1_vslinear")
 ```
 
 
@@ -490,7 +497,7 @@ filter_test1 <- function(df) {
   dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Lateral" & expr == "HP")
 }
 
-data.sc_r <- data.sc_r %>%
+data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(data_test1 = map(data, filter_test1),
          mm_min1 = map(data_test1, model_vsris),
          lin_min1 = map(data_test1, linearmodel_to_fit))
@@ -498,11 +505,11 @@ data.sc_r <- data.sc_r %>%
 
 Compare the full mixed with the equivalent linear model.
 ```{r}
-data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r,
+data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
                                          mm_min1,
                                          lin_min1)
 
-data.sc_r$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_min1_vslinear_pdiff, method = "BH")
+data.sc_r_f2$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_min1_vslinear_pdiff, method = "BH")
 
-table_mixedvslinear(data.sc_r, "mm_min1_vslinear")
+table_mixedvslinear(data.sc_r_f2, "mm_min1_vslinear")
 ```
