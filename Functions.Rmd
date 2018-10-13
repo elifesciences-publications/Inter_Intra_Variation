@@ -388,6 +388,8 @@ plotFE_sd <- function(df) {
 ## Functions used for analysis of additional fixed effects
 
 Function for adding model summary statistics to the main data frame.
+Make name strings for fixed effects
+Add values of names fixed effects to the df
 ```{r}
 summary_2fixedeffects <- function(df, model, name) {
   model <- enquo(model)
@@ -398,6 +400,10 @@ summary_2fixedeffects <- function(df, model, name) {
   dv_name <- sym(paste0("mm_", quo_name(name), "_dv"))
   name_name <- sym(paste0("mm_", quo_name(name), "_", quo_name(name)))
   dv_name_name <- sym(paste0("mm_", quo_name(name), "_dv_", quo_name(name)))
+  FE_Int_name <- sym(paste0("mm_", quo_name(name), "_FE_Int"))
+  FE_dv_name <- sym(paste0("mm_", quo_name(name), "_FE_dv"))
+  FE_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_", quo_name(name)))
+  FE_dv_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_dv_", quo_name(name)))
   
   mutate(df,
          !! sum_name := map(!! model, summary),
@@ -406,7 +412,11 @@ summary_2fixedeffects <- function(df, model, name) {
          !! ANOVA_name := map(!!model, car::Anova),
          !! dv_name := map_dbl(!!ANOVA_name, ~.$`Pr(>Chisq)`[[1]]),
          !! name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[2]]),
-         !! dv_name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]])
+         !! dv_name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]]),
+         !! FE_Int_name := map_dbl(!!sum_name, ~.$coefficients[1]),
+         !! FE_dv_name := map_dbl(!!sum_name, ~.$coefficients[2]),
+         !! FE_FE2_name := map_dbl(!!sum_name, ~.$coefficients[3]),
+         !! FE_dv_FE2_name := map_dbl(!!sum_name, ~.$coefficients[4])
          )
   
 }
@@ -418,6 +428,10 @@ FE_table(data.sc_r, "rect")
 FE_table <- function(df, name) {
   ngrps <- sym(paste0("mm_", name, "_ngrps"))
   nobs <- sym(paste0("mm_", name, "_nobs"))
+  FE_Int_name <- sym(paste0("mm_",name, "_FE_Int"))
+  FE_dv_name <- sym(paste0("mm_", quo_name(name), "_FE_dv"))
+  FE_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_", quo_name(name)))
+  FE_dv_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_dv_", quo_name(name)))
   name_dv <- sym(paste0("mm_", name, "_dv"))
   name_dv_adj <- sym(paste0("mm_", name, "_dv_adj"))
   name_name <- sym(paste0("mm_", name, "_", name))
@@ -429,13 +443,17 @@ FE_table <- function(df, name) {
                            property,
                            !! ngrps,
                            !! nobs,
+                           !! FE_Int_name,
+                           !! FE_dv_name,
+                           !! FE_FE2_name,
+                           !! FE_dv_FE2_name,
                            !! name_dv,
                            !! name_dv_adj,
                            !! name_name,
                            !! name_name_adj,
                            !! name_dv_name,
                            !! name_dv_name_adj),
-                    col.names = c("property", "N", "n", "dvloc", "dvloc_adj", paste0(name), paste0(name,"_adj"), paste0("dv:", name), paste0("dv:", name, "_adj"))) %>%
+                    col.names = c("property", "N", "n", "Int", "dvloc", paste0(name), paste0("dv:", name), "dvloc", "dvloc_adj", paste0(name), paste0(name,"_adj"), paste0("dv:", name), paste0("dv:", name, "_adj"))) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 }
 ```
