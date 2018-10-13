@@ -357,10 +357,11 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_dir, "dir")
 
-names_in <- c("mm_dir_dv", "mm_dir_dir", "mm_dir_dv_dir")
-names_adj <- c("mm_dir_dv_adj", "mm_dir_dir_adj", "mm_dir_dv_dir_adj")
-
-data.sc_r_f2[names_adj] <- lapply(data.sc_r_f2[names_in], p.adjust, method = "BH")
+# names_in <- c("mm_dir_dv", "mm_dir_dir", "mm_dir_dv_dir")
+# names_adj <- c("mm_dir_dv_adj", "mm_dir_dir_adj", "mm_dir_dv_dir_adj")
+# 
+# data.sc_r_f2[names_adj] <- lapply(data.sc_r_f2[names_in], p.adjust, method = "BH")
+data.sc_r_f2 <- FE2_p.adjust(data.sc_r_f2, "dir")
 
 (dir_table <- FE_table(data.sc_r_f2, "dir"))
 dir_table  %>% kableExtra::save_kable(file = "TableS7.html", self_contained = T)
