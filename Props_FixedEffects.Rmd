@@ -31,13 +31,9 @@ This code requires first running Props_mixed_model.Rmd.
 All ages.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(mm_age = map(data, model_vsris_age))
-
-data.sc_r <- summary_2fixedeffects(data.sc_r, mm_age, "age")
-
-data.sc_r$mm_age_dv_adj <- p.adjust(data.sc_r$mm_age_dv, method = "BH")
-data.sc_r$mm_age_age_adj <- p.adjust(data.sc_r$mm_age_age, method = "BH")
-data.sc_r$mm_age_dv_age_adj <- p.adjust(data.sc_r$mm_age_dv_age, method = "BH")
+  mutate(mm_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_age, "age") %>%
+  FE2_p.adjust("age")
 
 age_table <- FE_table(data.sc_r, "age")
 
@@ -70,13 +66,9 @@ data.sc_r_f <- filter(data.sc, age > 32) %>%
   nest()
 
 data.sc_r_f <- data.sc_r_f  %>%
-  mutate(mm_vsris_age = map(data, model_vsris_age))
-
-data.sc_r_f <- summary_2fixedeffects(data.sc_r_f, mm_vsris_age, "age")
-
-data.sc_r_f$mm_age_dv_adj <- p.adjust(data.sc_r_f$mm_age_dv, method = "BH")
-data.sc_r_f$mm_age_age_adj <- p.adjust(data.sc_r_f$mm_age_age, method = "BH")
-data.sc_r_f$mm_age_dv_age_adj <- p.adjust(data.sc_r_f$mm_age_dv_age, method = "BH")
+  mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_vsris_age, "age") %>%
+  FE2_p.adjust("age")
 
 age_f_table <- FE_table(data.sc_r_f, "age")
 
@@ -112,13 +104,9 @@ data.sc_r_f2 <- data.sc_r_f2  %>%
   mutate(mm_vsris_age = map(data, model_vsris_age)) 
 
 data.sc_r_f2 <- data.sc_r_f2  %>%
-  mutate(mm_age = map(data, model_vsris_age))
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_age, "age")
-
-data.sc_r_f2$mm_age_dv_adj <- p.adjust(data.sc_r_f2$mm_age_dv, method = "BH")
-data.sc_r_f2$mm_age_age_adj <- p.adjust(data.sc_r_f2$mm_age_age, method = "BH")
-data.sc_r_f2$mm_age_dv_age_adj <- p.adjust(data.sc_r_f2$mm_age_dv_age, method = "BH")
+  mutate(mm_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_age, "age") %>%
+  FE2_p.adjust("age")
 
 age_f2_table <- FE_table(data.sc_r_f2, "age")
 
@@ -179,13 +167,9 @@ For analyses below exclude the p18 animal.
 We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_housing = map(data, model_vsris_housing))
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_housing, "housing")
-
-data.sc_r_f2$mm_housing_dv_adj <- p.adjust(data.sc_r_f2$mm_housing_dv, method = "BH")
-data.sc_r_f2$mm_housing_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_housing, method = "BH")
-data.sc_r_f2$mm_housing_dv_housing_adj <- p.adjust(data.sc_r_f2$mm_housing_dv_housing, method = "BH")
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
 
 (housing_table <- FE_table(data.sc_r_f2, "housing"))
 
@@ -229,13 +213,9 @@ ggsave("housingplot.png", width = 100, height = 50, units = "mm")
 ## Mediolateral position.
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_ml = map(data, model_vsris_ml))
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_ml, "ml")
-
-data.sc_r_f2$mm_ml_dv_adj <- p.adjust(data.sc_r_f2$mm_ml_dv, method = "BH")
-data.sc_r_f2$mm_ml_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_ml, method = "BH")
-data.sc_r_f2$mm_ml_dv_ml_adj <- p.adjust(data.sc_r_f2$mm_ml_dv_ml, method = "BH")
+  mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
+  summary_2fixedeffects(mm_vsris_ml, "ml") %>%
+  FE2_p.adjust("ml")
 
 (ml_table <- FE_table(data.sc_r_f2, "ml"))
 
@@ -287,13 +267,9 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, mlpos), "mlpos")
 ## Hemisphere
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_hemi = map(data, model_vsris_hemi))
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_hemi, "hemi")
-
-data.sc_r_f2$mm_hemi_dv_adj <- p.adjust(data.sc_r_f2$mm_hemi_dv, method = "BH")
-data.sc_r_f2$mm_hemi_hemi_adj <- p.adjust(data.sc_r_f2$mm_hemi_hemi, method = "BH")
-data.sc_r_f2$mm_hemi_dv_hemi_adj <- p.adjust(data.sc_r_f2$mm_hemi_dv_hemi, method = "BH")
+  mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  summary_2fixedeffects(mm_vsris_hemi, "hemi") %>%
+  FE2_p.adjust("hemi")
 
 (hemi_table <- FE_table(data.sc_r_f2, "hemi"))
 
@@ -319,13 +295,9 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, hemi), "hemi")
 ## Experimenter
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_exp = map(data, model_vsris_exp))
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_exp, "exp")
-
-data.sc_r_f2$mm_exp_dv_adj <- p.adjust(data.sc_r_f2$mm_exp_dv, method = "BH") 
-data.sc_r_f2$mm_exp_exp_adj <- p.adjust(data.sc_r_f2$mm_exp_exp, method = "BH")
-data.sc_r_f2$mm_exp_dv_exp_adj <- p.adjust(data.sc_r_f2$mm_exp_dv_exp, method = "BH")
+  mutate(mm_vsris_exp = map(data, model_vsris_exp)) %>%
+  summary_2fixedeffects(mm_vsris_exp, "exp") %>%
+  FE2_p.adjust("exp")
 
 (exp_table <- FE_table(data.sc_r_f2, "exp"))
 exp_table  %>% kableExtra::save_kable(file = "TableS6.html", self_contained = T)
@@ -353,15 +325,9 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
 ## Patch direction
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_dir = map(data, model_vsris_dir)) 
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_dir, "dir")
-
-# names_in <- c("mm_dir_dv", "mm_dir_dir", "mm_dir_dv_dir")
-# names_adj <- c("mm_dir_dv_adj", "mm_dir_dir_adj", "mm_dir_dv_dir_adj")
-# 
-# data.sc_r_f2[names_adj] <- lapply(data.sc_r_f2[names_in], p.adjust, method = "BH")
-data.sc_r_f2 <- FE2_p.adjust(data.sc_r_f2, "dir")
+  mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  summary_2fixedeffects(mm_vsris_dir, "dir") %>%
+  FE2_p.adjust("dir")
 
 (dir_table <- FE_table(data.sc_r_f2, "dir"))
 dir_table  %>% kableExtra::save_kable(file = "TableS7.html", self_contained = T)
