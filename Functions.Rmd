@@ -417,7 +417,7 @@ summary_2fixedeffects <- function(df, model, name) {
          !! FE_dv_name := map_dbl(!!sum_name, ~.$coefficients[2]),
          !! FE_FE2_name := map_dbl(!!sum_name, ~.$coefficients[3]),
          !! FE_dv_FE2_name := map_dbl(!!sum_name, ~.$coefficients[4])
-         )
+  )
   
 }
 ```
