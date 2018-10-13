@@ -448,13 +448,14 @@ FE_table <- function(df, name) {
                            !! FE_FE2_name,
                            !! FE_dv_FE2_name,
                            !! name_dv,
-                           !! name_dv_adj,
                            !! name_name,
-                           !! name_name_adj,
                            !! name_dv_name,
+                           !! name_dv_adj,
+                           !! name_name_adj,
                            !! name_dv_name_adj),
-                    col.names = c("property", "N", "n", "Int", "dvloc", paste0(name), paste0("dv:", name), "dvloc", "dvloc_adj", paste0(name), paste0(name,"_adj"), paste0("dv:", name), paste0("dv:", name, "_adj"))) %>%
-  kableExtra::kable_styling(bootstrap_options = "striped")
+                    col.names = c("property", "N", "n", "Int", "dvloc", paste0(name), paste0("dv:", name), "dvloc", paste0(name), paste0("dv:", name), "dvloc_adj", paste0(name,"_adj"), paste0("dv:", name, "_adj"))) %>%
+    kableExtra::add_header_above(c(" " = 3, "Fixed effects" = 4, "raw p" = 3, "adjusted p" = 3)) %>%
+    kableExtra::kable_styling(bootstrap_options = "striped")
 }
 ```
 
