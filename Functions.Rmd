@@ -439,6 +439,20 @@ FE_table <- function(df, name) {
   name_dv_name <- sym(paste0("mm_", name, "_dv_", name))
   name_dv_name_adj <- sym(paste0("mm_", name, "_dv_", name, "_adj"))
   
+  col_list <- c(rlang::as_string(FE_Int_name),
+                rlang::as_string(FE_dv_name),
+                rlang::as_string(FE_FE2_name),
+                rlang::as_string(FE_dv_FE2_name),
+                rlang::as_string(name_dv),
+                rlang::as_string(name_dv_adj),
+                rlang::as_string(name_name),
+                rlang::as_string(name_name_adj),
+                rlang::as_string(name_dv_name),
+                rlang::as_string(name_dv_name_adj)
+                )
+  
+  df[col_list] <- lapply(df[col_list], format, digits = 2)
+  
   kableExtra::kable(select(df,
                            property,
                            !! ngrps,
