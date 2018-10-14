@@ -354,13 +354,9 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, patchdir), "patchdir")
 ## Recording time
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(mm_vsris_rect = map(data, model_vsris_rect)) 
-
-data.sc_r_f2 <- summary_2fixedeffects(data.sc_r_f2, mm_vsris_rect, "rect")
-
-data.sc_r_f2$mm_rect_dv_adj <- p.adjust(data.sc_r_f2$mm_rect_dv, method = "BH")
-data.sc_r_f2$mm_rect_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_rect, method = "BH")
-data.sc_r_f2$mm_rect_dv_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_dv_rect, method = "BH")
+  mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  summary_2fixedeffects(mm_vsris_rect, "rect") %>%
+  FE2_p.adjust("rect")
 
 (rect_table <- FE_table(data.sc_r_f2, "rect"))
 
@@ -412,17 +408,31 @@ Make table to summarise significance values for all fixed effects.
 ```{r}
 FE_Full_table <-data.sc_r_f2_all %>%
   select(property, ANOVA) %>%
-  mutate(full_dvlocmm = map_dbl(ANOVA, ~.$'Pr(>F)'[1])) %>%
-  mutate(full_expr = map_dbl(ANOVA, ~.$'Pr(>F)'[2])) %>%
-  mutate(full_housing = map_dbl(ANOVA, ~.$'Pr(>F)'[3])) %>%
-  mutate(full_mlpos = map_dbl(ANOVA, ~.$'Pr(>F)'[4])) %>%
-  mutate(full_patchdir = map_dbl(ANOVA, ~.$'Pr(>F)'[5])) %>%
-  mutate(full_dvlocmm_housing = map_dbl(ANOVA, ~.$'Pr(>F)'[6])) %>%
-  mutate(full_dvlocmm_expr = map_dbl(ANOVA, ~.$'Pr(>F)'[7])) %>%
-  mutate(full_dvlocmm_patchdir = map_dbl(ANOVA, ~.$'Pr(>F)'[8])) %>%
-  mutate(full_dvlocmm_mlpos = map_dbl(ANOVA, ~.$'Pr(>F)'[9])) %>%
+  mutate(full_dvlocmm = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm",])) %>%
+  mutate(full_expr = map_dbl(ANOVA, ~.['Pr(>F)']["expr",])) %>%
+  mutate(full_housing = map_dbl(ANOVA, ~.['Pr(>F)']["housing",])) %>%
+  mutate(full_mlpos = map_dbl(ANOVA, ~.['Pr(>F)']["mlpos",])) %>%
+  mutate(full_patchdir = map_dbl(ANOVA, ~.['Pr(>F)']["patchdir",])) %>%
+  mutate(full_dvlocmm_housing = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:housing",])) %>%
+  mutate(full_dvlocmm_expr = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:expr",])) %>%
+  mutate(full_dvlocmm_patchdir = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:patchdir",])) %>%
+  mutate(full_dvlocmm_mlpos = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:mlpos",])) %>%
   select(-ANOVA)
-  
+
+names_in <- c("full_dvlocmm", "full_expr", "full_housing", "full_mlpos", "full_patchdir", "full_dvlocmm_housing", "full_dvlocmm_expr", "full_dvlocmm_patchdir", "full_dvlocmm_mlpos")
+
+names_adj <- paste0(names_in, "_adj")
+
+FE_Full_table[names_adj] <- lapply(FE_Full_table[names_in], p.adjust, method = "BH")
+
+FE_Full_table[c(names_in, names_adj)] <- lapply(FE_Full_table[c(names_in, names_adj)], format, digits= 3)
+
+(FE_Full_table <- kableExtra::kable(FE_Full_table) %>%
+    kableExtra::kable_styling(bootstrap_options = "striped") %>%
+    kableExtra::add_header_above(c(" " = 1, "raw p" = 9, "adjusted p" = 9)))
+
+table_path <- paste0(getwd(), "/Tables/Full_FE_p_table.html")
+FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)  
 ```
 
 
