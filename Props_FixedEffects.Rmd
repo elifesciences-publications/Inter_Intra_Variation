@@ -153,7 +153,7 @@ df_age_table <- format(df_age_table, digits = 3)
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")) 
 
-table_path <- paste0(getwd(), "/Tables/TableS2.html")
+table_path <- paste0(getwd(), "/Tables/FE_age.html")
 df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -169,7 +169,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (housing_table <- FE_table(data.sc_r_f2, "housing"))
 
-table_path <- paste0(getwd(), "/Tables/TableS3.html")
+table_path <- paste0(getwd(), "/Tables/FE_housing.html")
 housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -215,7 +215,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (ml_table <- FE_table(data.sc_r_f2, "ml"))
 
-table_path <- paste0(getwd(), "/Tables/TableS4.html")
+table_path <- paste0(getwd(), "/Tables/FE_mlpos.html")
 ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -269,7 +269,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (hemi_table <- FE_table(data.sc_r_f2, "hemi"))
 
-table_path <- paste0(getwd(), "/Tables/TableS5.html")
+table_path <- paste0(getwd(), "/Tables/FE_hemisphere.html")
 hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -298,7 +298,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (exp_table <- FE_table(data.sc_r_f2, "exp"))
 
-table_path <- paste0(getwd(), "/Tables/TableS6.html")
+table_path <- paste0(getwd(), "/Tables/FE_experimenter.html")
 exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -329,7 +329,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
   FE2_p.adjust("dir")
 
 (dir_table <- FE_table(data.sc_r_f2, "dir"))
-table_path <- paste0(getwd(), "/Tables/TableS7.html")
+table_path <- paste0(getwd(), "/Tables/FE_patch_direction.html")
 dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -360,7 +360,7 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (rect_table <- FE_table(data.sc_r_f2, "rect"))
 
-table_path <- paste0(getwd(), "/Tables/TableS8.html")
+table_path <- paste0(getwd(), "/Tables/FE_recording_time.html")
 rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
