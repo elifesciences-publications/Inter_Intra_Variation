@@ -18,7 +18,7 @@ To load and preprocess data used for other analyses.
 
 Import stellate cell data.
 ```{r import data, message = FALSE}
-fname.sc <- "datatable.txt"
+fname.sc <- "Data/datatable.txt"
 data.import.sc <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
@@ -34,7 +34,7 @@ data.sc[col_facs] <- lapply(data.sc[col_facs], factor)
 
 Import wfs1 cell data.
 ```{r, message = FALSE}
-fname.wfs <- "datatable_cal.txt"
+fname.wfs <- "Data/datatable_cal.txt"
 data.import.wfs <- read_tsv(fname.wfs)
 data.wfs <- data.import.wfs %>% drop_na(dvloc)
 data.wfs <- mutate(data.wfs, dvlocmm = dvloc/1000)
