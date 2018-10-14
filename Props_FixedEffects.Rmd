@@ -201,7 +201,7 @@ Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag
 Sag_housing_intercepts
 Sag_housing_slopes
 
-ggsave("housingplot.png", width = 100, height = 50, units = "mm")
+ggsave("Figures/housingplot.png", width = 100, height = 50, units = "mm")
 ```
 
 

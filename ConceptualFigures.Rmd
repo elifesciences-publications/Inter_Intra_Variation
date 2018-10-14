@@ -183,7 +183,7 @@ ConceptFigure
 
 Save the figure.
 ```{r Save concept figure}
-ggsave("Concept_figure.png", plot = ConceptFigure, width = 160, height = 100, units = "mm")
+ggsave("Figures/Concept_figure.png", plot = ConceptFigure, width = 160, height = 100, units = "mm")
 ```
 
 
@@ -249,7 +249,7 @@ SummaryFigure <- grid.arrange(sum_feat, sum_feat1, sum_feat2,
 
 SummaryFigure
 
-ggsave("SummaryFigure.png", SummaryFigure, width = 140, height = 60, units = "mm")
+ggsave("Figures/SummaryFigure.png", SummaryFigure, width = 140, height = 60, units = "mm")
 ```
 
 

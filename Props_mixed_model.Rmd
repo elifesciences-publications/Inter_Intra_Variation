@@ -336,7 +336,7 @@ ggdraw() +
 
 Save the figure.
 ```{r Save plot of model fits}
-ggsave("I_S_figure.png", width = 220, height = 120, units = "mm")
+ggsave("Figures/I_S_figure.png", width = 220, height = 120, units = "mm")
 ```
 
 
