@@ -153,7 +153,8 @@ df_age_table <- format(df_age_table, digits = 3)
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")) 
 
-df_age_table %>% kableExtra::save_kable(file = "TableS2.html", self_contained = T)
+table_path <- paste0(getwd(), "/Tables/TableS2.html")
+df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 For analyses below exclude the p18 animal.
@@ -168,8 +169,8 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (housing_table <- FE_table(data.sc_r_f2, "housing"))
 
-housing_table %>%
-  kableExtra::save_kable(file = "TableS3.html", self_contained = T)
+table_path <- paste0(getwd(), "/Tables/TableS3.html")
+housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for sag and spike half-width.
@@ -214,8 +215,8 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (ml_table <- FE_table(data.sc_r_f2, "ml"))
 
-ml_table %>% kableExtra::save_kable(file = "TableS4.html", self_contained = T)
-
+table_path <- paste0(getwd(), "/Tables/TableS4.html")
+ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for IR, sag, membrane time constant, resf and spike AHP.
@@ -268,7 +269,8 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (hemi_table <- FE_table(data.sc_r_f2, "hemi"))
 
-hemi_table %>% kableExtra::save_kable(file = "TableS5.html", self_contained = T)
+table_path <- paste0(getwd(), "/Tables/TableS5.html")
+hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
@@ -295,7 +297,9 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
   FE2_p.adjust("exp")
 
 (exp_table <- FE_table(data.sc_r_f2, "exp"))
-exp_table  %>% kableExtra::save_kable(file = "TableS6.html", self_contained = T)
+
+table_path <- paste0(getwd(), "/Tables/TableS6.html")
+exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for input resistance, resonance frequency and spike half-width.
@@ -325,7 +329,8 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
   FE2_p.adjust("dir")
 
 (dir_table <- FE_table(data.sc_r_f2, "dir"))
-dir_table  %>% kableExtra::save_kable(file = "TableS7.html", self_contained = T)
+table_path <- paste0(getwd(), "/Tables/TableS7.html")
+dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for membrane potential, membrane time constant and spike half-width.
@@ -357,8 +362,10 @@ data.sc_r_f2$mm_rect_dv_adj <- p.adjust(data.sc_r_f2$mm_rect_dv, method = "BH")
 data.sc_r_f2$mm_rect_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_rect, method = "BH")
 data.sc_r_f2$mm_rect_dv_rect_adj <- p.adjust(data.sc_r_f2$mm_rect_dv_rect, method = "BH")
 
-rect_table <- FE_table(data.sc_r_f2, "rect")
-rect_table
+(rect_table <- FE_table(data.sc_r_f2, "rect"))
+
+table_path <- paste0(getwd(), "/Tables/TableS8.html")
+rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for membrane potential, resonance frquency and spike threshold.
