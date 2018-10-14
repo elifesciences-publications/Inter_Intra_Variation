@@ -245,7 +245,7 @@ man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover")))
 
-table_path <- paste0(getwd(), "/Tables/mm_prop_vs_dv_summary_table.html")
+table_path <- paste0(getwd(), "/Tables/mm_prop_vs_dv_summary.html")
 man_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 
 ```

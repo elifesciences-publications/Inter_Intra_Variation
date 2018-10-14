@@ -431,7 +431,7 @@ FE_Full_table[c(names_in, names_adj)] <- lapply(FE_Full_table[c(names_in, names_
     kableExtra::kable_styling(bootstrap_options = "striped") %>%
     kableExtra::add_header_above(c(" " = 1, "raw p" = 9, "adjusted p" = 9)))
 
-table_path <- paste0(getwd(), "/Tables/Full_FE_p_table.html")
+table_path <- paste0(getwd(), "/Tables/Full_FE_p.html")
 FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)  
 ```
 
@@ -439,7 +439,10 @@ FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 Make table to summarise comparison of the full mixed with the equivalent linear model.
 ```{r}
 data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff, method = "BH")
-table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear")
+(mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear"))
+table_path <- paste0(getwd(), "/Tables/Full_FE_mix_vs_linear.html")
+mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T) 
+
 ```
 
 
