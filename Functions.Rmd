@@ -139,11 +139,11 @@ model_vsris_rect <-  function(df) {
 }
 
 model_vsris_full_fixed <- function(df) {
-  lme4::lmer(value ~ dvlocmm + age + expr + rectime + mlpos + dvlocmm:age + dvlocmm:patchdir + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+  lme4::lmer(value ~ dvlocmm + expr + housing + mlpos + patchdir + dvlocmm:housing + dvlocmm:expr + dvlocmm:patchdir + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_full_fixed_linear <- function(df) {
-  lm(value ~ dvlocmm + age + expr + rectime + mlpos + dvlocmm:age + dvlocmm:patchdir + dvlocmm:mlpos, data = df, na.action = na.exclude)
+  lm(value ~ dvlocmm + expr + housing + mlpos + patchdir + dvlocmm:housing + dvlocmm:expr + dvlocmm:patchdir + dvlocmm:mlpos, data = df, na.action = na.exclude)
 }
 
 ```

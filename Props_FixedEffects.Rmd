@@ -381,7 +381,10 @@ plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_rect[[1]]) +
 ```
 
 ## Do random effects remain significant in a model with additional fixed effects included?
-Fit mixed model including dvloc, age, expr, rectime, housing as fixed effects, and equivalent linear model.
+
+Focus on age range between P32 and P45 using data.sc_r_f2. Include additional effects that might contribute to inter-animal variability, e.g. expr and housing, or to appearance of inter-animal variability, e.g. mlpos, dir.
+
+Fit a mixed model incuding each fixed effect and an equivalent linear model.
 ```{r}
 data.sc_r_f2_all <- data.sc_r_f2 %>%
   select(property, data) %>%
@@ -404,6 +407,24 @@ data.sc_r_f2_all <- mixed_vs_linear_pchisqu(data.sc_r_f2_all,
                                          mm_full_fixed,
                                          mm_full_fixed_linear)
 ```
+
+Make table to summarise significance values for all fixed effects.
+```{r}
+FE_Full_table <-data.sc_r_f2_all %>%
+  select(property, ANOVA) %>%
+  mutate(full_dvlocmm = map_dbl(ANOVA, ~.$'Pr(>F)'[1])) %>%
+  mutate(full_expr = map_dbl(ANOVA, ~.$'Pr(>F)'[2])) %>%
+  mutate(full_housing = map_dbl(ANOVA, ~.$'Pr(>F)'[3])) %>%
+  mutate(full_mlpos = map_dbl(ANOVA, ~.$'Pr(>F)'[4])) %>%
+  mutate(full_patchdir = map_dbl(ANOVA, ~.$'Pr(>F)'[5])) %>%
+  mutate(full_dvlocmm_housing = map_dbl(ANOVA, ~.$'Pr(>F)'[6])) %>%
+  mutate(full_dvlocmm_expr = map_dbl(ANOVA, ~.$'Pr(>F)'[7])) %>%
+  mutate(full_dvlocmm_patchdir = map_dbl(ANOVA, ~.$'Pr(>F)'[8])) %>%
+  mutate(full_dvlocmm_mlpos = map_dbl(ANOVA, ~.$'Pr(>F)'[9])) %>%
+  select(-ANOVA)
+  
+```
+
 
 Make table to summarise comparison of the full mixed with the equivalent linear model.
 ```{r}
