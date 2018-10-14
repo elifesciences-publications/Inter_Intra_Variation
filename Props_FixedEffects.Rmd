@@ -5,11 +5,6 @@ output: html_notebook
 
 ```{r setup_Feates_FixedEffects, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-# Ensure access to libraries
-library(lme4)
-library(MuMIn)
-library(tidyverse)
 ```
 
 # Evaluation of impact of additional fixed effects

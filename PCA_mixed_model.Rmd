@@ -6,9 +6,6 @@ output: html_notebook
 
 ```{r setup_Props_PCA, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(lme4)
-library(MuMIn)
-library(tidyverse)
 ```
 
 

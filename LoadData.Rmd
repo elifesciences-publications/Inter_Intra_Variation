@@ -6,9 +6,6 @@ output: html_document
 ---
 ```{r setup_LoadData, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-# Ensure access to libraries
-library(tidyverse)
 ```
 
 # Load data {-}

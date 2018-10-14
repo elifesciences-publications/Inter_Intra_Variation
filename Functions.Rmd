@@ -7,9 +7,6 @@ output: html_document
 
 ```{r setup_functions, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(ggthemes)
-library(optimx)
 ```
 
 
