@@ -586,15 +586,18 @@ table_mixedvslinear_2 <- function(df){
       mutate(mm = map(data, model_vsris),
              lin = map(data, linearmodel_to_fit),
              nobs = map_dbl(mm, nobs),
-             ngrps = map_dbl(mm, ngrps)) %>%
+             ngrps = map_dbl(mm, ngrps),
+             extractR2 = map(mm, r.squaredGLMM),
+             marginal.R2 = map_dbl(extractR2, ~.[[1]]),
+             conditional.R2 = map_dbl(extractR2, ~.[[2]])) %>%
     mixed_vs_linear_pchisqu(mm, lin)
 
 df$mm_vslinear_pdiff_adj <- p.adjust(df$mm_vslinear_pdiff, method = "BH")
-df <- select(df, property, nobs, ngrps, dev_mixed, dev_linear, dev_mixed_df, dev_linear_df, mm_vslinear_pdiff, mm_vslinear_pdiff_adj)
+df <- select(df, property, nobs, ngrps, marginal.R2, conditional.R2, dev_mixed, dev_linear, dev_mixed_df, dev_linear_df, mm_vslinear_pdiff, mm_vslinear_pdiff_adj)
 
 df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")] <- lapply(df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")], format, digits =3)
 
-kableExtra::kable(df, col.names = c("Property", "Nobs", "Ngrps", "Dev(mixed)", "Dev(linear)", "Dev_DF (mixed)", "Dev_DF (linear)", "p", "p(adj)")) %>%
+kableExtra::kable(df, col.names = c("Property", "Nobs", "Ngrps", "marginal.R2", "Conditional.R2", "Dev(mixed)", "Dev(linear)", "Dev_DF (mixed)", "Dev_DF (linear)", "p", "p(adj)")) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")
 }
 ```
