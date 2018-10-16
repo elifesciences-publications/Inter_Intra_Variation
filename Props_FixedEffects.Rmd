@@ -457,44 +457,28 @@ filter_test1 <- function(df) {
   dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Medial" & expr == "HP")
 }
 
-data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(data_test1 = map(data, filter_test1),
-         mm_min1 = map(data_test1, model_vsris),
-         lin_min1 = map(data_test1, linearmodel_to_fit))
-```
+(ft1table <- data.sc_r_f2 %>%
+  select(property, data) %>%
+  mutate(data = map(data, filter_test1)) %>%
+  table_mixedvslinear_2())
 
-Compare the full mixed with the equivalent linear model.
-```{r}
-data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
-                                         mm_min1,
-                                         lin_min1)
-
-data.sc_r_f2$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_min1_vslinear_pdiff, method = "BH")
-
-table_mixedvslinear(data.sc_r_f2, "mm_min1_vslinear")
+table_path <- paste0(getwd(), "/Tables/FilteredFit_1.html")
+ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
 Test 2. Focus on mice aged above P32 and below P45, housed in a standard homecage, with exclusively lateral slices and exclusively experiments by HP. 
 
 ```{r}
-filter_test1 <- function(df) {
+filter_test2<- function(df) {
   dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & mlpos == "Lateral" & expr == "HP")
 }
 
-data.sc_r_f2 <- data.sc_r_f2 %>%
-  mutate(data_test1 = map(data, filter_test1),
-         mm_min1 = map(data_test1, model_vsris),
-         lin_min1 = map(data_test1, linearmodel_to_fit))
-```
+(ft2table <- data.sc_r_f2 %>%
+  select(property, data) %>%
+  mutate(data = map(data, filter_test2)) %>%
+  table_mixedvslinear_2())
 
-Compare the full mixed with the equivalent linear model.
-```{r}
-data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
-                                         mm_min1,
-                                         lin_min1)
-
-data.sc_r_f2$mm_min1_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_min1_vslinear_pdiff, method = "BH")
-
-table_mixedvslinear(data.sc_r_f2, "mm_min1_vslinear")
+table_path <- paste0(getwd(), "/Tables/FilteredFit_2.html")
+ft2table %>% kableExtra::save_kable(file = table_path, self_contained = T) 
 ```

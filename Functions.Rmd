@@ -552,7 +552,7 @@ gg_resf_format <- function(gg, ylim_min = 0, ylim_max = 12) {
 ```
 
 
-Make table to compare fit of mixed effect with linear model.
+Make table to compare fit of mixed effect with linear model. This version requires that the models have already been generated.
 ```{r}
 table_mixedvslinear <- function(df, name, group_name = "property"){
   p_name <- sym(paste0(quo_name(name),"_pdiff"))
@@ -577,4 +577,27 @@ kableExtra::kable(df, col.names = c(paste0(quo_name(group_name)), "deviance (mix
   kableExtra::kable_styling(bootstrap_options = "striped")
 }
 ```  
+
+Second version of function to generate table to compare fit of mixed effect with linear model. This version fits a mixed model with random intercept and slope and an equivalent linear model, tests whether the models are different and then returns a table summarising the test results. It does not save the models.
+table_mixedvslinear_2(data.sc_r_f2)
+```{r}
+table_mixedvslinear_2 <- function(df){
+  df <- df %>%
+      mutate(mm = map(data, model_vsris),
+             lin = map(data, linearmodel_to_fit),
+             nobs = map_dbl(mm, nobs),
+             ngrps = map_dbl(mm, ngrps)) %>%
+    mixed_vs_linear_pchisqu(mm, lin)
+
+df$mm_vslinear_pdiff_adj <- p.adjust(df$mm_vslinear_pdiff, method = "BH")
+df <- select(df, property, nobs, ngrps, dev_mixed, dev_linear, dev_mixed_df, dev_linear_df, mm_vslinear_pdiff, mm_vslinear_pdiff_adj)
+
+df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")] <- lapply(df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")], format, digits =3)
+
+kableExtra::kable(df, col.names = c("Property", "Nobs", "Ngrps", "Dev(mixed)", "Dev(linear)", "Dev_DF (mixed)", "Dev_DF (linear)", "p", "p(adj)")) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```
+
+
 
