@@ -236,6 +236,12 @@ plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_ml[[1]]) +
 plotFE_sd(filter(data.sc_r_f2, property == "ahp")$mm_vsris_ml[[1]]) +
   ggtitle("Fixed effects for  spike AHP")
 
+plotFE_sd(filter(data.sc_r_f2, property == "spkmax")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for  spike maximum")
+
+plotFE_sd(filter(data.sc_r_f2, property == "fi")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for fi")
+
 ```
 
 Compare medial with lateral sections.
@@ -251,6 +257,14 @@ ggplot(filter(data.sc_r_f2, property == "sag")$data[[1]], aes(mlpos,value, colou
 ggplot(filter(data.sc_r_f2, property == "resf")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
   geom_boxplot() +
   ggtitle("Resonance frequency")
+
+ggplot(filter(data.sc_r_f2, property == "spkmax")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Spike maximum")
+
+ggplot(filter(data.sc_r_f2, property == "fi")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("fi")
 ```
 
 Look at all properties as a function of dorsoventral location.
@@ -322,6 +336,8 @@ all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
 
 
 ## Patch direction
+
+We anticipated that the interval since preparing slices could affect the measured intrinsic properties of cells. We also found that it was easiest to identify the location of neurons if we recorded at sequential locations. We therefore interleaved experiments in which we obtained recordings initially from ventral cells and then from progressively more dorsal cells, and vice versa. Our reasoning here is that genuine effects of dorsoventral position should be robust to direction, while effects of the time interval since slice prepration should be apparent in datasets that combine both directions.  
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
