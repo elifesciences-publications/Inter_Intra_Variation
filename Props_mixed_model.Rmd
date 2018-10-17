@@ -304,7 +304,7 @@ Now generate the plot.
 ```{r Facetted_plot_of_model_fits}
 labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (MΩ)", resf = "Res F (Hz)", resmag = "Res. mag.", rheo = "Rheobase (pA)", sag = "Sag", spkhlf = "Spike h-w (ms)", spkmax = "Spike max. (mV)", spkthr = "Spike thres. (mV)", tau = "Tm (ms)", vm = "Vrest (mV)")
 
-IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1)) +
+IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
   geom_jitter(aes(y = value_2), width = 0.2) +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
