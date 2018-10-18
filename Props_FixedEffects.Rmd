@@ -527,5 +527,28 @@ counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 
 ```
 
+Split data according to counts.
+Input is a data frame containing a dataset, e.g. data.sc_r_f2$data[1]
+```{r}
+fit_counts_age_range <- function(df, min_age = 32, max_age = 38) {
+  
+  df %>%
+    filter(age >min_age & age <=max_age) %>%
+    model_vsris_counts()
+}
 
+table_df <- function(df, min_age = 32, max_age = 38) {
+  out <- transmute(
+    df,
+    vsris_counts = map(data, fit_counts_age_range, min_age, max_age),
+    extractR2 = map(vsris_counts, r.squaredGLMM),
+    marginal.R2 = map_dbl(extractR2, ~ .[[1]]),
+    conditional.R2 = map_dbl(extractR2, ~ .[[2]])
+    )
+  select(out, marginal.R2, conditional.R2)
+}
+
+table_low_high <- cbind(table_df(data.sc_r_f2, 32,38), table_df(data.sc_r_f2, 38,45))
+
+```
 
