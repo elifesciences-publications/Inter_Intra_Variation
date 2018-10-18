@@ -24,6 +24,10 @@ data.sc <- data.import.sc %>% drop_na(dvloc)
 # Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
 data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
 
+# Add the number of observations for each mouse as a column
+counts <- count(data.sc, id)
+data.sc$counts <- counts$n[match(data.sc$id, counts$id)]
+
 # Make sure id, hemi, housing, mlpos, expr, patchdir are factors
 col_facs <- c("id", "hemi", "housing", "mlpos", "expr", "patchdir")
 data.sc[col_facs] <- lapply(data.sc[col_facs], factor)
@@ -78,13 +82,13 @@ head(data.sc)
 Reformat data for use with map and other tidyverse functions. data.sc_R contains the experimentally measured proprties. data.sc_TP_r contains the transformed properties.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
 
 data.sc_TP_r <- data.sc_TP %>%
-  dplyr::select(vm:fi, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  dplyr::select(vm:fi, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()

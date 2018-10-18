@@ -138,6 +138,10 @@ model_vsris_rect <-  function(df) {
   lme4::lmer(value ~ dvlocmm + rectime + dvlocmm:rectime + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }
 
+model_vsris_counts <-  function(df) {
+  lme4::lmer(value ~ dvlocmm + counts + dvlocmm:counts + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
 model_vsris_full_fixed <- function(df) {
   lme4::lmer(value ~ dvlocmm + expr + housing + mlpos + patchdir + dvlocmm:housing + dvlocmm:expr + dvlocmm:patchdir + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
 }

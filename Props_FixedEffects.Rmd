@@ -89,7 +89,7 @@ plotFE_sd(filter(data.sc_r_f, property == "resf")$mm_vsris_age[[1]]) +
 Look at age including only animals above P32 and below P45.
 ```{r}
 data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
@@ -486,7 +486,7 @@ filter_test1 <- function(df) {
   mutate(data = map(data, filter_test1)) %>%
   table_mixedvslinear_2())
 
-table_path <- paste0(getwd(), "/Tables/FilteredFit_1.html")
+table_path <- paste0(getwd(), "/Tables/FilteredFit_DG.html")
 ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
@@ -504,8 +504,27 @@ filter_test2 <- function(df) {
   mutate(data = map(data, filter_test2)) %>%
   table_mixedvslinear_2())
 
-table_path <- paste0(getwd(), "/Tables/FilteredFit_1.html")
+table_path <- paste0(getwd(), "/Tables/FilteredFit_HP.html")
 ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+## Do marginal or conditional R2 depend on the number of observations per slice?
+
+We reasoned that if the condition of the slices differed between animals, then in better quality slices it would be easier to record from more neurons. We therefore compare properties of neurons, and marginal and conditional R2 values for high and low n slices. 
+
+Test whether counts has a significant effect on any measured property.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_exp = map(data, model_vsris_counts)) %>%
+  summary_2fixedeffects(mm_vsris_exp, "counts") %>%
+  FE2_p.adjust("counts")
+
+(counts_table <- FE_table(data.sc_r_f2, "counts"))
+
+table_path <- paste0(getwd(), "/Tables/FE_counts.html")
+counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+
 ```
 
 
