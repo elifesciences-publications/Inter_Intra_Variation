@@ -532,14 +532,15 @@ Split data according to counts.
 fit_counts_range <- function(df, min_cells = 35, max_cells = 100) {
   df %>%
     filter(counts >min_cells & counts <=max_cells) %>%
-    model_vsris()
-    #model_vsris_full_fixed()
+    #model_vsris()
+    model_vsris_full_fixed()
 }
 
 fit_counts_range_linear <- function(df, min_cells = 35, max_cells = 100) {
   df %>%
     filter(counts >min_cells & counts <=max_cells) %>%
-    linearmodel_to_fit()
+    #linearmodel_to_fit()
+    model_vsris_full_fixed_linear()
 }
 
 
