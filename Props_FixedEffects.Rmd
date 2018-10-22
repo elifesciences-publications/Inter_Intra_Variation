@@ -530,25 +530,49 @@ counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 Split data according to counts.
 ```{r}
 fit_counts_range <- function(df, min_cells = 35, max_cells = 100) {
-  
   df %>%
     filter(counts >min_cells & counts <=max_cells) %>%
     model_vsris()
     #model_vsris_full_fixed()
 }
 
-table_df <- function(df, min_cells = 32, max_cells = 100) {
+fit_counts_range_linear <- function(df, min_cells = 35, max_cells = 100) {
+  df %>%
+    filter(counts >min_cells & counts <=max_cells) %>%
+    linearmodel_to_fit()
+}
+
+
+
+counts_select <- function(df,
+                     min_cells = 35,
+                     max_cells = 100) {
   out <- transmute(
     df,
     vsris_counts = map(data, fit_counts_range, min_cells, max_cells),
+    ngrps = map_dbl(vsris_counts, ngrps),
+    nobs = map_dbl(vsris_counts, nobs),
     extractR2 = map(vsris_counts, r.squaredGLMM),
     marginal.R2 = map_dbl(extractR2, ~ .[[1]]),
-    conditional.R2 = map_dbl(extractR2, ~ .[[2]])
+    conditional.R2 = map_dbl(extractR2, ~ .[[2]]),
+    linear_counts = map(data, fit_counts_range_linear, min_cells, max_cells)
     )
-  select(out, marginal.R2, conditional.R2)
+  out <- mixed_vs_linear_pchisqu(out, vsris_counts, linear_counts)
+  out$mm_vslinear_pdiff_adj <- p.adjust(out$vsris_counts_vslinear_pdiff, method = "BH")
+  out[c("marginal.R2", "conditional.R2", "mm_vslinear_pdiff_adj")] <- lapply(out[c("marginal.R2", "conditional.R2", "mm_vslinear_pdiff_adj")], format, digits = 3)
+  select(out, ngrps, nobs, marginal.R2, conditional.R2, mm_vslinear_pdiff_adj)
 }
 
-table_low_high <- cbind(table_df(data.sc_r_f2, 0,35), table_df(data.sc_r_f2, 35,100))
+table_low_n <- counts_select(data.sc_r_f2, 0,35)
+                       
+table_high_n <- counts_select(data.sc_r_f2, 35,100)
+
+(table_high_n <- kableExtra::kable(table_high_n) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped"))
+
+table_path <- paste0(getwd(), "/Tables/FE_high_n.html")
+table_high_n %>% kableExtra::save_kable(file = table_path, self_contained = T)
+
 
 ```
 
