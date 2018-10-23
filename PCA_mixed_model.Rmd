@@ -61,7 +61,7 @@ pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
 
 out.pca.x_g1_5 <- sub.pca.x %>%
   gather("component", "value", 1:5)
-pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+pc1to5_plot <-ggplot(data = out.pca.x_g1_5, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.5) +
   facet_wrap(~ component, ncol = 5) +
   scale_x_continuous("DV location (mm)", c(0,1,2)) +
@@ -198,7 +198,7 @@ IS_figure_PCA_1_5
 
 ## Evaluate influence of fixed effects on PCA components
 
-
+Housing
 ```{r}
 out.pca.x_g <- out.pca.x_g %>%
   mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
@@ -209,4 +209,63 @@ out.pca.x_g <- out.pca.x_g %>%
 
 table_path <- paste0(getwd(), "/Tables/PCA_FE_housing.html")
 housing_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Mediolateral position
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_mlpos = map(data, model_vsris_ml)) %>%
+  summary_2fixedeffects(mm_vsris_mlpos, "mlpos") %>%
+  FE2_p.adjust("mlpos")
+
+(ml_table_PCA <- FE_table(out.pca.x_g, "mlpos", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_mlpos.html")
+ml_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Hemisphere.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  summary_2fixedeffects(mm_vsris_hemi, "hemi") %>%
+  FE2_p.adjust("hemi")
+
+(hemi_table_PCA <- FE_table(out.pca.x_g, "hemi", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_hemi.html")
+hemi_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Direction.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  summary_2fixedeffects(mm_vsris_dir, "dir") %>%
+  FE2_p.adjust("dir")
+
+(dir_table_PCA <- FE_table(out.pca.x_g, "dir", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_dir.html")
+dir_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+Recording time.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  summary_2fixedeffects(mm_vsris_rect, "rect") %>%
+  FE2_p.adjust("rect")
+
+(rect_table_PCA <- FE_table(out.pca.x_g, "rect", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_rect.html")
+rect_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+## Evaluate effect of id on principle components separately for each direction.
+```{r}
+
 ```
