@@ -391,6 +391,8 @@ plotFE_sd <- function(df) {
 Function for adding model summary statistics to the main data frame.
 Make name strings for fixed effects
 Add values of names fixed effects to the df
+
+Obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
 ```{r}
 summary_2fixedeffects <- function(df, model, name) {
   model <- enquo(model)
@@ -443,7 +445,8 @@ FE2_p.adjust <- function(df, name) {
 Function to make table summarising additional fixed effects
 FE_table(data.sc_r, "rect")
 ```{r}
-FE_table <- function(df, name) {
+FE_table <- function(df, name, group_name = property) {
+  group_name = enquo(group_name)
   ngrps <- sym(paste0("mm_", name, "_ngrps"))
   nobs <- sym(paste0("mm_", name, "_nobs"))
   FE_Int_name <- sym(paste0("mm_",name, "_FE_Int"))
@@ -472,7 +475,7 @@ FE_table <- function(df, name) {
   df[col_list] <- lapply(df[col_list], format, digits = 2)
   
   kableExtra::kable(select(df,
-                           property,
+                           !! group_name,
                            !! ngrps,
                            !! nobs,
                            !! FE_Int_name,
@@ -614,7 +617,7 @@ Function to make ggplot version biplot. Input is a data frame containing rotatio
 pca_biplot <- function(df) {
   ggplot(df,aes(x=PC1,y=PC2,color=row.names(df))) +
     geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-    geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0.5, vjust=1) +
+    geom_text(aes(label=row.names(df)),hjust=0.5, vjust=1) +
     theme_classic() +
     theme(legend.position="none")
 }

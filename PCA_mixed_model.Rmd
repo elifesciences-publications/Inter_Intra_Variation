@@ -25,12 +25,6 @@ all.pca <- prcomp(drop_na(data.pca[1:12], fi),
 
 plot(all.pca)
 summary(all.pca)
-# difficult to read so plotted separately below using ggplot
-#biplot(all.pca)
-
-ggplot(as.data.frame(all.pca$x),aes(x=PC1,y=PC2)) +
-  geom_point() +
-  theme_classic()
 
 (all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation)))
 ```
@@ -42,17 +36,10 @@ sub.pca <- prcomp(data.pca[1:11],
                   centre = TRUE,
                   scale = TRUE)
 
-
 plot(sub.pca)
 summary(sub.pca)
-#biplot(sub.pca)
-
-ggplot(as.data.frame(sub.pca$x),aes(x=PC1,y=PC2)) +
-  geom_point() +
-  theme_classic()
 
 (sub.pca.biplot <- pca_biplot(as.data.frame(sub.pca$rotation)))
-
 ```
 
 ## View relationships between principal components
@@ -74,7 +61,7 @@ pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
 
 out.pca.x_g1_5 <- sub.pca.x %>%
   gather("component", "value", 1:5)
-pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = rectime)) +
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.5) +
   facet_wrap(~ component, ncol = 5) +
   scale_x_continuous("DV location (mm)", c(0,1,2)) +
@@ -90,8 +77,8 @@ pc1to5_plot
 Fit mixed models to all measured properties using lmer.
 ```{r}
 # Reform data for use with dplyr.
-out.pca.x_g <- all.pca.x %>%
-  gather("component", "value", 1:11) %>%
+out.pca.x_g <- sub.pca.x %>%
+  gather("component", "value", 1:12) %>%
   group_by(component) %>%
   nest()
 
@@ -209,3 +196,17 @@ IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
 
+## Evaluate influence of fixed effects on PCA components
+
+
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
+
+(housing_table_PCA <- FE_table(out.pca.x_g, "housing", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_housing.html")
+housing_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```

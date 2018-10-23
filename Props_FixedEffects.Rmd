@@ -160,7 +160,7 @@ df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 For analyses below exclude the p18 animal.
 
 ## Housing.
-We're obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
+Evaluate effect of housing by fitting models in which housing is include as an additional fixed effect alone and in combination with dv location, e.g. value ~ dvlocmm +  housing + dvlocmm:housing + (dvlocmm||id). Show the results as a table and save a copy of the table.
 ```{r}
 data.sc_r_f2 <- data.sc_r_f2 %>%
   mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
