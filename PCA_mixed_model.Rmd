@@ -13,10 +13,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
 
-Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments.
+Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments. Focus analysis on ages above P32 and below P45, and on data collected by HP.
 ```{r}
 data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  drop_na(fi)
+  filter(age > 32 & age <45 & expr == "HP")
 
 all.pca <- prcomp(drop_na(data.pca[1:12], fi),
                   retx = TRUE,
@@ -32,15 +32,10 @@ ggplot(as.data.frame(all.pca$x),aes(x=PC1,y=PC2)) +
   geom_point() +
   theme_classic()
 
-ggplot(as.data.frame(all.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(all.pca$rotation)))) +
-  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-  geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0.5, vjust=1) +
-  theme_classic() +
-  theme(legend.position="none")
-
+(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation)))
 ```
 
- In second analysis exclude the fi column and so include more cells.
+In second analysis exclude the fi column and so include more cells.
 ```{r}
 sub.pca <- prcomp(data.pca[1:11],
                   retx = TRUE,
@@ -56,11 +51,7 @@ ggplot(as.data.frame(sub.pca$x),aes(x=PC1,y=PC2)) +
   geom_point() +
   theme_classic()
 
-ggplot(as.data.frame(sub.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(sub.pca$rotation)))) +
-  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-  geom_text(aes(label=row.names(as.data.frame(sub.pca$rotation))),hjust=0.5, vjust=1) +
-  theme_classic() +
-  theme(legend.position="none")
+(sub.pca.biplot <- pca_biplot(as.data.frame(sub.pca$rotation)))
 
 ```
 
@@ -68,22 +59,22 @@ ggplot(as.data.frame(sub.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.f
 
 ```{r Prepare data for fitting model to principal components}
 all.pca.x <- bind_cols(as_tibble(all.pca$x), drop_na(data.pca, fi))
-sub.pca.x <- bind_cols(as_tibble(sub.pca$x), drop_na(data.pca, fi))
+sub.pca.x <- bind_cols(as_tibble(sub.pca$x), data.pca)
 ```
 
 
 ```{r Plot principal components versus location}
 # For alternative analysis could replace all.pca.x with sub.pca.x
-out.pca.x_g1_11 <- all.pca.x %>%
+out.pca.x_g1_11 <- sub.pca.x %>%
   gather("component", "value", 1:11)
 
 pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
   geom_point(aes(colour = id)) +
   facet_wrap(~ component)
 
-out.pca.x_g1_5 <- all.pca.x %>%
+out.pca.x_g1_5 <- sub.pca.x %>%
   gather("component", "value", 1:5)
-pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = rectime)) +
   geom_point(alpha = 0.5) +
   facet_wrap(~ component, ncol = 5) +
   scale_x_continuous("DV location (mm)", c(0,1,2)) +
