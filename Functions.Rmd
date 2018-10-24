@@ -7,9 +7,6 @@ output: html_document
 
 ```{r setup_functions, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(tidyverse)
-library(ggthemes)
-library(optimx)
 ```
 
 
@@ -89,34 +86,70 @@ model_vsris_age_con <- function(df) {
 
 # Model for uncorrelated random intercept and slope for all possible random effects.
 model_vsris_all_lmerTest <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all <- function(df) {
-  df <- df %>% drop_na()
   lme4::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all_PC <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir), data = df, REML = FALSE, na.action = na.exclude)
 }
 
 model_vsris_all_NM <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ="Nelder_Mead"))
 }
 
 model_vsris_all_BFGS <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='L-BFGS-B')))
 }
 
 model_vsris_all_nlminb <- function(df) {
-  df <- df %>% drop_na()
   lmerTest::lmer(value ~ dvlocmm + (dvlocmm||id) + (dvlocmm||mlpos) + (dvlocmm||hemi) + (dvlocmm||age)+ (dvlocmm||housing) + (dvlocmm||expr) + (dvlocmm||patchdir) + (dvlocmm||rectime), data = df, REML = FALSE, na.action = na.exclude, control = lmerControl(optimizer ='optimx', optCtrl=list(method='nlminb')))
 }
+
+# Models for uncorrelated random intercept and slope with additional fixed effects
+model_vsris_housing <- function(df) {
+  lme4::lmer(value ~ dvlocmm +  housing + dvlocmm:housing + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_age <- function(df) {
+  lme4::lmer(value ~ dvlocmm +  age + dvlocmm:age + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_ml <- function(df) {
+  lme4::lmer(value ~ dvlocmm +  mlpos + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_hemi <-  function(df) {
+  lme4::lmer(value ~ dvlocmm +  hemi + dvlocmm:hemi + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_exp <-  function(df) {
+  lme4::lmer(value ~ dvlocmm +  expr + dvlocmm:expr + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_dir <-  function(df) {
+  lme4::lmer(value ~ dvlocmm + patchdir + dvlocmm:patchdir + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_rect <-  function(df) {
+  lme4::lmer(value ~ dvlocmm + rectime + dvlocmm:rectime + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_counts <-  function(df) {
+  lme4::lmer(value ~ dvlocmm + counts + dvlocmm:counts + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_full_fixed <- function(df) {
+  lme4::lmer(value ~ dvlocmm + expr + housing + mlpos + patchdir + dvlocmm:housing + dvlocmm:expr + dvlocmm:patchdir + dvlocmm:mlpos + (dvlocmm||id), data = df, REML = FALSE, na.action = na.exclude)
+}
+
+model_vsris_full_fixed_linear <- function(df) {
+  lm(value ~ dvlocmm + expr + housing + mlpos + patchdir + dvlocmm:housing + dvlocmm:expr + dvlocmm:patchdir + dvlocmm:mlpos, data = df, na.action = na.exclude)
+}
+
 ```
 
  
@@ -179,6 +212,8 @@ coef_df_2_old <- function(model_name, gi) {
 
 
 Helper functions for chi-squared test to compare linear with mixed models.
+Performs chi-square test to compre models in two list-columns. Returns the dataframe with additional result columns appended.
+dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df will be over-written if the function is used more than once on the samde dataframe.
 ```{r}
 devcalc <- function(df){
   dev <- -2*logLik(df)
@@ -188,25 +223,22 @@ extractdf <- function(dev){
   attr(dev,"df")
 }
 
-# Can this be improved? Returning a tibble / df seems a bit clunky.
 mixed_vs_linear_pchisqu <- function(df, mixedmod, linearmod){
-  df <- df %>%
-    mutate(dev_mixed = map(!! rlang::sym(mixedmod), devcalc)) %>%
-    mutate(dev_linear = map(!! rlang::sym(linearmod), devcalc)) %>%
-    mutate(devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed)) %>%
-    mutate(dev_mixed_df = map(dev_mixed, extractdf)) %>%
-    mutate(dev_linear_df = map(dev_linear, extractdf)) %>%
-    mutate(dfdiff = as.numeric(dev_mixed_df) - as.numeric(dev_linear_df)) %>%
-    mutate(pdiff = pchisq(devdiff,dfdiff,lower.tail=FALSE)) %>%
-    select(dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df, dfdiff, pdiff)
-  df
-}
+  mixedmod <- enquo(mixedmod)
+  linearmod <- enquo(linearmod)
+  dfdiff <- sym(paste0(quo_name(mixedmod), "_vslinear_dfdiff"))
+  pdiff <- sym(paste0(quo_name(mixedmod), "_vslinear_pdiff"))
 
-
-
+  mutate(df,
+         dev_mixed = map(!! mixedmod, devcalc),
+         dev_linear = map(!! linearmod, devcalc),
+         devdiff = as.numeric(dev_linear) - as.numeric(dev_mixed),
+         dev_mixed_df = map(dev_mixed, extractdf),
+         dev_linear_df = map(dev_linear, extractdf),
+         !! dfdiff := as.numeric(dev_mixed_df) - as.numeric(dev_linear_df),
+         !! pdiff := pchisq(devdiff,!! dfdiff,lower.tail=FALSE))
+  }
 ```
-- used in Internanmal.rmd
-- used in PCA.rmd
 
 
 Functions for presentation of data.
@@ -246,26 +278,32 @@ Properties to extract are:
 Model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM).
 ```{r Extract properties of models}
 mixedmod_extract <- function(df, mm_col){
-  # If want to use this for more than one model in the same data frame then will need to make names of new columns extensions of mm_col
-  df <- df %>%
-    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
-    mutate(mm_aug = map(!! rlang::sym(mm_col), broom::augment)) %>%
-    mutate(mm_summary = map(!! rlang::sym(mm_col), summary)) 
-  
-  df <- df %>%
-    mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
-    mutate(gradient_slopes = map_dbl(mm_tidy, ~.$estimate[[2]])) %>%
-    mutate(extractR2 = map(!! rlang::sym(mm_col), r.squaredGLMM)) %>%
-    mutate(marginal.r2 = map_dbl(extractR2, ~.[[1]])) %>%
-    mutate(conditional.r2 = map_dbl(extractR2, ~.[[2]]))
-  # To reduce clutter could remove extractR2 and mm_tidy at this point so they don't get returned?
-  
-  df <- df %>%
-   mutate(mm_simcoefs = map(!! rlang::sym(mm_col), ~summary(coef(.x)[[1]][[2]]))) %>%
-    mutate(modelslope_min = map_dbl(mm_simcoefs, ~.[[1]])) %>%
-    mutate(modelslope_median = map_dbl(mm_simcoefs, ~.[[3]])) %>%
-   mutate(modelslope_max = map_dbl(mm_simcoefs, ~.[[6]]))
-  # could remove vsris_simcoefs at this point
+  mm_col <- enquo(mm_col)
+  mm_tidy <- sym(paste0(quo_name(mm_col),"_tidy"))
+  mm_aug <- sym(paste0(quo_name(mm_col),"_aug"))
+  mm_summary <- sym(paste0(quo_name(mm_col),"_summary"))
+  gradient_slopes <- sym(paste0(quo_name(mm_col),"_gradient_slopes"))
+  extractR2 <- sym(paste0(quo_name(mm_col),"_extractR2"))
+  marginal.r2 <- sym(paste0(quo_name(mm_col),"_marginal.r2"))
+  conditional.r2 <- sym(paste0(quo_name(mm_col),"_conditional.r2"))
+  mm_simcoefs <- sym(paste0(quo_name(mm_col),"_simcoefs"))
+  modelslope_min <- sym(paste0(quo_name(mm_col),"_slope_min"))
+  modelslope_median <- sym(paste0(quo_name(mm_col),"_slope_median"))
+  modelslope_max <- sym(paste0(quo_name(mm_col),"_slope_max"))
+    
+  mutate(df,
+         !! mm_tidy := map(!! mm_col, broom::tidy),
+         !! mm_aug := map(!! mm_col, broom::augment),
+         !! mm_summary := map(!! mm_col, summary),
+         !! gradient_slopes := map_dbl(!! mm_tidy, ~.$estimate[[2]]),
+         !! extractR2 := map(!! mm_col, r.squaredGLMM),
+         !! marginal.r2 := map_dbl(!! extractR2, ~.[[1]]),
+         !! conditional.r2 := map_dbl(!! extractR2, ~.[[2]]),
+         !! mm_simcoefs := map(!! mm_col, ~summary(coef(.x)[[1]][[2]])),
+         !! modelslope_min := map_dbl(!! mm_simcoefs, ~.[[1]]),
+         !! modelslope_median := map_dbl(!! mm_simcoefs, ~.[[3]]),
+         !! modelslope_max := map_dbl(!! mm_simcoefs, ~.[[6]]))
+  # To reduce clutter could remove extractR2, mm_tidy and vsris_simcoefs so they don't get returned?
 }
 ```
 
@@ -328,6 +366,260 @@ edf <- function(x)
 {
     n <- length(x)
     rank(x)/(n+1)                       
+}
+```
+
+Function for plotting effects estimated with merTools ± SD. 
+```{r}
+plotFE_sd <- function(df) {
+  df_FE <- merTools::FEsim(df)
+  
+  df_FE <- df_FE  %>%
+  mutate(upper = mean + sd) %>%
+  mutate (lower = mean - sd)
+  
+  ggplot(df_FE[2:4,], aes(term, mean)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = upper, ymax = lower)) +
+  coord_flip()
+}
+```
+
+
+## Functions used for analysis of additional fixed effects
+
+Function for adding model summary statistics to the main data frame.
+Make name strings for fixed effects
+Add values of names fixed effects to the df
+
+Obtaining ngrps and nobs via summary. Could also do this by calling ngrps(model) and nobs(model), but produces an error that I can't figure out.
+```{r}
+summary_2fixedeffects <- function(df, model, name) {
+  model <- enquo(model)
+  sum_name <- sym(paste0("mm_", quo_name(name), "_sum"))
+  ngrps_name <-sym(paste0("mm_", quo_name(name), "_ngrps"))
+  nobs_name <- sym(paste0("mm_", quo_name(name), "_nobs"))
+  ANOVA_name <- sym(paste0("mm_", quo_name(name), "_ANOVA"))
+  dv_name <- sym(paste0("mm_", quo_name(name), "_dv"))
+  name_name <- sym(paste0("mm_", quo_name(name), "_", quo_name(name)))
+  dv_name_name <- sym(paste0("mm_", quo_name(name), "_dv_", quo_name(name)))
+  FE_Int_name <- sym(paste0("mm_", quo_name(name), "_FE_Int"))
+  FE_dv_name <- sym(paste0("mm_", quo_name(name), "_FE_dv"))
+  FE_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_", quo_name(name)))
+  FE_dv_FE2_name <- sym(paste0("mm_", quo_name(name), "_FE_dv_", quo_name(name)))
+  
+  mutate(df,
+         !! sum_name := map(!! model, summary),
+         !! ngrps_name := map_dbl(!!sum_name, ~.$ngrps),
+         !! nobs_name := map_dbl(!!sum_name, ~.$devcomp$dims[1]),
+         !! ANOVA_name := map(!!model, car::Anova),
+         !! dv_name := map_dbl(!!ANOVA_name, ~.$`Pr(>Chisq)`[[1]]),
+         !! name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[2]]),
+         !! dv_name_name := map_dbl(!! ANOVA_name, ~.$`Pr(>Chisq)`[[3]]),
+         !! FE_Int_name := map_dbl(!!sum_name, ~.$coefficients[1]),
+         !! FE_dv_name := map_dbl(!!sum_name, ~.$coefficients[2]),
+         !! FE_FE2_name := map_dbl(!!sum_name, ~.$coefficients[3]),
+         !! FE_dv_FE2_name := map_dbl(!!sum_name, ~.$coefficients[4])
+  )
+  
+}
+```
+
+Function to calculate adjusted p values for significance values generated by  summary_2fixedeffects above and to return them in a modified dataframe.
+**Arguments**
+df is a dataframe containing columns mm_name_dv, mm_name_name and mm_name_dv_name
+name is a string that refers to the identidier within the column names of df
+**Value**
+df as a modified version of df containing columns with the adjusted p values. Columns end in '_adj'.
+```{r}
+FE2_p.adjust <- function(df, name) {
+  names_in <- c(paste0("mm_", name, "_dv"), paste0("mm_", name, "_", name), paste0("mm_", name, "_dv_", name))
+  names_adj <- paste0(names_in, "_adj")
+
+  df[names_adj] <- lapply(df[names_in], p.adjust, method = "BH")
+  df
+}
+```
+
+
+Function to make table summarising additional fixed effects
+FE_table(data.sc_r, "rect")
+```{r}
+FE_table <- function(df, name, group_name = property) {
+  group_name = enquo(group_name)
+  ngrps <- sym(paste0("mm_", name, "_ngrps"))
+  nobs <- sym(paste0("mm_", name, "_nobs"))
+  FE_Int_name <- sym(paste0("mm_",name, "_FE_Int"))
+  FE_dv_name <- sym(paste0("mm_", name, "_FE_dv"))
+  FE_FE2_name <- sym(paste0("mm_", name, "_FE_", name))
+  FE_dv_FE2_name <- sym(paste0("mm_", name, "_FE_dv_", name))
+  name_dv <- sym(paste0("mm_", name, "_dv"))
+  name_dv_adj <- sym(paste0("mm_", name, "_dv_adj"))
+  name_name <- sym(paste0("mm_", name, "_", name))
+  name_name_adj <- sym(paste0("mm_", name, "_", name, "_adj"))
+  name_dv_name <- sym(paste0("mm_", name, "_dv_", name))
+  name_dv_name_adj <- sym(paste0("mm_", name, "_dv_", name, "_adj"))
+  
+  col_list <- c(rlang::as_string(FE_Int_name),
+                rlang::as_string(FE_dv_name),
+                rlang::as_string(FE_FE2_name),
+                rlang::as_string(FE_dv_FE2_name),
+                rlang::as_string(name_dv),
+                rlang::as_string(name_dv_adj),
+                rlang::as_string(name_name),
+                rlang::as_string(name_name_adj),
+                rlang::as_string(name_dv_name),
+                rlang::as_string(name_dv_name_adj)
+                )
+  
+  df[col_list] <- lapply(df[col_list], format, digits = 2)
+  
+  kableExtra::kable(select(df,
+                           !! group_name,
+                           !! ngrps,
+                           !! nobs,
+                           !! FE_Int_name,
+                           !! FE_dv_name,
+                           !! FE_FE2_name,
+                           !! FE_dv_FE2_name,
+                           !! name_dv,
+                           !! name_name,
+                           !! name_dv_name,
+                           !! name_dv_adj,
+                           !! name_name_adj,
+                           !! name_dv_name_adj),
+                    col.names = c("property", "N", "n", "Int", "dvloc", paste0(name), paste0("dv:", name), "dvloc", paste0(name), paste0("dv:", name), "dvloc_adj", paste0(name,"_adj"), paste0("dv:", name, "_adj"))) %>%
+    kableExtra::add_header_above(c(" " = 3, "Fixed effects" = 4, "raw p" = 3, "adjusted p" = 3)) %>%
+    kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```
+
+
+Function for plotting all data separated by a factor.
+Requires a tidy dataframe containing columns vm:fi and then an additional column with the factor. 
+An example of df is select(data.sc, vm:fi, dvlocmm, hemi).
+```{r}
+all_by_fac <- function(df, fac_col) {
+  df_g <- df %>%
+    gather("property", "value", vm:fi) %>%
+    drop_na()
+ggplot(df_g, aes(dvlocmm, value, colour = !! rlang::sym(fac_col))) +
+  geom_point(alpha=0.2) +
+  geom_smooth(method = 'lm') +
+  facet_wrap(~property, scales = "free")
+}
+```
+
+Plot predictions for model fit for individual animals.
+```{r}
+predict_plot <- function(df, model) {
+  prediction = predict(model)
+  df <- cbind(df,prediction)
+  
+  predictplot <- ggplot(df, aes(x = dvlocmm, y = value, group = id)) +
+    geom_line(aes(y = prediction))
+}
+```
+
+Format ggplot of input resistance as a function of location.
+```{r}
+gg_ir_format <- function(gg, ylim_min = 0, ylim_max = 60) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("IR (MΩ)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
+    theme_classic()
+}
+```
+
+Format ggplot of rheobase as a function of location.
+```{r}
+gg_rheo_format <- function(gg, ylim_min = 0, ylim_max = 600) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("Rheobase (pA)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
+    theme_classic() 
+}
+```
+
+
+Format ggplot of resonance frequency as a function of location.
+```{r}
+gg_resf_format <- function(gg, ylim_min = 0, ylim_max = 12) {
+  gg <- gg +
+    xlab("Location (mm)") +
+    ylab("F (Hz)") +
+    scale_x_continuous(breaks = c(0, 0.5, 1, 1.5, 2, 2.5), label = c("0", "", "1", "", "2", "")) +
+    scale_y_continuous(limits = c(ylim_min, ylim_max)) +
+    theme_classic() 
+}
+```
+
+
+Make table to compare fit of mixed effect with linear model. This version requires that the models have already been generated.
+```{r}
+table_mixedvslinear <- function(df, name, group_name = "property"){
+  p_name <- sym(paste0(quo_name(name),"_pdiff"))
+  padj_name <- sym(paste0(quo_name(name),"_pdiff_adj"))
+  group_name <- sym(paste0(quo_name(group_name)))
+  
+  df <- mutate(df,
+               dev_mixed_num = map_dbl(dev_mixed, as.numeric),
+               dev_linear_num = map_dbl(dev_linear, as.numeric),
+               dev_mixed_df_num = map_dbl(dev_mixed_df, as.numeric),
+               dev_linear_df_num = map_dbl(dev_linear_df, as.numeric),
+               pdiff = !!p_name,
+               pdiff_adj = !!padj_name,
+               group = !! group_name)
+
+  df <- select(df, group, dev_mixed_num, dev_linear_num, dev_mixed_df_num, dev_linear_df_num, pdiff, pdiff_adj)
+  
+  df$pdiff <- format(df$pdiff, digits = 3)
+  df$pdiff_adj <- format(df$pdiff_adj, digits = 3)
+
+kableExtra::kable(df, col.names = c(paste0(quo_name(group_name)), "deviance (mixed)", "deviance (linear)", "df (mixed)", "df (linear)", "p", "p_adj"), digits = c(2,2,2,4,4,10,10)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```  
+
+Second version of function to generate table to compare fit of mixed effect with linear model. This version fits a mixed model with random intercept and slope and an equivalent linear model, tests whether the models are different and then returns a table summarising the test results. It does not save the models.
+table_mixedvslinear_2(data.sc_r_f2)
+```{r}
+table_mixedvslinear_2 <- function(df){
+  df <- df %>%
+      mutate(mm = map(data, model_vsris),
+             lin = map(data, linearmodel_to_fit),
+             nobs = map_dbl(mm, nobs),
+             ngrps = map_dbl(mm, ngrps),
+             extractR2 = map(mm, r.squaredGLMM),
+             marginal.R2 = map_dbl(extractR2, ~.[[1]]),
+             conditional.R2 = map_dbl(extractR2, ~.[[2]])) %>%
+    mixed_vs_linear_pchisqu(mm, lin)
+
+df$mm_vslinear_pdiff_adj <- p.adjust(df$mm_vslinear_pdiff, method = "BH")
+df <- select(df, property, nobs, ngrps, marginal.R2, conditional.R2, dev_mixed, dev_linear, dev_mixed_df, dev_linear_df, mm_vslinear_pdiff, mm_vslinear_pdiff_adj)
+
+df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")] <- lapply(df[c("dev_mixed", "dev_linear", "mm_vslinear_pdiff", "mm_vslinear_pdiff_adj")], format, digits =3)
+
+kableExtra::kable(df, col.names = c("Property", "Nobs", "Ngrps", "marginal.R2", "Conditional.R2", "Dev(mixed)", "Dev(linear)", "Dev_DF (mixed)", "Dev_DF (linear)", "p", "p(adj)")) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")
+}
+```
+
+
+## Functions related to PCA
+
+Function to make ggplot version biplot. Input is a data frame containing rotation from prcomp, e.g. pca_biplot(as.data.frame(all.pca$rotation)).
+```{r}
+pca_biplot <- function(df) {
+  ggplot(df,aes(x=PC1,y=PC2,color=row.names(df))) +
+    geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
+    geom_text(aes(label=row.names(df)),hjust=0.5, vjust=1) +
+    theme_classic() +
+    theme(legend.position="none")
 }
 ```
 

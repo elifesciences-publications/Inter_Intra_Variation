@@ -1,0 +1,23 @@
+---
+title: "set-up"
+author: "Matt Nolan"
+date: "14/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown {-}
+
+Load packages needed by other scripts.
+
+```{r cars}
+library(tidyverse)
+library(ggthemes)
+library(optimx)
+library(lme4)
+library(MuMIn)
+library(cowplot)
+```

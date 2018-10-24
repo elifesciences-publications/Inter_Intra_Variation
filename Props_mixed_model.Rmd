@@ -5,11 +5,6 @@ output: html_notebook
 
 ```{r setup_Feates_mixedmod, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-# Ensure access to libraries
-library(lme4)
-library(MuMIn)
-library(tidyverse)
 ```
 
 # Mixed model analysis of electrophysiological features
@@ -27,21 +22,30 @@ Plot fits of mixed models
 Generate plots to evaluate assumptions of mixed models
 
 
+
 ## Fit mixed models
 
-Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). An additional model uses the transformation of dvlocmm (vsris_1) carried out in LoadData.Rmd. Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
+Fit mixed models to all measured properties using lmer. Models are fit with a random intercept and slope (_vsris), a random intercept only (_vsri) and with a correlated random intercept and slope (_vscris). Each model is described in its corresponding function, e.g. model_vsris, and has a corresponding null model, e.g. model_vsris_null. Fits with _lT use lmerTest to obtain alternative significance estimates.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris = map(data, model_vsris))%>%
-  mutate(mixedmodel_vsris_null = map(data, model_vsris_null))%>%
-  mutate(mixedmodel_vsris_1 = map(data, model_vsris_1))%>%
-  mutate(mixedmodel_vsris_1_null = map(data, model_vsris_1_null))%>%
-  mutate(mixedmodel_vsri = map(data, model_vsri))%>%
-  mutate(mixedmodel_vsri_null = map(data, model_vsri_null))%>%
-  mutate(mixedmodel_vscris = map(data, model_vscris))%>%
-  mutate(mixedmodel_vscris_null = map(data, model_vscris)) %>%
-  mutate(mixedmodel_vsris_lT = map(data, model_vsris_lT))
+  mutate(mm_vsris = map(data, model_vsris))%>%
+  mutate(mm_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mm_vsri = map(data, model_vsri))%>%
+  mutate(mm_vsri_null = map(data, model_vsri_null))%>%
+  mutate(mm_vscris = map(data, model_vscris))%>%
+  mutate(mm_vscris_null = map(data, model_vscris)) %>%
+  mutate(mm_vsris_lT = map(data, model_vsris_lT))
 ```
+Similar to above, but additional models using the transformed properties, or the transformed properties and transformed dvlocmm (vsris_1). Transformations were carried out in LoadData.Rmd. 
+```{r}
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(mm_vsris = map(data, model_vsris))%>%
+  mutate(mm_vsris_null = map(data, model_vsris_null))%>%
+  mutate(mm_vsris_1 = map(data, model_vsris_1))%>%
+  mutate(mm_vsris_1_null = map(data, model_vsris_1_null))
+```
+
+
 
 
 ## Compare fits of mixed models to one another and to population level linear model
@@ -49,29 +53,88 @@ data.sc_r <- data.sc_r %>%
 Extract AIC for all models.
 ```{r Extract AIC}
 data.sc_r <- data.sc_r %>% 
-  mutate(vsris_glance = map(mixedmodel_vsris, broom::glance)) %>%
-  mutate(vsris_null_glance = map(mixedmodel_vsris_null, broom::glance)) %>%
-  mutate(vsris_1_glance = map(mixedmodel_vsris_1, broom::glance)) %>%
-  mutate(vsris_1_null_glance = map(mixedmodel_vsris_1_null, broom::glance)) %>%
-  mutate(vsri_glance = map(mixedmodel_vsri, broom::glance)) %>%
-  mutate(vscris_glance = map(mixedmodel_vscris, broom::glance)) %>%
+  mutate(vsris_glance = map(mm_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mm_vsris_null, broom::glance)) %>%
+  mutate(vsri_glance = map(mm_vsri, broom::glance)) %>%
+  mutate(vscris_glance = map(mm_vscris, broom::glance)) %>%
+  mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
+  mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
+  mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
+  mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(vsris_glance = map(mm_vsris, broom::glance)) %>%
+  mutate(vsris_null_glance = map(mm_vsris_null, broom::glance)) %>%
+  mutate(vsris_1_glance = map(mm_vsris_1, broom::glance)) %>%
+  mutate(vsris_1_null_glance = map(mm_vsris_1_null, broom::glance)) %>%
   mutate(vsris_AIC = map_dbl(vsris_glance, ~.$AIC)) %>%
   mutate(vsris_null_AIC = map_dbl(vsris_null_glance, ~.$AIC)) %>%
   mutate(vsris_1_AIC = map_dbl(vsris_1_glance, ~.$AIC)) %>%
-  mutate(vsris_1_null_AIC = map_dbl(vsris_1_null_glance, ~.$AIC)) %>%
-  mutate(vsri_AIC = map_dbl(vsri_glance, ~.$AIC)) %>%
-  mutate(vcsris_AIC = map_dbl(vscris_glance, ~.$AIC))
+  mutate(vsris_1_null_AIC = map_dbl(vsris_1_null_glance, ~.$AIC))
 ```
 
 In general vsris and vscris have similar AIC (compare columns in data.sc_r). We focus the subsequent analysis on vsris. For discussion of maximal models versus random intercept only models see Barr et al. Journal of Memory and Language, 2013.
 
 
+## Example data suggests substantial inter-animal variability
+
+Make plots for fits using linear models for each id or mixed models. First look at input resistance.
+```{r}
+ir_predictplot <- ggplot(filter(data.sc_r, property == "ir")$data[[1]], aes(x = dvlocmm, y = value, group = id)) +
+    stat_smooth(geom = "line", method = lm, se = FALSE)
+ir_predictplot <- gg_ir_format(ir_predictplot, 0, 60)
+
+mm_ir_predictplot <- predict_plot(filter(data.sc_r, property == "ir")$data[[1]],
+                               filter(data.sc_r, property == "ir")$mm_vsris[[1]])
+mm_ir_predictplot <- gg_ir_format(mm_ir_predictplot, 0, 60)
+
+ir_predictplot
+mm_ir_predictplot
+```
+
+Next look at rheobase.
+```{r}
+rheo_predictplot <-  ggplot(filter(data.sc_r, property == "rheo")$data[[1]], aes(x = dvlocmm, y = value, group = id)) +
+    stat_smooth(geom = "line", method = lm, se = FALSE)
+rheo_predictplot <- gg_rheo_format(rheo_predictplot, 0, 600)
+
+mm_rheo_predictplot <- predict_plot(filter(data.sc_r, property == "rheo")$data[[1]],
+                               filter(data.sc_r, property == "rheo")$mm_vsris[[1]])
+mm_rheo_predictplot  <- gg_rheo_format(mm_rheo_predictplot, 0, 600)
+
+rheo_predictplot
+mm_rheo_predictplot
+
+```
+
+
+And then look at resonant frequency.
+```{r}
+resf_predictplot <-  ggplot(filter(data.sc_r, property == "resf")$data[[1]], aes(x = dvlocmm, y = value, group = id)) +
+    stat_smooth(geom = "line", method = lm, se = FALSE)
+resf_predictplot <- gg_resf_format(resf_predictplot, 0, 12)
+
+
+mm_resf_predictplot <- predict_plot(filter(data.sc_r, property == "resf")$data[[1]],
+                               filter(data.sc_r, property == "resf")$mm_vsris[[1]])
+
+mm_resf_predictplot  <- gg_resf_format(mm_resf_predictplot, 0, 12)
+
+resf_predictplot
+mm_resf_predictplot
+```
+
+
+
+
+
 ## Extract summary statistics from models.
 
-The function mixedmod_extract is used to return statistics for mixedmodel_vsris. Focus on the model with random intercept and slope (mixedmodel_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
+The function mixedmod_extract is used to return statistics for mm_vsris. Focus on the model with random intercept and slope (mm_vsris). Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes. Creation of data.sc_r_1 is for separate handling of results with transformed dvlocmm.
 ```{r Extract Summary statistics, warning=FALSE}
-data.sc_r <- mixedmod_extract(data.sc_r, "mixedmodel_vsris")
-data.sc_r_1 <- mixedmod_extract(data.sc_r, "mixedmodel_vsris_1")
+data.sc_r <- mixedmod_extract(data.sc_r, mm_vsris)
+data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mm_vsris)
+data.sc_TP_r <- mixedmod_extract(data.sc_TP_r, mm_vsris_1)
 ```
 
 
@@ -83,133 +146,138 @@ To test whether effects of animal id are significant compare mixed model fits wi
 data.sc_r <- data.sc_r %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris", "linearmodel"))
+data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, mm_vsris, linearmodel) 
+data.sc_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_r, "mm_vsris_vslinear", "property")
 ```
+
 And, do the same thing for the transformed data:
 ```{r}
-data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(linearmodel = map(data, linearmodel_to_fit_1))
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(linearmodel = map(data, linearmodel_to_fit)) %>%
+  mutate(linearmodel_1 = map(data, linearmodel_to_fit_1))
 
-data.sc_r_1 <- bind_cols(data.sc_r_1, mixed_vs_linear_pchisqu(data.sc_r_1, "mixedmodel_vsris_1", "linearmodel"))
+data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris, linearmodel)
+data.sc_TP_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_TP_r, "mm_vsris_vslinear", "property")
+
+data.sc_TP_r <- mixed_vs_linear_pchisqu(data.sc_TP_r, mm_vsris_1, linearmodel_1)
+data.sc_TP_r$mm_vsris_1_vslinear_pdiff_adj <- p.adjust(data.sc_TP_r$mm_vsris_1_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(data.sc_TP_r, "mm_vsris_1_vslinear", "property")
 ```
+
+Alternative approaches to compare the mixed model with the reduced model. See: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#testing-significance-of-random-effects. Example below uses ANOVA directly. Note, this doesn't work when calling the model stored within data.sc_r (commented out).
+```{r, warning=FALSE}
+#a <- data.sc_r$linearmodel[[1]]
+#b <- data.sc_r$mm_vsris[[1]]
+a <- lmer(vm ~ dvlocmm + (dvlocmm||id), data = data.sc)
+b <- lm(vm ~ dvlocmm, data = data.sc)
+anova(a, b)
+```
+
 
 
 ## Compare the model with a null model containing only id as a random effect
 Use ANOVA to compare the model with the null model.
+To do: compare with car::Anova.
 ```{r Compare to null model, warning=FALSE}
 data.sc_r <- data.sc_r %>%
-  mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
-  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+  mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>%
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+
+data.sc_r <- data.sc_r %>%
+  mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
 ```
 And, again for the transformed data:
 ```{r, warning=FALSE}
-data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(anova = map2(mixedmodel_vsris_1, mixedmodel_vsris_1_null, ~anova(.x,.y))) %>%
-  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-        mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
-```
 
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova = map2(mm_vsris, mm_vsris_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova = map(anova, broom::tidy)) %>% 
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova_p_val_adj = p.adjust(data.sc_r$anova_p_val, method = "BH"))
+
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova_1 = map2(mm_vsris_1, mm_vsris_1_null, ~anova(.x,.y))) %>%
+  mutate(tidy_anova_1 = map(anova_1, broom::tidy)) %>%
+  mutate(anova_p_val_1 = map_dbl(tidy_anova_1, ~.$p.value[2]))
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(anova_p_val_adj_1 = p.adjust(data.sc_TP_r$anova_p_val_1, method = "BH"))
+```
 
 
 ## Generate summary tables
 
+props_table_unnest
+
 Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
-props_for_table <- c("property", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff", "gradient_slopes", "modelslope_min", "modelslope_max")
-props_table <- as.tibble(data.sc_r[props_for_table][1:12,])
-props_table_unnest <- unnest(props_table)
+props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_vslinear_pdiff", "mm_vsris_vslinear_pdiff_adj", "mm_vsris_gradient_slopes", "mm_vsris_slope_min", "mm_vsris_slope_max")
+props_table_unnest <- unnest(data.sc_r[props_for_table])
 
 props_table_unnest %>%
   knitr::kable(
-  digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+    digits = 5,
+    caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 
 write_csv(props_table_unnest, "results_model_table.csv")
+
+# reduced version for the manuscript
+props_man_table <- c("property", "mm_vsris_gradient_slopes", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_slope_min", "mm_vsris_slope_max", "mm_vsris_vslinear_pdiff_adj")
+man_table <- unnest(data.sc_r[props_man_table])
+
+man_table$anova_p_val_adj <- format(man_table$anova_p_val_adj, digits = 3)
+man_table$mm_vsris_vslinear_pdiff_adj <- format(man_table$mm_vsris_vslinear_pdiff_adj, digits = 3)
+man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA")
+
+(man_table <- man_table %>%
+  knitr::kable(
+    digits = 4,
+    col.names = c("Feature", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")))
+
+table_path <- paste0(getwd(), "/Tables/mm_prop_vs_dv_summary.html")
+man_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+
 ```
 
 Parameters from fitting models with properties transformed.
 ```{r Table_mixed_model_properties_t}
-props_table_t <- as.tibble(data.sc_r[props_for_table][13:24,])
+props_table_t <- as.tibble(data.sc_TP_r[props_for_table])
 props_table_t_unnest <- unnest(props_table_t)
 
 props_table_t_unnest %>%
   knitr::kable(
   digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+  caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 Parameters from fitting models with properties and dvlocmm transformed.
 ```{r Table_mixed_model_properties_1}
-props_table_1 <- as.tibble(data.sc_r_1[props_for_table][13:24,])
+props_for_table <- c("property", "anova_p_val_1", "anova_p_val_adj_1", "mm_vsris_1_marginal.r2", "mm_vsris_1_conditional.r2", "mm_vsris_1_vslinear_pdiff", "mm_vsris_1_vslinear_pdiff_adj", "mm_vsris_1_gradient_slopes", "mm_vsris_1_slope_min", "mm_vsris_1_slope_max")
+
+props_table_1 <- as.tibble(data.sc_TP_r[props_for_table])
 props_table_1_unnest <- unnest(props_table_1)
 
 props_table_1_unnest %>%
   knitr::kable(
   digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
+  caption = "Fit of measured membrane properties as a function of location",
+    col.names = c("property", "p (ANOVA)", "p_adj (ANOVA)", "marginal R2", "conditional R2", "p (vs linear)", "p_adj (vs linear)", "slope", "slope (min)", "slope (max)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover"))
-```
-
-
-
-## Evaluate age and housing
-
-Evaluate inclusion of housing as fixed effect.
-```{r, warning=FALSE}
-data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris_housing = map(data, model_vsris_housing)) %>%
-  mutate(anova_housing = map2(mixedmodel_vsris, mixedmodel_vsris_housing, ~anova(.x,.y))) %>%
-  mutate(tidy_anova_housing = map(anova_housing, broom::tidy)) %>% 
-  mutate(p_housing = map_dbl(tidy_anova_housing, ~.$p.value[2]))
-```
-
-Evaluate inclusion of age as fixed effect 
-```{r, warning=FALSE}
-data.sc_r <- data.sc_r %>%
-  mutate(mixedmodel_vsris_age_null = map(data, model_vsris_age_con)) %>%
-  mutate(mixedmodel_vsris_age = map(data, model_vsris_age)) %>%
-  mutate(anova_age = map2(mixedmodel_vsris_age_null, mixedmodel_vsris_age, ~anova(.x,.y))) %>%
-  mutate(tidy_anova_age = map(anova_age, broom::tidy)) %>% 
-  mutate(p_age = map_dbl(tidy_anova_age, ~.$p.value[2]))
-  
-```
-
-Compare models that include id as random effect in models that include housing with conventional linear models.
-```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(linearmodel_vsris_housing = map(data, linearmodel_housing))
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_housing", "linearmodel_vsris_housing"))
-```
-
-Compare models that include id as random effect in models that include age with conventional linear models.
-```{r}
-data.sc_r <- data.sc_r %>%
-  mutate(linearmodel_vsris_age = map(data, linearmodel_age))
-data.sc_r <- bind_cols(data.sc_r, mixed_vs_linear_pchisqu(data.sc_r, "mixedmodel_vsris_age", "linearmodel_vsris_age"))
-```
-
-
-Make a table to summarise effects of housing and age.
-Bwe careful with pdiff1 and pdiff2 - if mixed_vs_linear_pchisqu has been called more than once for each variable then names will be incorrect.
-```{r}
-props_for_table <- c("property", "p_housing", "pdiff1", "p_age", "pdiff2")
-props_table <- as.tibble(data.sc_r[props_for_table])
-props_table_unnest <- unnest(props_table)
-
-props_table_unnest %>%
-  knitr::kable(
-  digits = 5,
-  caption = "Additional fits with housing and age as fixd effects"
-) %>%
-    kableExtra::kable_styling()
-
-write_csv(props_table_unnest, "housing_age_table.csv")
 ```
 
 
@@ -221,9 +289,9 @@ We want to plot for each model the prediction at location = 0 for each animal (I
 Reformat the data to generate plots.
 Call to prep_int_slopes extracts model predictions ready for plotting. To use only measured values, rather than also including transformed values, only the first 12 rows of data.sc_r are used.
 ```{r Format mixed model outputs ready for plotting, warning=FALSE}
-combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mixedmodel_vsris")
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mm_vsris")
 
-id_housing <-  distinct(data.sc, id, housing)
+id_housing <-  distinct(data.sc, id, housing, age)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")
 
 combined_intercepts_slopes$property_factors <- as.factor(combined_intercepts_slopes$property)
@@ -248,9 +316,27 @@ IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, co
 IS_figure
 ```
 
+Make combined figure.
+```{r warning=FALSE}
+ggdraw() +
+  draw_plot(rheo_predictplot, x = 0, y = .5, width = .18, height = .4) +
+  draw_plot(mm_rheo_predictplot, x = 0, y = 0, width = .18, height = .4) +
+  draw_plot(resf_predictplot, x = 0.2, y = .5, width = .18, height = .4) +
+  draw_plot(mm_resf_predictplot, x = 0.2, y = 0, width = .18, height = .4) +
+  draw_plot(IS_figure, x = 0.4, y = 0, width = .6, height = 1) +
+  draw_plot_label(label = c("A", "B", "C"), size = 15,
+                  x = c(0, 0, 0.4), y = c(1, 0.5, 1)) +
+  draw_plot_label(label = c("Independent fits", "Mixed model fits"), size = 12,
+                  x = c(0.006, 0.006), y = c(0.99, 0.49))
+  
+  
+```
+
+
+
 Save the figure.
 ```{r Save plot of model fits}
-ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
+ggsave("Figures/I_S_figure.png", width = 220, height = 120, units = "mm")
 ```
 
 
@@ -259,10 +345,10 @@ ggsave("I_S_figure.png", width = 140, height = 120, units = "mm")
 To test for linearity, and to assess homoscedasticity, plot residuals (.residual) versus fitted values (.fitted) generated by broom::augment.
 
 ```{r}
-resid_plot_data <- unnest(data.sc_r, mm_aug) %>%
+resid_plot_data <- unnest(data.sc_r, mm_vsris_aug) %>%
   select(property, id, .resid, .fitted)
 
-ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(.fitted, .resid)) +
+ggplot(resid_plot_data, aes(.fitted, .resid)) +
   geom_point() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
@@ -270,7 +356,10 @@ ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], ae
 
 Make the same plot, but for transformed data
 ```{r}
-ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(.fitted, .resid)) +
+resid_plot_data_TP <- unnest(data.sc_TP_r, mm_vsris_aug) %>%
+  select(property, id, .resid, .fitted)
+
+ggplot(resid_plot_data_TP, aes(.fitted, .resid)) +
   geom_point() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
@@ -278,10 +367,10 @@ ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes
 
 And for transformed location and data.
 ```{r}
-resid_plot_data_1 <- unnest(data.sc_r_1, mm_aug) %>%
+resid_plot_data_TP_1 <- unnest(data.sc_TP_r, mm_vsris_1_aug) %>%
   select(property, id, .resid, .fitted)
 
-ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(.fitted, .resid)) +
+ggplot(resid_plot_data_TP_1, aes(.fitted, .resid)) +
   geom_point() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
@@ -291,7 +380,7 @@ ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),],
 
 Evaluate normality of residuals.
 ```{r}
-ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(.resid)) +
+ggplot(resid_plot_data, aes(.resid)) +
   geom_histogram() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
@@ -299,14 +388,14 @@ ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], ae
 
 Make same plot but for transformed data.
 ```{r}
-ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(.resid)) +
+ggplot(resid_plot_data_TP, aes(.resid)) +
   geom_histogram() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
 ```
 And for transformed location and data.
 ```{r}
-ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(.resid)) +
+ggplot(resid_plot_data_TP_1, aes(.resid)) +
   geom_histogram() +
   facet_wrap(~property, scales = "free") +
   theme_classic()
@@ -317,17 +406,17 @@ ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),],
 
 Q-Q plots of residuals for raw data
 ```{r}
-ggplot(resid_plot_data[!stringr::str_detect(resid_plot_data$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+ggplot(resid_plot_data, aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
 ```
 
 Make same plots but for transformed data
 ```{r}
-ggplot(resid_plot_data[stringr::str_detect(resid_plot_data$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+ggplot(resid_plot_data_TP, aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
 ```
 
 And for transformed data and locations
 ```{r}
-ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),], aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
+ggplot(resid_plot_data_TP_1, aes(sample = .resid)) + stat_qq() + stat_qq_line() + facet_wrap(~property, scales = "free")
 ```
 
 
@@ -335,16 +424,16 @@ ggplot(resid_plot_data_1[stringr::str_detect(resid_plot_data_1$property,"1$"),],
 First for models fit to raw data. Note, this code plots ± 1SD, whereas merTools::plotREsim plots 95% confidence intervals by default.
 ```{r}
 data.sc_r <- data.sc_r %>%
-  mutate(randoms = map(mixedmodel_vsris, merTools::REsim))
+  mutate(randoms = map(mm_vsris, merTools::REsim))
 randoms_unnest <- unnest(data.sc_r, randoms)
 
-ggplot(filter(randoms_unnest[!stringr::str_detect(randoms_unnest$property,"1$"),], term == "(Intercept)"), aes(x = groupID, y = mean)) +
+ggplot(filter(randoms_unnest, term == "(Intercept)"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
   facet_wrap(~property, scales = "free_y")
 
-ggplot(filter(randoms_unnest[!stringr::str_detect(randoms_unnest$property,"1$"),], term == "dvlocmm"), aes(x = groupID, y = mean)) +
+ggplot(filter(randoms_unnest, term == "dvlocmm"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
@@ -353,13 +442,17 @@ ggplot(filter(randoms_unnest[!stringr::str_detect(randoms_unnest$property,"1$"),
 
 Next for models fit to transformed measurements and raw dvlocmm.
 ```{r}
-ggplot(filter(randoms_unnest[stringr::str_detect(randoms_unnest$property,"1$"),], term == "(Intercept)"), aes(x = groupID, y = mean)) +
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(randoms = map(mm_vsris, merTools::REsim))
+randoms_TP_unnest <- unnest(data.sc_TP_r, randoms)
+
+ggplot(filter(randoms_TP_unnest, term == "(Intercept)"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
   facet_wrap(~property, scales = "free_y")
 
-ggplot(filter(randoms_unnest[stringr::str_detect(randoms_unnest$property,"1$"),], term == "dvlocmm"), aes(x = groupID, y = mean)) +
+ggplot(filter(randoms_TP_unnest, term == "dvlocmm"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
@@ -368,19 +461,27 @@ ggplot(filter(randoms_unnest[stringr::str_detect(randoms_unnest$property,"1$"),]
 
 Now plot for models with measured properties and dvlocmm transformed.
 ```{r}
-data.sc_r_1 <- data.sc_r_1 %>%
-  mutate(randoms = map(mixedmodel_vsris, merTools::REsim))
-randoms_unnest_1 <- unnest(data.sc_r_1, randoms)
+data.sc_TP_r <- data.sc_TP_r %>%
+  mutate(randoms_1 = map(mm_vsris_1, merTools::REsim))
+randoms_TP_unnest_1 <- unnest(data.sc_TP_r, randoms_1)
 
-ggplot(filter(randoms_unnest_1[stringr::str_detect(randoms_unnest$property,"1$"),], term == "(Intercept)"), aes(x = groupID, y = mean)) +
+ggplot(filter(randoms_TP_unnest_1, term == "(Intercept)"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
   facet_wrap(~property, scales = "free_y")
 
-ggplot(filter(randoms_unnest_1[stringr::str_detect(randoms_unnest$property,"1$"),], term == "dvlocmm"), aes(x = groupID, y = mean)) +
+ggplot(filter(randoms_TP_unnest_1, term == "dvlocmm1"), aes(x = groupID, y = mean)) +
   geom_point() +
   geom_errorbar(aes(ymin = mean-sd, ymax = mean+sd)) +
   geom_hline(yintercept=0, colour = "red") +
   facet_wrap(~property, scales = "free_y")
 ```
+
+Tidy up enviornment by removing unneeded data frames.
+```{r}
+rm(data.sc_TP, data.sc_TP_r, randoms_unnest, randoms_TP_unnest, randoms_TP_unnest_1, resid_plot_data, resid_plot_data_TP, resid_plot_data_TP_1)
+```
+
+
+

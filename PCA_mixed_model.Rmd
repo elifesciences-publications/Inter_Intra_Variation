@@ -6,9 +6,6 @@ output: html_notebook
 
 ```{r setup_Props_PCA, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(lme4)
-library(MuMIn)
-library(tidyverse)
 ```
 
 
@@ -16,10 +13,10 @@ library(tidyverse)
 
 Goal is to reduce the dimensionality of the dataset and then explore how dorsoventral location and mouse identity map onto each dimension by evaluating linear models generated using the principal components.
 
-Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments.
+Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments. Focus analysis on ages above P32 and below P45, and on data collected by HP.
 ```{r}
 data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  drop_na(fi)
+  filter(age > 32 & age <45 & expr == "HP")
 
 all.pca <- prcomp(drop_na(data.pca[1:12], fi),
                   retx = TRUE,
@@ -28,65 +25,43 @@ all.pca <- prcomp(drop_na(data.pca[1:12], fi),
 
 plot(all.pca)
 summary(all.pca)
-# difficult to read so plotted separately below using ggplot
-#biplot(all.pca)
 
-ggplot(as.data.frame(all.pca$x),aes(x=PC1,y=PC2)) +
-  geom_point() +
-  theme_classic()
-
-ggplot(as.data.frame(all.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(all.pca$rotation)))) +
-  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-  geom_text(aes(label=row.names(as.data.frame(all.pca$rotation))),hjust=0.5, vjust=1) +
-  theme_classic() +
-  theme(legend.position="none")
-
+(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation)))
 ```
 
- In second analysis exclude the fi column and so include more cells.
+In second analysis exclude the fi column and so include more cells.
 ```{r}
 sub.pca <- prcomp(data.pca[1:11],
                   retx = TRUE,
                   centre = TRUE,
                   scale = TRUE)
 
-
 plot(sub.pca)
 summary(sub.pca)
-#biplot(sub.pca)
 
-ggplot(as.data.frame(sub.pca$x),aes(x=PC1,y=PC2)) +
-  geom_point() +
-  theme_classic()
-
-ggplot(as.data.frame(sub.pca$rotation),aes(x=PC1,y=PC2,color=row.names(as.data.frame(sub.pca$rotation)))) +
-  geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-  geom_text(aes(label=row.names(as.data.frame(sub.pca$rotation))),hjust=0.5, vjust=1) +
-  theme_classic() +
-  theme(legend.position="none")
-
+(sub.pca.biplot <- pca_biplot(as.data.frame(sub.pca$rotation)))
 ```
 
 ## View relationships between principal components
 
 ```{r Prepare data for fitting model to principal components}
 all.pca.x <- bind_cols(as_tibble(all.pca$x), drop_na(data.pca, fi))
-sub.pca.x <- bind_cols(as_tibble(sub.pca$x), drop_na(data.pca, fi))
+sub.pca.x <- bind_cols(as_tibble(sub.pca$x), data.pca)
 ```
 
 
 ```{r Plot principal components versus location}
 # For alternative analysis could replace all.pca.x with sub.pca.x
-out.pca.x_g1_11 <- all.pca.x %>%
+out.pca.x_g1_11 <- sub.pca.x %>%
   gather("component", "value", 1:11)
 
 pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
   geom_point(aes(colour = id)) +
   facet_wrap(~ component)
 
-out.pca.x_g1_5 <- all.pca.x %>%
+out.pca.x_g1_5 <- sub.pca.x %>%
   gather("component", "value", 1:5)
-pc1to5_plot <-ggplot(data = filter(out.pca.x_g1_5), aes(x = dvlocmm, y = value, colour = housing)) +
+pc1to5_plot <-ggplot(data = out.pca.x_g1_5, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.5) +
   facet_wrap(~ component, ncol = 5) +
   scale_x_continuous("DV location (mm)", c(0,1,2)) +
@@ -102,8 +77,8 @@ pc1to5_plot
 Fit mixed models to all measured properties using lmer.
 ```{r}
 # Reform data for use with dplyr.
-out.pca.x_g <- all.pca.x %>%
-  gather("component", "value", 1:11) %>%
+out.pca.x_g <- sub.pca.x %>%
+  gather("component", "value", 1:12) %>%
   group_by(component) %>%
   nest()
 
@@ -134,7 +109,11 @@ Test whether effects of animal id are significant.
 out.pca.x_g <- out.pca.x_g %>%
   mutate(linearmodel = map(data, linearmodel_to_fit))
 
-out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, "mixedmodel_vsris", "linearmodel"))
+out.pca.x_g <- bind_cols(out.pca.x_g, mixed_vs_linear_pchisqu(out.pca.x_g, mixedmodel_vsris, linearmodel))
+
+out.pca.x_g$mixedmodel_vsris_vslinear_pdiff_adj <- p.adjust(out.pca.x_g$mixedmodel_vsris_vslinear_pdiff, method = "BH")
+
+table_mixedvslinear(out.pca.x_g, "mixedmodel_vsris_vslinear", "component")
 ```
 
 
@@ -144,7 +123,7 @@ Focus on the model with random intercept and slope (mixedmodel_vsris).
 
 Store model gradient (extracted with summary / glance), marginal and conditional R2 (extracted with r.squaredGLMM) and p-value vs null model (calculated with ANOVA vs null model). Also extract model slopes.
 ```{r Extract model properties for PCA, warning=FALSE}
-out.pca.x_g <- mixedmod_extract(out.pca.x_g, "mixedmodel_vsris")
+out.pca.x_g <- mixedmod_extract(out.pca.x_g, mixedmodel_vsris)
 
 out.pca.x_g <- out.pca.x_g %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
@@ -159,7 +138,7 @@ out.pca.x_g <- out.pca.x_g %>%
 
 Show model fitting results as a table.
 ```{r Make and save table with PCA mixed model properties}
-props_for_table_PCA <- c("component", "gradient_slopes", "modelslope_min", "modelslope_max", "anova_p_val", "marginal.r2", "conditional.r2", "pdiff")
+props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "anova_p_val", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_vslinear_pdiff_adj")
 props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
 props_table_unnest_PCA <- unnest(props_table_PCA)
 
@@ -217,3 +196,76 @@ IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
 
+## Evaluate influence of fixed effects on PCA components
+
+Housing
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
+
+(housing_table_PCA <- FE_table(out.pca.x_g, "housing", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_housing.html")
+housing_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Mediolateral position
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_mlpos = map(data, model_vsris_ml)) %>%
+  summary_2fixedeffects(mm_vsris_mlpos, "mlpos") %>%
+  FE2_p.adjust("mlpos")
+
+(ml_table_PCA <- FE_table(out.pca.x_g, "mlpos", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_mlpos.html")
+ml_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Hemisphere.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  summary_2fixedeffects(mm_vsris_hemi, "hemi") %>%
+  FE2_p.adjust("hemi")
+
+(hemi_table_PCA <- FE_table(out.pca.x_g, "hemi", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_hemi.html")
+hemi_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Direction.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  summary_2fixedeffects(mm_vsris_dir, "dir") %>%
+  FE2_p.adjust("dir")
+
+(dir_table_PCA <- FE_table(out.pca.x_g, "dir", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_dir.html")
+dir_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+Recording time.
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  summary_2fixedeffects(mm_vsris_rect, "rect") %>%
+  FE2_p.adjust("rect")
+
+(rect_table_PCA <- FE_table(out.pca.x_g, "rect", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_rect.html")
+rect_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+## Evaluate effect of id on principle components separately for each direction.
+```{r}
+
+```

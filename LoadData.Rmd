@@ -6,10 +6,6 @@ output: html_document
 ---
 ```{r setup_LoadData, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-# Ensure access to libraries
-library(lmerTest)
-library(tidyverse)
 ```
 
 # Load data {-}
@@ -19,7 +15,7 @@ To load and preprocess data used for other analyses.
 
 Import stellate cell data.
 ```{r import data, message = FALSE}
-fname.sc <- "datatable.txt"
+fname.sc <- "Data/datatable.txt"
 data.import.sc <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
@@ -27,11 +23,19 @@ data.sc <- data.import.sc %>% drop_na(dvloc)
 
 # Convert dvloc from microns to millimetres - prevents errors in model fitting large dv values
 data.sc <- mutate(data.sc, dvlocmm = dvloc/1000)
+
+# Add the number of observations for each mouse as a column
+counts <- count(data.sc, id)
+data.sc$counts <- counts$n[match(data.sc$id, counts$id)]
+
+# Make sure id, hemi, housing, mlpos, expr, patchdir are factors
+col_facs <- c("id", "hemi", "housing", "mlpos", "expr", "patchdir")
+data.sc[col_facs] <- lapply(data.sc[col_facs], factor)
 ```
 
 Import wfs1 cell data.
 ```{r, message = FALSE}
-fname.wfs <- "datatable_cal.txt"
+fname.wfs <- "Data/datatable_cal.txt"
 data.import.wfs <- read_tsv(fname.wfs)
 data.wfs <- data.import.wfs %>% drop_na(dvloc)
 data.wfs <- mutate(data.wfs, dvlocmm = dvloc/1000)
@@ -44,18 +48,26 @@ length(data.sc$housing)
 count(data.sc, housing)
 ```
 
-Number of cells recorded per animal:
+Number of stellate cells recorded per animal:
 ```{r}
-counts <- data.sc %>% count(id)
+counts <- data.sc %>% count(id, age, housing, dvloc)
 summary(counts)
+summary(filter(counts, housing == "Standard"))
+summary(filter(counts, housing == "Large"))
+```
+
+Number of wfs1 cells recorded per animal:
+```{r}
+count(data.wfs, id, classification)
 ```
 
 
-Add new columns containing copula transformed data
+Add new columns containing copula transformed data. Make a new data frame _TP to contain the transformed data. This data frame has a column 'dvlocmm' with absolute locations and a column 'dvlocmm1' with transformed locations.
 ```{r}
 trans.properties <- apply(apply(data.sc %>% dplyr::select(vm:fi), 2, edf), 2, qnorm )
 trans.dvlocmm <- apply(apply(data.sc %>% dplyr::select(dvlocmm), 2, edf), 2, qnorm )
-data.sc <- bind_cols(data.sc, as.data.frame(trans.properties), as.data.frame(trans.dvlocmm))
+data.sc_TP <- bind_cols(as.data.frame(trans.properties), dplyr::select(data.sc,-(vm:fi)), as.data.frame(trans.dvlocmm)) %>%
+  as.tibble()
 ```
 
 
@@ -67,13 +79,20 @@ head(data.sc)
 ```
 
 
-Reformat data for use with map and other tidyverse functions. Properties vm:fi are the experimentally measured proprties, and vm1:fi1 are the transformed properties.
+Reformat data for use with map and other tidyverse functions. data.sc_R contains the experimentally measured proprties. data.sc_TP_r contains the transformed properties.
 ```{r}
 data.sc_r <- data.sc %>%
-  dplyr::select(vm:fi, vm1:fi1, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
-  gather("property", "value", vm:fi1) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
+
+data.sc_TP_r <- data.sc_TP %>%
+  dplyr::select(vm:fi, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
 ```
 
 Now the data is organised as a frame containing nested frames for each measurement:

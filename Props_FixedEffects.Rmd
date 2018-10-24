@@ -1,0 +1,579 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup_Feates_FixedEffects, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Evaluation of impact of additional fixed effects
+
+## Do SC properties depend on age, housing, or experimental procedures?
+
+Does including other parameters improve the model or alter conclusions derived from the model? Parameters to consider: housing, mlposition, hemisphere, age, experimenter, patch-direction, recording time.
+
+Should parameters be added as fixed or randomw effects? We take this definition from Gelman (2004), "We define effects (or coefficients) in a multilevel model as constant if they are identical for all groups in a population and varying if they are allowed to differ from group to group." See also discussion here: 
+https://stats.stackexchange.com/questions/4700/what-is-the-difference-between-fixed-effect-random-effect-and-mixed-effect-mode. From this discussion (answer from Ben Bolker), "You usually can’t use random effects when the grouping variable has fewer than five levels, and random effects variance estimates are unstable with fewer than eight levels, because you are trying to estimate a variance from a very small sample". See also: http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-specification.
+
+On this bases additional parameters are all fixed effects.
+
+We will adopt strategy of first evaluating each fixed effect and it's possible interaction with dvlocmm. Later on we will consider possible interactions. For these analyses we use type II ANOVA provided by the car package.
+
+This code requires first running Props_mixed_model.Rmd.
+
+
+All ages.
+```{r}
+data.sc_r <- data.sc_r %>%
+  mutate(mm_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_age, "age") %>%
+  FE2_p.adjust("age")
+
+age_table <- FE_table(data.sc_r, "age")
+
+age_table
+```
+
+Look at fixed effects for IR, sag resonant frequncy and resonance magnitude.
+```{r}
+plotFE_sd(filter(data.sc_r, property == "ir")$mm_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r, property == "sag")$mm_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r, property == "resf")$mm_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
+
+plotFE_sd(filter(data.sc_r, property == "resmag")$mm_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+```
+
+
+Look at age including only animals above P32.
+```{r}
+data.sc_r_f <- filter(data.sc, age > 32) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>% 
+  nest()
+
+data.sc_r_f <- data.sc_r_f  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_vsris_age, "age") %>%
+  FE2_p.adjust("age")
+
+age_f_table <- FE_table(data.sc_r_f, "age")
+
+age_f_table
+  
+```
+
+Look at fixed effects for Vm, IR and sag and resonance frequency.
+```{r}
+plotFE_sd(filter(data.sc_r_f, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r_f, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
+```
+
+Look at age including only animals above P32 and below P45.
+```{r}
+data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+
+data.sc_r_f2 <- data.sc_r_f2  %>%
+  mutate(mm_vsris_age = map(data, model_vsris_age)) 
+
+data.sc_r_f2 <- data.sc_r_f2  %>%
+  mutate(mm_age = map(data, model_vsris_age)) %>%
+  summary_2fixedeffects(mm_age, "age") %>%
+  FE2_p.adjust("age")
+
+age_f2_table <- FE_table(data.sc_r_f2, "age")
+
+age_f2_table
+```
+
+Look at fixed effects.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for Vm")
+
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_age[[1]]) +
+  ggtitle("Fixed effects for membrane resonance frequency")
+```
+
+
+
+Combined table for age. Including n and N.
+```{r}
+df_age_table <- cbind(select(data.sc_r,
+                         property,
+                         mm_age_dv_adj,
+                         mm_age_age_adj,
+                         mm_age_dv_age_adj,
+                         mm_age_ngrps,
+                         mm_age_nobs),
+                      select(data.sc_r_f,
+                         mm_age_dv_adj,
+                         mm_age_age_adj,
+                         mm_age_dv_age_adj,
+                         mm_age_ngrps,
+                         mm_age_nobs),
+                      select(data.sc_r_f2,
+                         mm_age_dv_adj,
+                         mm_age_age_adj,
+                         mm_age_dv_age_adj,
+                         mm_age_ngrps,
+                         mm_age_nobs))
+
+df_age_table <- format(df_age_table, digits = 3)
+
+(df_age_table <- kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
+  kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped")) 
+
+table_path <- paste0(getwd(), "/Tables/FE_age.html")
+df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+For analyses below exclude the p18 animal.
+
+## Housing.
+Evaluate effect of housing by fitting models in which housing is include as an additional fixed effect alone and in combination with dv location, e.g. value ~ dvlocmm +  housing + dvlocmm:housing + (dvlocmm||id). Show the results as a table and save a copy of the table.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
+
+(housing_table <- FE_table(data.sc_r_f2, "housing"))
+
+table_path <- paste0(getwd(), "/Tables/FE_housing.html")
+housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Look at fixed effects for sag and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for the sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_housing[[1]]) +
+  ggtitle("Fixed effects for the spike half-width")
+```
+
+
+Plot sag intecept and slope.
+```{r}
+Sag_housing_intercepts <- ggplot(filter(combined_intercepts_slopes, property == "sag" & measure == "ind_intercept" & age > 32 & age < 45), aes(x = housing, y = value_2, colour = housing)) +
+  geom_jitter(width = 0.1) +
+  labs(y = "Sag", x = "Housing") +
+  theme(legend.position="none")
+
+Sag_housing_slopes <- ggplot(filter(combined_intercepts_slopes, property == "sag" & age > 32 & age < 45), aes(x = measure, y = value_1, colour = housing)) +
+  geom_line(aes(group = id)) +
+  geom_jitter(aes(y = value_2), width = 0.2) +
+  scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
+  theme_classic() +
+  hist_theme +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+
+Sag_housing_intercepts
+Sag_housing_slopes
+
+ggsave("Figures/housingplot.png", width = 100, height = 50, units = "mm")
+```
+
+
+
+## Mediolateral position.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
+  summary_2fixedeffects(mm_vsris_ml, "ml") %>%
+  FE2_p.adjust("ml")
+
+(ml_table <- FE_table(data.sc_r_f2, "ml"))
+
+table_path <- paste0(getwd(), "/Tables/FE_mlpos.html")
+ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Look at fixed effects for IR, sag, membrane time constant, resf and spike AHP.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for IR")
+
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for membrane potential sag")
+
+plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for resonance frequency")
+
+plotFE_sd(filter(data.sc_r_f2, property == "ahp")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for  spike AHP")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkmax")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for  spike maximum")
+
+plotFE_sd(filter(data.sc_r_f2, property == "fi")$mm_vsris_ml[[1]]) +
+  ggtitle("Fixed effects for fi")
+
+```
+
+Compare medial with lateral sections.
+```{r}
+ggplot(filter(data.sc_r_f2, property == "ir")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Input resistance")
+
+ggplot(filter(data.sc_r_f2, property == "sag")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Membrane potential sag")
+
+ggplot(filter(data.sc_r_f2, property == "resf")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Resonance frequency")
+
+ggplot(filter(data.sc_r_f2, property == "spkmax")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("Spike maximum")
+
+ggplot(filter(data.sc_r_f2, property == "fi")$data[[1]], aes(mlpos,value, colour = dvlocmm)) +
+  geom_boxplot() +
+  ggtitle("fi")
+```
+
+Look at all properties as a function of dorsoventral location.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, mlpos), "mlpos")
+```
+
+
+
+## Hemisphere
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_hemi = map(data, model_vsris_hemi)) %>%
+  summary_2fixedeffects(mm_vsris_hemi, "hemi") %>%
+  FE2_p.adjust("hemi")
+
+(hemi_table <- FE_table(data.sc_r_f2, "hemi"))
+
+table_path <- paste0(getwd(), "/Tables/FE_hemisphere.html")
+hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+Look at fixed effects for sag and resonance magnitude.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "sag")$mm_vsris_hemi[[1]]) +
+  ggtitle("Fixed effects for membrane potential sag response")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resmag")$mm_vsris_hemi[[1]]) +
+  ggtitle("Fixed effects for resonance magnitude")
+```
+
+Look at effect of properties plotted as a function of location.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, hemi), "hemi")
+```
+
+
+## Experimenter
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_exp = map(data, model_vsris_exp)) %>%
+  summary_2fixedeffects(mm_vsris_exp, "exp") %>%
+  FE2_p.adjust("exp")
+
+(exp_table <- FE_table(data.sc_r_f2, "exp"))
+
+table_path <- paste0(getwd(), "/Tables/FE_experimenter.html")
+exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Look at fixed effects for input resistance, resonance frequency and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "ir")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for input resistance")
+
+plotFE_sd(filter(data.sc_r_f2, property == "resf")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for resonance frequency")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_exp[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
+```
+
+
+Look at all properties separated by experimenter.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, expr), "expr")
+```
+
+
+## Patch direction
+
+We anticipated that the interval since preparing slices could affect the measured intrinsic properties of cells. We also found that it was easiest to identify the location of neurons if we recorded at sequential locations. We therefore interleaved experiments in which we obtained recordings initially from ventral cells and then from progressively more dorsal cells, and vice versa. Our reasoning here is that genuine effects of dorsoventral position should be robust to direction, while effects of the time interval since slice prepration should be apparent in datasets that combine both directions.  
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_dir = map(data, model_vsris_dir)) %>%
+  summary_2fixedeffects(mm_vsris_dir, "dir") %>%
+  FE2_p.adjust("dir")
+
+(dir_table <- FE_table(data.sc_r_f2, "dir"))
+table_path <- paste0(getwd(), "/Tables/FE_patch_direction.html")
+dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Look at fixed effects for membrane potential, membrane time constant and spike half-width.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for membrane potential")
+
+plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_dir[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
+```
+
+Look at all properties separated by patch direction.
+```{r}
+all_by_fac(select(data.sc, vm:fi, dvlocmm, patchdir), "patchdir")
+```
+
+
+## Recording time
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_rect = map(data, model_vsris_rect)) %>%
+  summary_2fixedeffects(mm_vsris_rect, "rect") %>%
+  FE2_p.adjust("rect")
+
+(rect_table <- FE_table(data.sc_r_f2, "rect"))
+
+table_path <- paste0(getwd(), "/Tables/FE_recording_time.html")
+rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Look at fixed effects for membrane potential, resonance frquency and spike threshold.
+```{r}
+plotFE_sd(filter(data.sc_r_f2, property == "vm")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for membrane potential")
+
+plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for membrane time constant")
+
+plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_rect[[1]]) +
+  ggtitle("Fixed effects for spike half-width")
+```
+
+## Do random effects remain significant in a model with additional fixed effects included?
+
+Focus on age range between P32 and P45 using data.sc_r_f2. Include additional effects that might contribute to inter-animal variability, e.g. expr and housing, or to appearance of inter-animal variability, e.g. mlpos, dir.
+
+Fit a mixed model incuding each fixed effect and an equivalent linear model.
+```{r}
+data.sc_r_f2_all <- data.sc_r_f2 %>%
+  select(property, data) %>%
+  mutate(mm_full_fixed = map(data, model_vsris_full_fixed),
+         mm_full_fixed_linear = map(data, model_vsris_full_fixed_linear))
+```
+
+Carry out ANOVA to evaluate effects within the full model.
+```{r}
+update.2 <- function(mod) {update(mod, REML = TRUE)}
+car.ANOVA <- function(fit) {car::Anova(fit, type="II",test.statistic="F")}
+data.sc_r_f2_all <- data.sc_r_f2_all %>%
+  mutate(m.reml = map(mm_full_fixed, update.2),
+         ANOVA = map(m.reml, car.ANOVA))
+```
+
+Compare the full mixed with the equivalent linear model.
+```{r}
+data.sc_r_f2_all <- mixed_vs_linear_pchisqu(data.sc_r_f2_all,
+                                         mm_full_fixed,
+                                         mm_full_fixed_linear)
+```
+
+Make table to summarise significance values for all fixed effects.
+```{r}
+FE_Full_table <-data.sc_r_f2_all %>%
+  select(property, ANOVA) %>%
+  mutate(full_dvlocmm = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm",])) %>%
+  mutate(full_expr = map_dbl(ANOVA, ~.['Pr(>F)']["expr",])) %>%
+  mutate(full_housing = map_dbl(ANOVA, ~.['Pr(>F)']["housing",])) %>%
+  mutate(full_mlpos = map_dbl(ANOVA, ~.['Pr(>F)']["mlpos",])) %>%
+  mutate(full_patchdir = map_dbl(ANOVA, ~.['Pr(>F)']["patchdir",])) %>%
+  mutate(full_dvlocmm_housing = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:housing",])) %>%
+  mutate(full_dvlocmm_expr = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:expr",])) %>%
+  mutate(full_dvlocmm_patchdir = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:patchdir",])) %>%
+  mutate(full_dvlocmm_mlpos = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:mlpos",])) %>%
+  select(-ANOVA)
+
+names_in <- c("full_dvlocmm", "full_expr", "full_housing", "full_mlpos", "full_patchdir", "full_dvlocmm_housing", "full_dvlocmm_expr", "full_dvlocmm_patchdir", "full_dvlocmm_mlpos")
+
+names_adj <- paste0(names_in, "_adj")
+
+FE_Full_table[names_adj] <- lapply(FE_Full_table[names_in], p.adjust, method = "BH")
+
+FE_Full_table[c(names_in, names_adj)] <- lapply(FE_Full_table[c(names_in, names_adj)], format, digits= 3)
+
+(FE_Full_table <- kableExtra::kable(FE_Full_table) %>%
+    kableExtra::kable_styling(bootstrap_options = "striped") %>%
+    kableExtra::add_header_above(c(" " = 1, "raw p" = 9, "adjusted p" = 9)))
+
+table_path <- paste0(getwd(), "/Tables/Full_FE_p.html")
+FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)  
+```
+
+
+Make table to summarise comparison of the full mixed with the equivalent linear model.
+```{r}
+data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff, method = "BH")
+(mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear"))
+table_path <- paste0(getwd(), "/Tables/Full_FE_mix_vs_linear.html")
+mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T) 
+
+```
+
+
+## Do random effects remain significant in a minimal model?
+
+Rationale is to remove factors above identified as contributing to variability between animals, account for factors that contribute to variability within animals, and then test for whether mixed model still gives a better account of the data than a linear model. For all of these analyses we focus on mice aged above P32 and below P45.
+
+First of all count combinations of each experimental configuration.
+```{r}
+plyr::count(unique(data.sc_r_f2$data[[1]][c("housing", "patchdir", "expr", "mlpos", "id")]), vars = c("housing", "patchdir", "expr", "mlpos")) %>%
+  arrange(-freq)
+```
+
+Test 1.
+
+Assess inter-animal variability for most frequently occuring minimal combination for which DG is experimenter. This is standard housing, DV direction and medial slices. 
+
+```{r}
+filter_test1 <- function(df) {
+  dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & patchdir == "DV" & mlpos == "Medial" & expr == "DG")
+}
+
+(ft1table <- data.sc_r_f2 %>%
+  select(property, data) %>%
+  mutate(data = map(data, filter_test1)) %>%
+  table_mixedvslinear_2())
+
+table_path <- paste0(getwd(), "/Tables/FilteredFit_DG.html")
+ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Test 2.
+
+Assess inter-animal variability for most frequently occuring minimal combination for which HP is experimenter. This is standard housing, DV direction and lateral slices. 
+
+```{r}
+filter_test2 <- function(df) {
+  dplyr::filter(df, age > 32 & age <45 & housing == "Standard" & patchdir == "DV" & mlpos == "Lateral" & expr == "HP")
+}
+
+(ft1table <- data.sc_r_f2 %>%
+  select(property, data) %>%
+  mutate(data = map(data, filter_test2)) %>%
+  table_mixedvslinear_2())
+
+table_path <- paste0(getwd(), "/Tables/FilteredFit_HP.html")
+ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+## Do marginal or conditional R2 depend on the number of observations per slice?
+
+We reasoned that if the condition of the slices differed between animals, then in better quality slices it would be easier to record from more neurons. We therefore compare properties of neurons, and marginal and conditional R2 values for high and low n slices. 
+
+Test whether counts has a significant effect on any measured property.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_counts = map(data, model_vsris_counts)) %>%
+  summary_2fixedeffects(mm_vsris_counts, "counts") %>%
+  FE2_p.adjust("counts")
+
+(counts_table <- FE_table(data.sc_r_f2, "counts"))
+
+table_path <- paste0(getwd(), "/Tables/FE_counts.html")
+counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+
+```
+
+Split data according to counts.
+```{r}
+fit_counts_range <- function(df, min_cells = 35, max_cells = 100) {
+  df %>%
+    filter(counts >min_cells & counts <=max_cells) %>%
+    #model_vsris()
+    model_vsris_full_fixed()
+}
+
+fit_counts_range_linear <- function(df, min_cells = 35, max_cells = 100) {
+  df %>%
+    filter(counts >min_cells & counts <=max_cells) %>%
+    #linearmodel_to_fit()
+    model_vsris_full_fixed_linear()
+}
+
+
+
+counts_select <- function(df,
+                     min_cells = 35,
+                     max_cells = 100) {
+  out <- transmute(
+    df,
+    vsris_counts = map(data, fit_counts_range, min_cells, max_cells),
+    ngrps = map_dbl(vsris_counts, ngrps),
+    nobs = map_dbl(vsris_counts, nobs),
+    extractR2 = map(vsris_counts, r.squaredGLMM),
+    marginal.R2 = map_dbl(extractR2, ~ .[[1]]),
+    conditional.R2 = map_dbl(extractR2, ~ .[[2]]),
+    linear_counts = map(data, fit_counts_range_linear, min_cells, max_cells)
+    )
+  out <- mixed_vs_linear_pchisqu(out, vsris_counts, linear_counts)
+  out$mm_vslinear_pdiff_adj <- p.adjust(out$vsris_counts_vslinear_pdiff, method = "BH")
+  out[c("marginal.R2", "conditional.R2", "mm_vslinear_pdiff_adj")] <- lapply(out[c("marginal.R2", "conditional.R2", "mm_vslinear_pdiff_adj")], format, digits = 3)
+  select(out, ngrps, nobs, marginal.R2, conditional.R2, mm_vslinear_pdiff_adj)
+}
+
+table_low_n <- counts_select(data.sc_r_f2, 0,35)
+                       
+table_high_n <- counts_select(data.sc_r_f2, 35,100)
+
+(table_high_n <- kableExtra::kable(table_high_n) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped"))
+
+table_path <- paste0(getwd(), "/Tables/FE_high_n.html")
+table_high_n %>% kableExtra::save_kable(file = table_path, self_contained = T)
+
+
+```
+
