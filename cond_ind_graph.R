@@ -39,9 +39,9 @@ igraph::E(g)$colour    <- edge_colour
 graph          <- tidygraph::as_tbl_graph(g)
 ##
 
-p <- ggraph(graph, 'igraph', algorithm = 'dh') +
+p <- ggraph(graph, 'igraph', algorithm = 'circle') +
   ## ggraph(graph, layout= "kk") +
-  geom_node_circle(aes( r=.4), fill="orange", colour="black")+
+  geom_node_circle(aes( r=0.1), fill="orange", colour="black")+
   geom_edge_fan(aes(width = edge_width, color= colour), 
                 show.legend = FALSE,
                 start_cap = circle(1.4, 'cm'),
