@@ -3,8 +3,8 @@ This repository contains analysis code used in Pastoll et al.
 We recommend using RStudio (https://www.rstudio.com/) for running and viewing code.
 
 **Some key files:**
-set-up.Rmd  - loads required packages
-Functions.Rmd - initialises functions
+set-up.Rmd  - loads required packages  
+Functions.Rmd - initialises functions  
 LoadData.Rmd - loads data
 ConceptualFigures.Rmd - Figure 1
 Props_Example.Rmd - Figure 2
