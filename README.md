@@ -1,8 +1,14 @@
 This repository contains analysis code used in Pastoll et al.
 
-To run analyses the files set-up.Rmd, Functions.Rmd and LoadData.Rmd must first be run.
+We recommend using RStudio (https://www.rstudio.com/) for running and viewing code.
 
-The code can be viewed as a bookdown document, with each chapter containing analysis for the corresponding figure in the manuscript. This is made possible using the **bookdown** package (https://github.com/rstudio/bookdown). Install the package from from CRAN or Github:
+** Suggested set up:**
+First run the files set-up.Rmd, Functions.Rmd and LoadData.Rmd. Install any packages that are required for these files to run correctly.
+
+Analyses for each figure are in their own .rmd files. Once libraries are activated, functions initialised and data loaded, then the analysis files can be run independently. Within each .rmd file code should be executed in order.
+
+** Generate a html document to view the code**
+The code can also be viewed as a bookdown document, with each chapter containing analysis for the corresponding figure in the manuscript. This is made possible using the **bookdown** package (https://github.com/rstudio/bookdown). Install the package from from CRAN or Github:
 
 ```{r eval=FALSE}
 install.packages("bookdown")
