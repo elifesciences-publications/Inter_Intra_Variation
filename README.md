@@ -20,4 +20,4 @@ To compile the book then use:
 bookdown:::serve_book()
 ```
 
-Please see the page "Get Started" at https://bookdown.org/ for more information.
+See the page "Get Started" at https://bookdown.org/ for more information.
