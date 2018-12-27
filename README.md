@@ -3,7 +3,7 @@ This repository contains analysis code used in Pastoll et al.
 We recommend using RStudio (https://www.rstudio.com/) for running and viewing code.
 
 **Some key files:**  
-set-up.Rmd  - loads required packages. These packages need to be installed.  
+set-up.Rmd  - loads required packages. These packages need to be installed. Additional required pacages are listed below.
 Functions.Rmd - initialises functions.  
 LoadData.Rmd - loads data.  
 ConceptualFigures.Rmd - Figure 1.  
@@ -32,3 +32,12 @@ bookdown:::serve_book()
 ```
 
 See the page "Get Started" at https://bookdown.org/ for more information.
+
+
+Additional packages that need to be installed:  
+gridExtra  
+kableExtra  
+car  
+lmerTest
+merTools
+
