@@ -3,7 +3,7 @@ This repository contains analysis code used in Pastoll et al.
 We recommend using RStudio (https://www.rstudio.com/) for running and viewing code.
 
 **Some key files:**  
-set-up.Rmd  - loads required packages. These packages need to be installed. Additional required pacages are listed below.
+set-up.Rmd  - loads required packages. These packages need to be installed. Additional required packages are listed below.  
 Functions.Rmd - initialises functions.  
 LoadData.Rmd - loads data.  
 ConceptualFigures.Rmd - Figure 1.  
