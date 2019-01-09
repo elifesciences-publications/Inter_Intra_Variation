@@ -265,7 +265,38 @@ rect_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
-## Evaluate PCA using intercepts and slopes from models fits as inputs
+## Evaluate PCA using intercepts and slopes from models fits as inputs.
+
+Obtain intercepts and slopes from previously fit models.
+```{r, warning=FALSE}
+data_summary.pca <- prep_int_slopes_PCA(data.sc_r, "property", "mm_vsris")
+
+data_intercepts_PCA <-  spread(data_summary.pca[,1:3], property, ind_intercept)
+data_slopes_PCA <-  spread(data_summary.pca[,c(1:2, 4)], property, ind_slope)
+```
+
+Carry out PCA for intercepts
 ```{r}
-data_summary.pca <-
+intercepts.pca <- prcomp(data_intercepts_PCA[2:13],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(intercepts.pca)
+summary(intercepts.pca)
+
+(intercepts.pca.biplot <- pca_biplot(as.data.frame(intercepts.pca$rotation)))
+```
+
+Carry out PCA for slopes
+```{r}
+slopes.pca <- prcomp(data_slopes_PCA[2:13],
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(slopes.pca)
+summary(slopes.pca)
+
+(slopes.pca.biplot <- pca_biplot(as.data.frame(slopes.pca$rotation)))
 ```

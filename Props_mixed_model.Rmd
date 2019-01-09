@@ -287,9 +287,9 @@ props_table_1_unnest %>%
 We want to plot for each model the prediction at location = 0 for each animal (I), the model prediction for location = 1 mm (I + S) and a line indicating the slope with start centred at the value of the population level model at location = 0.
 
 Reformat the data to generate plots.
-Call to prep_int_slopes extracts model predictions ready for plotting. To use only measured values, rather than also including transformed values, only the first 12 rows of data.sc_r are used.
+Call to prep_int_slopes extracts model predictions ready for plotting.
 ```{r Format mixed model outputs ready for plotting, warning=FALSE}
-combined_intercepts_slopes <- prep_int_slopes(data.sc_r[1:12,], "property", "mm_vsris")
+combined_intercepts_slopes <- prep_int_slopes(data.sc_r, "property", "mm_vsris")
 
 id_housing <-  distinct(data.sc, id, housing, age)
 combined_intercepts_slopes <- left_join(combined_intercepts_slopes, id_housing, by = "id")

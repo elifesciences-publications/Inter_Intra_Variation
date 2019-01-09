@@ -360,6 +360,30 @@ combined_intercepts_slopes <- bind_rows(ind_intercept, ind_intercept_slope, glob
 }
 ```
 
+Helper function to extract model coefficients for PCA at animal level. This is a simplified version of prep_init_slopes above.
+```{r}
+prep_int_slopes_PCA <- function(df, group_col, mm_col){
+
+# Use broom::tidy to extract model fit parameters for each feature.
+df <- df %>%
+  mutate(mm_tidy = map(!! rlang::sym(mm_col), broom::tidy)) %>%
+  mutate(pop_intercepts = map_dbl(mm_tidy, ~.$estimate[[1]]))
+
+# Obtain individual intercepts and slopes for each feature as separate columns.
+# coef_df is a helper function to return model coefficients in a tidy formt.
+# coef_df_2 also calculate I+S, etc.
+df <- df %>%
+  mutate(coefs = map2(!! rlang::sym(mm_col), pop_intercepts, ~coef_df_2(.x, .y)))
+
+df_unnest <- unnest(df, coefs) %>%
+  select(!! rlang::sym(group_col), id, ind_intercept, ind_slope, ind_intercept_slope, global_intercept, global_intercept_slope)
+
+df_unnest
+}
+```
+
+
+
 Helper function for copula transformation of data. Returns ranked data.
 ```{r}
 edf <- function(x)
