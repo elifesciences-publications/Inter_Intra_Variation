@@ -288,7 +288,7 @@ summary(intercepts.pca)
 (intercepts.pca.biplot <- pca_biplot(as.data.frame(intercepts.pca$rotation)))
 ```
 
-Carry out PCA for slopes
+Carry out PCA for slopes.
 ```{r}
 slopes.pca <- prcomp(data_slopes_PCA[2:13],
                   retx = TRUE,
@@ -300,3 +300,18 @@ summary(slopes.pca)
 
 (slopes.pca.biplot <- pca_biplot(as.data.frame(slopes.pca$rotation)))
 ```
+
+Examine distribution of points
+```{r}
+id_lookup <- unique(data.sc[c("id", "age", "housing")])
+
+slopes.pca_x <- bind_cols(as_tibble(slopes.pca$x), as.tibble(data_intercepts_PCA$id))
+
+slopes.pca_x$age <- id_lookup$age[match(slopes.pca_x$value, id_lookup$id)]
+slopes.pca_x$housing <- id_lookup$housing[match(slopes.pca_x$value, id_lookup$id)]
+
+(pc_plot_12 <- ggplot(data = slopes.pca_x, aes(x = PC1, y = PC3)) +
+  geom_point(aes(colour = housing)))
+```
+
+
