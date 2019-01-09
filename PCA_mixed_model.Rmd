@@ -196,7 +196,7 @@ IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
 
-## Evaluate influence of fixed effects on PCA components
+## Evaluate influence of individual fixed effects on PCA components
 
 Housing
 ```{r}
@@ -265,7 +265,7 @@ rect_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
-## Evaluate effect of id on principle components separately for each direction.
+## Evaluate PCA using intercepts and slopes from models fits as inputs
 ```{r}
-
+data_summary.pca <-
 ```

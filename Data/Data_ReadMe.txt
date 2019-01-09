@@ -7,3 +7,5 @@ In this folder datatable.txt has missing DOBs added. These were obtained after c
 20131106. Hugh wrote in his lab book that the box said DOB 2/9/13 (65 days old) for this mouse, however he asked for ~5 weeks so he suspects that the DOB should have been 2/10/13, which would have made it 35 days old. 
 
 For this we use the age 35 days old. The mouse would have looked unusally large if it was 65 days old, which it did not.
+
+20130926. Hugh wrote in his lab book that this is a 5 week old mouse, but does not give an exact date of birth. We therefore assign this mouse an age of 35 days. Given the organisation of the analyses an error of the date of birth of a few days should not affect intepretation of the results, e.g. initial analyses are independent of age, while some later analyses group mice > 32 days and < 45 days..
