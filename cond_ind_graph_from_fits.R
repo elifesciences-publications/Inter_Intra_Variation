@@ -2,52 +2,60 @@ library(ggraph)
 library(igraph)
 library(corrplot)
 
-data.sc_neurons <- data.sc %>% dplyr::select(vm:fi, dvlocmm) %>%
-    na.omit
 
-id <- (data.sc %>% dplyr::select(vm:fi, dvlocmm, id) %>%
-    na.omit %>% dplyr::select(id))$id
-N               <- nrow(data.sc)
-Rho_neurons     <- cor(data.sc_neurons)
+
+data_summary.mm_vsris <- prep_int_slopes_PCA(data.sc_r, "property", "mm_vsris")
+
+data_intercepts <-  spread(data_summary.mm_vsris[,1:3], property, ind_intercept)
+data_slopes <-  spread(data_summary.mm_vsris[,c(1:2, 4)], property, ind_slope)
+
+
+data.sc_fits <- data_intercepts %>% dplyr::select(vm:fi) %>%
+  na.omit
+
+
+
+N               <- nrow(data_summary.mm_vsris)
+Rho_neurons     <- cor(data.sc_fits)
 tol <- 0
 Q_neurons       <- corpcor::cor2pcor(Rho_neurons)
 Q_neurons       <- Q_neurons %>% as.data.frame
 
 ## bootstrap, resampling rows of data matrix
 M <- 1000
-index <- 1:nrow(data.sc_neurons)
+index <- 1:nrow(data.sc_fits)
 ## index <- 1:length(unique(id))
 ## uniqueid <- unique(id)
-Q_neurons_star <- array(dim=c(ncol(data.sc_neurons), ncol(data.sc_neurons), M))
+Q_neurons_star <- array(dim=c(ncol(data.sc_fits), ncol(data.sc_fits), M))
 tmp <- NULL
 for(i in 1:M){
-    index_star <- base::sample(x=index, length(index), replace=TRUE)
-    tmp <- rbind(tmp, data.sc[index_star,])
-    ## for(j in 1:length(uniqueid[index_star])){
-    ##     tmp <- rbind(tmp, data.sc[which(id == uniqueid[index_star][j]),])
-    ## }
-    Rho_neurons_star <- cor(data.sc_neurons[index_star,])
-    Q_neurons_star[,,i] <- as.matrix(corpcor::cor2pcor(Rho_neurons_star))
-    tmp <- NULL
+  index_star <- base::sample(x=index, length(index), replace=TRUE)
+  tmp <- rbind(tmp, data_summary.mm_vsris[index_star,])
+  ## for(j in 1:length(uniqueid[index_star])){
+  ##     tmp <- rbind(tmp, data.sc[which(id == uniqueid[index_star][j]),])
+  ## }
+  Rho_neurons_star <- cor(data.sc_fits[index_star,])
+  Q_neurons_star[,,i] <- as.matrix(corpcor::cor2pcor(Rho_neurons_star))
+  tmp <- NULL
 }
 
 ## bootstrap, resampling animals
 if(FALSE){
-    M <- 1000
-    index <- 1:nrow(data.sc_neurons)
-    index <- 1:length(unique(id))
-    uniqueid <- unique(id)
-    Q_neurons_star <- array(dim=c(ncol(data.sc_neurons), ncol(data.sc_neurons), M))
-    tmp <- NULL
-    for(i in 1:M){
-        index_star <- base::sample(x=index, length(index), replace=TRUE)
-        for(j in 1:length(uniqueid[index_star])){
-            tmp <- rbind(tmp, data.sc[which(id == uniqueid[index_star][j]),])
-        }
-        Rho_neurons_star <- cor(data.sc_neurons[index_star,])
-        Q_neurons_star[,,i] <- as.matrix(corpcor::cor2pcor(Rho_neurons_star))
-        tmp <- NULL
+  M <- 1000
+  index <- 1:nrow(data.sc_fits)
+  index <- 1:length(unique(id))
+  uniqueid <- unique(id)
+  Q_neurons_star <- array(dim=c(ncol(data.sc_fits), ncol(data.sc_fits), M))
+  tmp <- NULL
+  for(i in 1:M){
+    index_star <- base::sample(x=index, length(index), replace=TRUE)
+    for(j in 1:length(uniqueid[index_star])){
+      tmp <- rbind(tmp, data.sc[which(id == uniqueid[index_star][j]),])
     }
+    Rho_neurons_star <- cor(data.sc_fits[index_star,])
+    Q_neurons_star[,,i] <- as.matrix(corpcor::cor2pcor(Rho_neurons_star))
+    tmp <- NULL
+  }
 }
 
 
@@ -62,7 +70,7 @@ g              <- igraph::graph.adjacency(abs(Q_neurons)>0,
                                           mode="undirected", diag=FALSE)
 ## g              <- igraph::graph.adjacency(abs(CI)>0,
 ##                                   mode="undirected", diag=FALSE)
-igraph::V(g)$class     <- c(data.sc_r$property, "dvlocmm")
+#igraph::V(g)$class     <- c(data.sc_r$property, "dvlocmm")
 igraph::V(g)$degree    <- igraph::degree(g)
 edge_width    <- NULL
 edge_colour      <- NULL
@@ -98,8 +106,8 @@ igraph::E(g)$colour    <- edge_colour
 ## ## 
 
 Q <- as.matrix(Q_neurons)
-colnames(Q) <- colnames(data.sc_neurons)
-rownames(Q) <- colnames(data.sc_neurons)
+colnames(Q) <- colnames(data.sc_fits)
+rownames(Q) <- colnames(data.sc_fits)
 
 
 
@@ -109,7 +117,7 @@ par(mfrow=c(1,2))
 set.seed(111020)
 corrplot(Q, type = "upper", order = "FPC")
 g$layout <- layout_with_fr
-plot(g, vertex.label=colnames(data.sc_neurons), vertex.size=20,
+plot(g, vertex.label=colnames(data.sc_fits), vertex.size=20,
      edge.width=20*edge_width, edge.color=edge_colour)
 ## dev.off()
 
@@ -119,7 +127,7 @@ par(mfrow=c(1,2))
 set.seed(111020)
 corrplot(Q)
 g$layout <- layout_in_circle
-plot(g, vertex.label=colnames(data.sc_neurons), vertex.size=20,
+plot(g, vertex.label=colnames(data.sc_fits), vertex.size=20,
      edge.width=20*edge_width, edge.color=edge_colour)
 ## dev.off()
 
