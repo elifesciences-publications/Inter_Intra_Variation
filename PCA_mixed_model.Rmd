@@ -8,6 +8,60 @@ output: html_notebook
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Partial correlation analysis
+
+Goal is to evaluate condidtional independence of electropohysiological features.
+
+First plot partial correlations for all measured features.
+```{r}
+data.sc_neurons <- data.sc %>% dplyr::select(vm:fi) %>%
+    na.omit
+Q_neurons <- calcQ(data.sc_neurons)
+
+Q_neurons <- as.matrix(Q_neurons)
+colnames(Q_neurons) <- colnames(data.sc_neurons)
+rownames(Q_neurons) <- colnames(data.sc_neurons)
+
+order_names <- c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp", "spkmax", "spkthr", "spkhlf")
+
+Q_neurons <- Q_neurons[match(order_names, rownames(Q_neurons)), match(order_names, colnames(Q_neurons))]
+
+new_names <- c("Vm", "IR", "Sag", "Tm", "ResF", "ResM", "Rheo", "F-I", "AHP", "Smax", "Sthr", "Shlf")
+
+colnames(Q_neurons) <- new_names
+rownames(Q_neurons) <- new_names
+
+(Q_neurons_plot <- corrplot(Q_neurons, type = "lower", order = "original", diag = FALSE))
+```
+
+
+Next plot partical correlations for intercepts of mixed model fits.
+```{r}
+data_summary.mm_vsris <- prep_int_slopes_PCA(data.sc_r, "property", "mm_vsris")
+
+data_intercepts <-  spread(data_summary.mm_vsris[,1:3], property, ind_intercept)
+data_slopes <-  spread(data_summary.mm_vsris[,c(1:2, 4)], property, ind_slope)
+
+
+data.sc_fits <- data_intercepts %>% dplyr::select(ahp:vm) %>%
+  na.omit
+
+Q_intercepts <- calcQ(data.sc_fits)
+
+Q_intercepts <- as.matrix(Q_intercepts)
+colnames(Q_intercepts) <- colnames(data.sc_fits)
+rownames(Q_intercepts) <- colnames(data.sc_fits)
+
+Q_intercepts <- Q_intercepts[match(order_names, rownames(Q_intercepts)), match(order_names, colnames(Q_intercepts))]
+
+colnames(Q_intercepts) <- new_names
+rownames(Q_intercepts) <- new_names
+
+(Q_intercepts_plot <- corrplot(Q_intercepts, type = "upper", diag = FALSE, order = "alphabet"))
+```
+
+
+
 
 # PCA mixed model analysis
 
