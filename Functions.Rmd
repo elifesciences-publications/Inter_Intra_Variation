@@ -637,11 +637,22 @@ kableExtra::kable(df, col.names = c("Property", "Nobs", "Ngrps", "marginal.R2", 
 ## Functions related to PCA
 
 Function to make ggplot version biplot. Input is a data frame containing rotation from prcomp, e.g. pca_biplot(as.data.frame(all.pca$rotation)).
+
+Fontsize specifes the size of the fonts.
+
+order_names and row_names can be used to rename the rows. order_names is a list of the row names in the desired order. new_names is a list of the names to be displayed on the figure.
 ```{r}
-pca_biplot <- function(df) {
+pca_biplot <- function(df, fontsize = 10, order_names = c("X"), new_names = c("X")) {
+  if (order_names != "X") {
+    df <- df[match(order_names, rownames(df))]
+  }
+
+  if (new_names == c("X")) {row_names <- row.names(df)} else
+  {row_names <- new_names}
+
   ggplot(df,aes(x=PC1,y=PC2,color=row.names(df))) +
     geom_segment(aes(xend = 0, yend = 0), arrow = arrow(length = unit(0.03, "npc"), ends="first")) +
-    geom_text(aes(label=row.names(df)),hjust=0.5, vjust=1) +
+    geom_text(aes(label=row_names),hjust=0.5, vjust=1, size = fontsize, check_overlap = TRUE, nudge_y = 0.05) +
     theme_classic() +
     theme(legend.position="none")
 }

@@ -31,7 +31,9 @@ new_names <- c("Vm", "IR", "Sag", "Tm", "ResF", "ResM", "Rheo", "F-I", "AHP", "S
 colnames(Q_neurons) <- new_names
 rownames(Q_neurons) <- new_names
 
-(Q_neurons_plot <- corrplot(Q_neurons, type = "lower", order = "original", diag = FALSE))
+
+(Q_neurons_plot <- ggcorr(Q_neurons, geom = "circle", legend.size = 7, size = 2))
+
 ```
 
 
@@ -57,7 +59,7 @@ Q_intercepts <- Q_intercepts[match(order_names, rownames(Q_intercepts)), match(o
 colnames(Q_intercepts) <- new_names
 rownames(Q_intercepts) <- new_names
 
-(Q_intercepts_plot <- corrplot(Q_intercepts, type = "upper", diag = FALSE, order = "alphabet"))
+(Q_intercepts_plot <- ggcorr(Q_intercepts, geom = "circle", legend.size = 7, size = 2))
 ```
 
 
@@ -80,8 +82,19 @@ all.pca <- prcomp(drop_na(data.pca[1:12], fi),
 plot(all.pca)
 summary(all.pca)
 
-(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation)))
+prop.var.df <- as.data.frame(summary(all.pca)$importance[2,])
+colnames(prop.var.df) <- c("PropVar")
+prop.var.df$components <- 1:12
+(all.pca.prop.var.plot <- ggplot(prop.var.df, aes(components, PropVar)) +
+  geom_bar(stat = "identity") +
+  scale_x_discrete("Component") +
+  ylab("Proportion of variance") +
+    theme(title = element_text(size = 9), axis.text = element_text(size = 9)))
+
+(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation), fontsize = 2, order_names, new_names) +
+    theme(text = element_text(size = 9)))
 ```
+
 
 In second analysis exclude the fi column and so include more cells.
 ```{r}
@@ -106,21 +119,22 @@ sub.pca.x <- bind_cols(as_tibble(sub.pca$x), data.pca)
 
 ```{r Plot principal components versus location}
 # For alternative analysis could replace all.pca.x with sub.pca.x
-out.pca.x_g1_11 <- sub.pca.x %>%
+out.pca.x_g1_11 <- all.pca.x %>%
   gather("component", "value", 1:11)
 
 pc_plot <- ggplot(data = out.pca.x_g1_11, aes(x = dvlocmm, y = value)) +
-  geom_point(aes(colour = id)) +
+  geom_point() +
   facet_wrap(~ component)
 
-out.pca.x_g1_5 <- sub.pca.x %>%
+out.pca.x_g1_5 <- all.pca.x %>%
   gather("component", "value", 1:5)
 pc1to5_plot <-ggplot(data = out.pca.x_g1_5, aes(x = dvlocmm, y = value, colour = housing)) +
   geom_point(alpha = 0.5) +
   facet_wrap(~ component, ncol = 5) +
   scale_x_continuous("DV location (mm)", c(0,1,2)) +
   theme_classic() +
-  PCA_theme
+  PCA_theme +
+  theme(legend.position="bottom")
 
 pc_plot
 pc1to5_plot
@@ -131,7 +145,7 @@ pc1to5_plot
 Fit mixed models to all measured properties using lmer.
 ```{r}
 # Reform data for use with dplyr.
-out.pca.x_g <- sub.pca.x %>%
+out.pca.x_g <- all.pca.x %>%
   gather("component", "value", 1:12) %>%
   group_by(component) %>%
   nest()
@@ -244,11 +258,33 @@ IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in
   facet_wrap(~component_factors, ncol = 5) +
   theme_classic() +
   hist_theme +
-  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank())
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank()) +
+  theme(legend.position="none")
 
 IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
+
+## Make figure with conditional indepnendence and PCA analyses.
+```{r}
+ggdraw() +
+  draw_plot(IS_figure_PCA_1_5, x = 0.57, y = 0.05, width = 0.4, height = 0.4) +
+  draw_plot(pc1to5_plot, x = 0.57, y = 0.45, width = 0.4, height = 0.5) +
+  draw_plot(Q_neurons_plot, x = 0, y = 0.5, width = 0.35, height = 0.45) +
+  draw_plot(Q_intercepts_plot, x = 0, y = 0, width = 0.35, height = 0.45) +
+  draw_plot(all.pca.prop.var.plot, x = 0.35, y = 0.55, width = 0.2, height = 0.35) +
+  draw_plot(all.pca.biplot, x = 0.35, y = 0, width = 0.2, height = 0.4) +
+  draw_plot_label(label = c("A", "B", "C", "D", "E", "F"), size = 20,
+                  x = c(0, 0, 0.35, 0.35, 0.55, 0.55), y = c(1, 0.5, 1, 0.5, 1, 0.5))
+  
+```
+
+Save the figure.
+```{r Save plot of model fits}
+ggsave("Figures/CondInd_PCA_figure.png", width = 220, height = 120, units = "mm")
+```
+
+
 
 ## Evaluate influence of individual fixed effects on PCA components
 
