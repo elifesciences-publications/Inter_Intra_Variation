@@ -22,3 +22,11 @@ library(MuMIn)
 library(cowplot)
 library(GGally)
 ```
+
+Set parameter variables.
+```{r}
+# Save tables as jpegs. Set as 1 to do this.
+# Code will take a lot longer to run.
+stajpeg <- 0
+```
+

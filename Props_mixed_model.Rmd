@@ -247,7 +247,10 @@ man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency
 
 table_path <- paste0(getwd(), "/Tables/mm_prop_vs_dv_summary.html")
 man_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
+if (stajpeg == 1) {
+  table_path <- paste0(getwd(), "/Tables/mm_prop_vs_dv_summary.jpg")
+   man_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+} 
 ```
 
 Parameters from fitting models with properties transformed.
