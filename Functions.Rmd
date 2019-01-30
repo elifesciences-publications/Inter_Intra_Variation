@@ -644,7 +644,7 @@ order_names and row_names can be used to rename the rows. order_names is a list 
 ```{r}
 pca_biplot <- function(df, fontsize = 10, order_names = c("X"), new_names = c("X")) {
   if (order_names != "X") {
-    df <- df[match(order_names, rownames(df))]
+    df <- df[match(rownames(df), order_names)]
   }
 
   if (new_names == c("X")) {row_names <- row.names(df)} else

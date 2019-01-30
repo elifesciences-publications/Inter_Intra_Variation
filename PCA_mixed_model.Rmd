@@ -91,7 +91,7 @@ prop.var.df$components <- 1:12
   ylab("Proportion of variance") +
     theme(title = element_text(size = 9), axis.text = element_text(size = 9)))
 
-(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation), fontsize = 2, order_names, new_names) +
+(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation), fontsize = 2, order_names = order_names) +
     theme(text = element_text(size = 9)))
 ```
 
