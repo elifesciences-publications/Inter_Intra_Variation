@@ -153,12 +153,13 @@ df_age_table <- format(df_age_table, digits = 3)
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")) 
 
-table_path <- paste0(getwd(), "/Tables/FE_age.html")
-df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_age.jpg")
    df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 } 
+
+table_path <- paste0(getwd(), "/Tables/FE_age.html")
+df_age_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 For analyses below exclude the p18 animal.
@@ -173,13 +174,14 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (housing_table <- FE_table(data.sc_r_f2, "housing"))
 
-table_path <- paste0(getwd(), "/Tables/FE_housing.html")
-housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_housing.jpg")
    housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-} 
+}
+
+table_path <- paste0(getwd(), "/Tables/FE_housing.html")
+housing_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for sag and spike half-width.
@@ -224,13 +226,13 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (ml_table <- FE_table(data.sc_r_f2, "ml"))
 
-table_path <- paste0(getwd(), "/Tables/FE_mlpos.html")
-ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_mlpos.jpg")
    ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-} 
+}
+
+table_path <- paste0(getwd(), "/Tables/FE_mlpos.html")
+ml_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for IR, sag, membrane time constant, resf and spike AHP.
@@ -297,13 +299,13 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (hemi_table <- FE_table(data.sc_r_f2, "hemi"))
 
-table_path <- paste0(getwd(), "/Tables/FE_hemisphere.html")
-hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_hemisphere.jpg")
    hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 } 
+
+table_path <- paste0(getwd(), "/Tables/FE_hemisphere.html")
+hemi_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
@@ -331,13 +333,13 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (exp_table <- FE_table(data.sc_r_f2, "exp"))
 
-table_path <- paste0(getwd(), "/Tables/FE_experimenter.html")
-exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_experimenter.jpg")
    exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-} 
+}
+
+table_path <- paste0(getwd(), "/Tables/FE_experimenter.html")
+exp_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for input resistance, resonance frequency and spike half-width.
@@ -369,13 +371,14 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
   FE2_p.adjust("dir")
 
 (dir_table <- FE_table(data.sc_r_f2, "dir"))
-table_path <- paste0(getwd(), "/Tables/FE_patch_direction.html")
-dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_patch_direction.jpg")
    dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-} 
+}
+
+table_path <- paste0(getwd(), "/Tables/FE_patch_direction.html")
+dir_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for membrane potential, membrane time constant and spike half-width.
@@ -405,13 +408,13 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (rect_table <- FE_table(data.sc_r_f2, "rect"))
 
-table_path <- paste0(getwd(), "/Tables/FE_recording_time.html")
-rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_recording_time.jpg")
    rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 } 
+
+table_path <- paste0(getwd(), "/Tables/FE_recording_time.html")
+rect_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Look at fixed effects for membrane potential, resonance frquency and spike threshold.
@@ -481,13 +484,13 @@ FE_Full_table[c(names_in, names_adj)] <- lapply(FE_Full_table[c(names_in, names_
     kableExtra::kable_styling(bootstrap_options = "striped") %>%
     kableExtra::add_header_above(c(" " = 1, "raw p" = 9, "adjusted p" = 9)))
 
-table_path <- paste0(getwd(), "/Tables/Full_FE_p.html")
-FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)  
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/Full_FE_p.jpg")
    FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-} 
+}
+
+table_path <- paste0(getwd(), "/Tables/Full_FE_p.html")
+FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)  
 ```
 
 
@@ -495,13 +498,14 @@ Make table to summarise comparison of the full mixed with the equivalent linear 
 ```{r}
 data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff, method = "BH")
 (mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear"))
-table_path <- paste0(getwd(), "/Tables/Full_FE_mix_vs_linear.html")
-mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T) 
 
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/Full_FE_mix_vs_linear.jpg")
    mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 } 
+
+table_path <- paste0(getwd(), "/Tables/Full_FE_mix_vs_linear.html")
+mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T) 
 ```
 
 
@@ -529,13 +533,13 @@ filter_test1 <- function(df) {
   mutate(data = map(data, filter_test1)) %>%
   table_mixedvslinear_2())
 
-table_path <- paste0(getwd(), "/Tables/FilteredFit_DG.html")
-ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FilteredFit_DG.jpg")
    ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 }
+
+table_path <- paste0(getwd(), "/Tables/FilteredFit_DG.html")
+ft1table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Test 2.
@@ -552,13 +556,13 @@ filter_test2 <- function(df) {
   mutate(data = map(data, filter_test2)) %>%
   table_mixedvslinear_2())
 
-table_path <- paste0(getwd(), "/Tables/FilteredFit_HP.html")
-ft2table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FilteredFit_HP.jpg")
    ft2table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 }
+
+table_path <- paste0(getwd(), "/Tables/FilteredFit_HP.html")
+ft2table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 
@@ -575,13 +579,13 @@ data.sc_r_f2 <- data.sc_r_f2 %>%
 
 (counts_table <- FE_table(data.sc_r_f2, "counts"))
 
-table_path <- paste0(getwd(), "/Tables/FE_counts.html")
-counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_counts_1.jpg")
    counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 }
+
+table_path <- paste0(getwd(), "/Tables/FE_counts.html")
+counts_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
 Split data according to counts.
@@ -628,12 +632,12 @@ table_high_n <- counts_select(data.sc_r_f2, 35,100)
 (table_high_n <- kableExtra::kable(table_high_n) %>%
   kableExtra::kable_styling(bootstrap_options = "striped"))
 
-table_path <- paste0(getwd(), "/Tables/FE_high_n.html")
-table_high_n %>% kableExtra::save_kable(file = table_path, self_contained = T)
-
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_high_n.jpg")
    table_high_n %>% kableExtra::save_kable(file = table_path, self_contained = T)
 }
+
+table_path <- paste0(getwd(), "/Tables/FE_high_n.html")
+table_high_n %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
