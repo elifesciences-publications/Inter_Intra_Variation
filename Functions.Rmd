@@ -658,3 +658,13 @@ pca_biplot <- function(df, fontsize = 10, order_names = c("X"), new_names = c("X
 }
 ```
 
+
+
+Helper function for saving html and pdf files. Note order of saving pdf and html files is important here.
+```{r}
+save_kable_jpg_html <- function(df, file) {
+  kableExtra::save_kable(df, file = paste0(file, ".jpg"), self_contained = T)
+  kableExtra::save_kable(df, file = paste0(file, ".html"), self_contained = T)
+}
+```
+
