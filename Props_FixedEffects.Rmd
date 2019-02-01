@@ -216,6 +216,29 @@ ggsave("Figures/housingplot.png", width = 100, height = 50, units = "mm")
 ```
 
 
+Compare the full mixed with the equivalent linear model.
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(lm_vsris_housing = map(data, linearmodel_housing))
+data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
+                                         mm_vsris_housing,
+                                         lm_vsris_housing)
+
+data.sc_r_f2$mm_vsris_housing_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_vsris_housing_vslinear_pdiff, method = "BH")
+(mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2, "mm_vsris_housing_vslinear"))
+
+if (stajpeg == 1) {
+  table_path <- paste0(getwd(), "/Tables/mm_vsris_housing_vslinear.jpg")
+   mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+} 
+
+table_path <- paste0(getwd(), "/Tables/mm_vsris_housing_vslinear.html")
+mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+
+
 
 ## Mediolateral position.
 ```{r}
