@@ -197,8 +197,6 @@ out.pca.x_g <- out.pca.x_g %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
   mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
-
-
 ```
 
 
@@ -206,17 +204,23 @@ out.pca.x_g <- out.pca.x_g %>%
 
 Show model fitting results as a table.
 ```{r Make and save table with PCA mixed model properties}
-props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "anova_p_val", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_vslinear_pdiff_adj")
+props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "anova_p_val", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "mixedmodel_vsris_vslinear_pdiff_adj")
 props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
-props_table_unnest_PCA <- unnest(props_table_PCA)
-
+props_table_PCA$anova_p_val <- format(props_table_PCA$anova_p_val, digits = 3)
+props_table_PCA$mixedmodel_vsris_vslinear_pdiff_adj <- format(props_table_PCA$mixedmodel_vsris_vslinear_pdiff_adj, digits = 3)
+(props_table_unnest_PCA <- unnest(props_table_PCA) %>%
   knitr::kable(
-  props_table_unnest_PCA,
   digits = 5,
-  caption = "Fit of measured membrane properties as a function of location"
-)
+  col.names = c("Feature", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
+) %>%
+  kableExtra::kable_styling(bootstrap_options = c("striped", "hover")))
 
-write_csv(props_table_unnest_PCA, "results_model_table_PCA.csv")
+
+table_path <- paste0(getwd(), "/Tables/props_PCA")
+if (stajpeg == 1) {
+  save_kable_jpg_html(props_table_unnest_PCA, table_path)
+} else  {props_table_unnest_PCA %>% kableExtra::save_kable(file = paste0(table_path, ".html"), self_contained = T)}
+
 ```
 
 

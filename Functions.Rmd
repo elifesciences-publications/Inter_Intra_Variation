@@ -668,3 +668,43 @@ save_kable_jpg_html <- function(df, file) {
 }
 ```
 
+
+Function to return a matrix of significant partial correlations.
+Significance is tested using a bootstrap method.
+Returns results as a data frame (Q_neurons).
+To use with corrplot, convert to a matrix:
+# Q <- as.matrix(Q_neurons)
+# colnames(Q) <- colnames(df)
+# rownames(Q) <- colnames(df)
+```{r}
+calcQ <- function(df) {
+  Rho_neurons     <- cor(df)
+  tol <- 0
+  Q_neurons       <- corpcor::cor2pcor(Rho_neurons)
+  Q_neurons       <- Q_neurons %>% as.data.frame
+  
+  ## bootstrap, resampling rows of data matrix
+  M <- 1000
+  index <- 1:nrow(df)
+
+  Q_neurons_star <- array(dim=c(ncol(df), ncol(df), M))
+  tmp <- NULL
+  for(i in 1:M){
+    index_star <- base::sample(x=index, length(index), replace=TRUE)
+    Rho_neurons_star <- cor(df[index_star,])
+    Q_neurons_star[,,i] <- as.matrix(corpcor::cor2pcor(Rho_neurons_star))
+    tmp <- NULL
+  }
+  
+  Q_neurons_low <- apply(Q_neurons_star, c(1,2), quantile, 0.025)
+  Q_neurons_upp <- apply(Q_neurons_star, c(1,2), quantile, 0.975)    
+  CI <- Q_neurons_low * Q_neurons_upp
+  CI[CI<0]  <- 0
+  CI[CI!=0] <- 1
+  CI <- as.data.frame(CI)
+  Q_neurons <- CI*Q_neurons
+  
+  return(Q_neurons)
+}
+```
+
