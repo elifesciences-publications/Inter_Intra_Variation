@@ -216,12 +216,10 @@ props_table_PCA$mixedmodel_vsris_vslinear_pdiff_adj <- format(props_table_PCA$mi
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover")))
 
-
 table_path <- paste0(getwd(), "/Tables/props_PCA")
 if (stajpeg == 1) {
   save_kable_jpg_html(props_table_unnest_PCA, table_path)
 } else  {props_table_unnest_PCA %>% kableExtra::save_kable(file = paste0(table_path, ".html"), self_contained = T)}
-
 ```
 
 
@@ -302,9 +300,35 @@ out.pca.x_g <- out.pca.x_g %>%
 
 (housing_table_PCA <- FE_table(out.pca.x_g, "housing", "component"))
 
-table_path <- paste0(getwd(), "/Tables/PCA_FE_housing.html")
-housing_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+table_path <- paste0(getwd(), "/Tables/PCA_FE_housing")
+
+if (stajpeg == 1) {
+  save_kable_jpg_html(housing_table_PCA, table_path)
+} else  {housing_table_PCA %>% kableExtra::save_kable(file = paste0(table_path, ".html"), self_contained = T)}
 ```
+
+Evaluate whether interanimal differences remain in models that account for housing.
+
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(lm_vsris_housing = map(data, linearmodel_housing))
+out.pca.x_g <- mixed_vs_linear_pchisqu(out.pca.x_g,
+                                         mm_vsris_housing,
+                                         lm_vsris_housing)
+
+out.pca.x_g$mm_vsris_housing_vslinear_pdiff_adj <- p.adjust(out.pca.x_g$mm_vsris_housing_vslinear_pdiff, method = "BH")
+(PCA_mix_vs_linear_table <- table_mixedvslinear(out.pca.x_g, "mm_vsris_housing_vslinear", "component"))
+
+if (stajpeg == 1) {
+  table_path <- paste0(getwd(), "/Tables/PCA_mm_vsris_housing_vslinear.jpg")
+   PCA_mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+} 
+
+table_path <- paste0(getwd(), "/Tables/PCA_mm_vsris_housing_vslinear.html")
+PCA_mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
 
 Mediolateral position
 ```{r}
@@ -405,7 +429,7 @@ slopes.pca_x <- bind_cols(as_tibble(slopes.pca$x), as.tibble(data_intercepts_PCA
 slopes.pca_x$age <- id_lookup$age[match(slopes.pca_x$value, id_lookup$id)]
 slopes.pca_x$housing <- id_lookup$housing[match(slopes.pca_x$value, id_lookup$id)]
 
-(pc_plot_12 <- ggplot(data = slopes.pca_x, aes(x = PC1, y = PC3)) +
+(pc_plot_12 <- ggplot(data = slopes.pca_x, aes(x = PC1, y = PC2)) +
   geom_point(aes(colour = housing)))
 ```
 
