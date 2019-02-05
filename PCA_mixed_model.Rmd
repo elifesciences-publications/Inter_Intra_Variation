@@ -196,7 +196,8 @@ out.pca.x_g <- mixedmod_extract(out.pca.x_g, mixedmodel_vsris)
 out.pca.x_g <- out.pca.x_g %>%
   mutate(anova = map2(mixedmodel_vsris, mixedmodel_vsris_null, ~anova(.x,.y))) %>%
   mutate(tidy_anova = map(anova, broom::tidy)) %>% 
-  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2]))
+  mutate(anova_p_val = map_dbl(tidy_anova, ~.$p.value[2])) %>%
+  mutate(anova_p_val_adj = p.adjust(anova_p_val, method = "BH"))
 ```
 
 
@@ -204,9 +205,9 @@ out.pca.x_g <- out.pca.x_g %>%
 
 Show model fitting results as a table.
 ```{r Make and save table with PCA mixed model properties}
-props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "anova_p_val", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "mixedmodel_vsris_vslinear_pdiff_adj")
+props_for_table_PCA <- c("component", "mixedmodel_vsris_gradient_slopes", "anova_p_val_adj", "mixedmodel_vsris_marginal.r2", "mixedmodel_vsris_conditional.r2", "mixedmodel_vsris_slope_min", "mixedmodel_vsris_slope_max", "mixedmodel_vsris_vslinear_pdiff_adj")
 props_table_PCA <- as.tibble(out.pca.x_g[props_for_table_PCA])
-props_table_PCA$anova_p_val <- format(props_table_PCA$anova_p_val, digits = 3)
+props_table_PCA$anova_p_val_adj <- format(props_table_PCA$anova_p_val_adj, digits = 3)
 props_table_PCA$mixedmodel_vsris_vslinear_pdiff_adj <- format(props_table_PCA$mixedmodel_vsris_vslinear_pdiff_adj, digits = 3)
 (props_table_unnest_PCA <- unnest(props_table_PCA) %>%
   knitr::kable(
