@@ -20,8 +20,18 @@ When subjects differ, the 'real' values of int and slope are drawn from a distri
 
 For each simulated experiment, positions are drawn from a uniform random distribution seperately for each subject. The experimentally measured value of param is then estimted from a Gaussian distribution with mean equal to the real value of param for that location, and standard deviation equal determined from the intra-animal variance term, intrasd.
 
-
+First, a function to make the 'real' values for each subject. 
 ```{r cars}
+make_real_vals <- function(n_subjects, intersd_int = 1, intersd_slope = 1){
+  tb <- tibble(id = 1:n_subjects, int = rnorm(n_subjects, 1, intersd_int), slope = rnorm(n_subjects, 1, intersd_slope))
+  tb
+}
+```
 
+Next, a function to make an example dataset that might be obtained from the subjects. Returns a tidy formatted tibble.
+```{r}
+make_data <- function(subject_params, loc_n = 20, loc_max = 1, intrsd = 1) {
+  
+}
 ```
 
