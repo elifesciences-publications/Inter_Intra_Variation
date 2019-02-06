@@ -1,0 +1,27 @@
+---
+title: "SimulatedNestedData"
+author: "Matt Nolan"
+date: "06/02/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+We want to simulate nested / hierarchical data and then use the simulated data to evaluate different model fitting strategies.
+
+We want to simulate a measured parameter, param, that depends on position, pos. The 'real' relationship between param and pos is a line with intercept, int, and slope, slope.
+
+When all subjects are identical the 'real' values of int and slope are the same for each subject.
+
+When subjects differ, the 'real' values of int and slope are drawn from a distribution. In this case we'll use Gaussians with mean 1 and standard deviation, intersd_int and intersd_slope
+
+For each simulated experiment, positions are drawn from a uniform random distribution seperately for each subject. The experimentally measured value of param is then estimted from a Gaussian distribution with mean equal to the real value of param for that location, and standard deviation equal determined from the intra-animal variance term, intrasd.
+
+
+```{r cars}
+
+```
+
