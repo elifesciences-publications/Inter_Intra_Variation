@@ -31,7 +31,7 @@ make_real_vals <- function(n_subjects, intersd_int = 1, intersd_slope = 1){
 
 Make groups with and without inter-subject variation.
 ```{r}
-with_var_gp <- make_real_vals(10, 1, 1)
+with_var_gp <- make_real_vals(10, 0.2, 0.2)
 without_var_gp <- make_real_vals(10, 0, 0)
 ```
 
@@ -51,10 +51,29 @@ make_data <- function(subject_params, loc_n = 20, loc_max = 1, intrasd = 1) {
 Make and plot simulated data with and wihout inter-subject variation.
 ```{r}
 with_var_gp_data <- make_data(with_var_gp, 20, 1, 0.2)
-ggplot(with_var_gp_data, aes(loc, param)) + geom_point(aes(colour = id))
+ggplot(with_var_gp_data, aes(loc, param, group = id)) +
+  geom_point(aes(colour = id)) +
+  stat_smooth(geom = "line", method = lm, se = FALSE)
 
-without_var_gp_data <- make_data(without_var_gp, 20, 1, 0.2)
-ggplot(without_var_gp_data, aes(loc, param)) + geom_point(aes(colour = id))
+without_var_gp_data <- make_data(without_var_gp, 20, 1, 0.5)
+ggplot(without_var_gp_data, aes(loc, param, group = id)) +
+  geom_point(aes(colour = id)) +
+  stat_smooth(geom = "line", method = lm, se = FALSE)
+```
+
+Fit mixed effect models to the datasets.
+```{r}
+with_var_gp_mm <- lmer(param ~ loc + (loc||id), data = with_var_gp_data, REML = FALSE)
+
+without_var_gp_mm <- lmer(param ~ loc + (loc||id), data = without_var_gp_data, REML = FALSE)
+
+(mm_with_predictplot <- predict_plot(with_var_gp_data, with_var_gp_mm, with_var_gp_data$loc, with_var_gp_data$param))
+
+(mm_without_predictplot <- predict_plot(without_var_gp_data, without_var_gp_mm, without_var_gp_data$loc, without_var_gp_data$param))
+
+
+
+
 ```
 
 
