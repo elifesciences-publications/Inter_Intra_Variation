@@ -28,10 +28,35 @@ make_real_vals <- function(n_subjects, intersd_int = 1, intersd_slope = 1){
 }
 ```
 
+
+Make groups with and without inter-subject variation.
+```{r}
+with_var_gp <- make_real_vals(10, 1, 1)
+without_var_gp <- make_real_vals(10, 0, 0)
+```
+
+
 Next, a function to make an example dataset that might be obtained from the subjects. Returns a tidy formatted tibble.
 ```{r}
-make_data <- function(subject_params, loc_n = 20, loc_max = 1, intrsd = 1) {
-  
+make_data <- function(subject_params, loc_n = 20, loc_max = 1, intrasd = 1) {
+  total_points <- c(loc_n * count(with_var_gp))[[1]]
+  tb <- tibble(id = rep(subject_params$id, loc_n),
+               loc = rep(runif(total_points, 0, loc_max)),
+               param = loc*subject_params$slope + subject_params$int + rnorm(total_points, 0, intrasd))
+  tb
 }
 ```
+
+
+Make and plot simulated data with and wihout inter-subject variation.
+```{r}
+with_var_gp_data <- make_data(with_var_gp, 20, 1, 0.2)
+ggplot(with_var_gp_data, aes(loc, param)) + geom_point(aes(colour = id))
+
+without_var_gp_data <- make_data(without_var_gp, 20, 1, 0.2)
+ggplot(without_var_gp_data, aes(loc, param)) + geom_point(aes(colour = id))
+```
+
+
+
 
