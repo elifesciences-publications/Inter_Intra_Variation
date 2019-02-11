@@ -20,6 +20,12 @@ When subjects differ, the 'real' values of int and slope are drawn from a distri
 
 For each simulated experiment, positions are drawn from a uniform random distribution seperately for each subject. The experimentally measured value of param is then estimted from a Gaussian distribution with mean equal to the real value of param for that location, and standard deviation equal determined from the intra-animal variance term, intrasd.
 
+Set random number seed so figures are reproducible.
+```{r}
+set.seed(1)
+```
+
+
 First, a function to make the 'real' values for each subject. 
 ```{r cars}
 make_real_vals <- function(n_subjects, intersd_int = 1, intersd_slope = 1){
@@ -31,8 +37,8 @@ make_real_vals <- function(n_subjects, intersd_int = 1, intersd_slope = 1){
 
 Make groups with and without inter-subject variation.
 ```{r}
-with_var_gp <- make_real_vals(10, 0.2, 0.2)
-without_var_gp <- make_real_vals(10, 0, 0)
+with_var_gp <- make_real_vals(20, 0.2, 0.2)
+without_var_gp <- make_real_vals(20, 0, 0)
 ```
 
 
@@ -50,15 +56,28 @@ make_data <- function(subject_params, loc_n = 20, loc_max = 1, intrasd = 1) {
 
 Make and plot simulated data with and wihout inter-subject variation.
 ```{r}
+var_gp_format <- function(gg) {
+  gg <- gg +
+    ylim(0,3) +
+    ylab("Param") +
+    xlab("Pos") +
+    theme(axis.text = element_blank())
+}
+
 with_var_gp_data <- make_data(with_var_gp, 20, 1, 0.2)
-ggplot(with_var_gp_data, aes(loc, param, group = id)) +
+with_var_gp_gg <-ggplot(with_var_gp_data, aes(loc, param, group = id)) +
   geom_point(aes(colour = id)) +
   stat_smooth(geom = "line", method = lm, se = FALSE)
 
+(with_var_gp_gg <- var_gp_format(with_var_gp_gg))
+
 without_var_gp_data <- make_data(without_var_gp, 20, 1, 0.5)
-ggplot(without_var_gp_data, aes(loc, param, group = id)) +
+without_var_gp_gg <- ggplot(without_var_gp_data, aes(loc, param, group = id)) +
   geom_point(aes(colour = id)) +
-  stat_smooth(geom = "line", method = lm, se = FALSE)
+  stat_smooth(geom = "line", method = lm, se = FALSE) +
+  ylim(0,3)
+
+(without_var_gp_gg <- var_gp_format(without_var_gp_gg))
 ```
 
 Fit mixed effect models to the datasets.
@@ -66,16 +85,26 @@ Fit mixed effect models to the datasets.
 with_var_gp_mm <- lmer(param ~ loc + (loc||id), data = with_var_gp_data, REML = FALSE)
 
 without_var_gp_mm <- lmer(param ~ loc + (loc||id), data = without_var_gp_data, REML = FALSE)
+```
 
-(mm_with_predictplot <- predict_plot(with_var_gp_data, with_var_gp_mm, with_var_gp_data$loc, with_var_gp_data$param))
+Extract marginal and conditional R2 for each mixed model fit.
+```{r}
+with_R2 <- r.squaredGLMM(with_var_gp_mm)
+without_R2 <- r.squaredGLMM(without_var_gp_mm)
+```
 
-(mm_without_predictplot <- predict_plot(without_var_gp_data, without_var_gp_mm, without_var_gp_data$loc, without_var_gp_data$param))
+Plot fits
+```{r}
+mm_with_predictplot <- predict_plot(with_var_gp_data, with_var_gp_mm, with_var_gp_data$loc, with_var_gp_data$param)
 
+(mm_with_predictplot <- var_gp_format(mm_with_predictplot) +
+    annotate("text", x = 0.5, y = 2, label = "paste(italic(R) ^ 2, \" = .75\")", parse = TRUE))
 
+mm_without_predictplot <- predict_plot(without_var_gp_data, without_var_gp_mm, without_var_gp_data$loc, without_var_gp_data$param)
+
+(mm_without_predictplot <- var_gp_format(mm_without_predictplot))
 
 
 ```
-
-
 
 
