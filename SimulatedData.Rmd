@@ -136,20 +136,27 @@ mm_resf_predictplot_mod <- mm_resf_predictplot +
     annotate("text", x = 1, y = 1, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE, size = 2) +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
 
+IS_figure_mod <- IS_figure + theme(legend.position = c(0.5, -0.1), plot.margin = margin(0, 0, 1, 0, "cm"), legend.direction = "horizontal")
+
 ggdraw() +
   draw_plot(with_var_gp_gg, x = 0, y = .70, width = pw, height = ph) +
   draw_plot(without_var_gp_gg, x = 0, y = 0.5, width = pw, height = ph) +
   draw_plot(mm_with_predictplot, x = 0.2, y = .70, width = pw, height = ph) +
   draw_plot(mm_without_predictplot, x = 0.2, y = 0.5, width = pw, height = ph) +
-  draw_plot(rheo_predictplot_mod, x = 0, y = .25, width = dw, height = dh) +
-  draw_plot(mm_rheo_predictplot_mod, x = 0, y = 0, width = dw, height = dh) +
-  draw_plot(resf_predictplot_mod, x = 0.2, y = .25, width = dw, height = dh) +
-  draw_plot(mm_resf_predictplot_mod, x = 0.2, y = 0, width = dw, height = dh) +
-  draw_plot(IS_figure, x = 0.4, y = 0, width = .6, height = 1) +
+  draw_plot(rheo_predictplot_mod, x = 0, y = 0, width = dw, height = dh) +
+  draw_plot(mm_rheo_predictplot_mod, x = 0.2, y = .0, width = dw, height = dh) +
+  draw_plot(resf_predictplot_mod, x = 0, y = .25, width = dw, height = dh) +
+  draw_plot(mm_resf_predictplot_mod, x = 0.2, y = .25, width = dw, height = dh) +
+  draw_plot(IS_figure_mod, x = 0.42, y = 0, width = .58, height = 1) +
   draw_plot_label(label = c("A", "B", "C"), size = 15,
                   x = c(0, 0, 0.4), y = c(1, 0.56, 1)) +
   draw_plot_label(label = c("Independent fits", "Mixed model fits"), size = 9,
-                  x = c(0.006, 0.006), y = c(0.53, 0.28))
+                  x = c(0, 0.2), y = c(0.98, 0.98))
   
   
+```
+
+Save the figure.
+```{r Save plot of model fits}
+ggsave("Figures/I_S_figure.png", width = 220, height = 120, units = "mm")
 ```
