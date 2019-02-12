@@ -540,10 +540,23 @@ predict_plot <- function(df, model, xparam = dvlocmm, yparam = value) {
   prediction = predict(model)
   df <- cbind(df,prediction)
   
+  predictplot <- ggplot(df, aes(x = dvlocmm, y = yparam, group = id)) +
+    geom_line(aes(y = prediction))
+}
+```
+
+
+Plot predictions for model fit for individual animals.
+```{r}
+predict_plot_2 <- function(df, model, xparam = dvlocmm, yparam = value) {
+  prediction = predict(model)
+  df <- cbind(df,prediction)
+  
   predictplot <- ggplot(df, aes(x = xparam, y = yparam, group = id)) +
     geom_line(aes(y = prediction))
 }
 ```
+
 
 Format ggplot of input resistance as a function of location.
 ```{r}
