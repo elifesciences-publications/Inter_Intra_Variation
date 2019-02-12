@@ -89,8 +89,8 @@ without_var_gp_mm <- lmer(param ~ loc + (loc||id), data = without_var_gp_data, R
 
 Extract marginal and conditional R2 for each mixed model fit.
 ```{r}
-with_R2 <- r.squaredGLMM(with_var_gp_mm)
-without_R2 <- r.squaredGLMM(without_var_gp_mm)
+(with_R2 <- r.squaredGLMM(with_var_gp_mm))
+(without_R2 <- r.squaredGLMM(without_var_gp_mm))
 ```
 
 Plot fits
@@ -98,11 +98,14 @@ Plot fits
 mm_with_predictplot <- predict_plot(with_var_gp_data, with_var_gp_mm, with_var_gp_data$loc, with_var_gp_data$param)
 
 (mm_with_predictplot <- var_gp_format(mm_with_predictplot) +
-    annotate("text", x = 0.5, y = 2, label = "paste(italic(R) ^ 2, \" = .75\")", parse = TRUE))
+    annotate("text", x = 0.7, y = 0.5, label = "paste(italic(R) ^ 2, \"marginal = .49\")", parse = TRUE) +
+    annotate("text", x = 0.7, y = 0.2, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE))
 
 mm_without_predictplot <- predict_plot(without_var_gp_data, without_var_gp_mm, without_var_gp_data$loc, without_var_gp_data$param)
 
-(mm_without_predictplot <- var_gp_format(mm_without_predictplot))
+(mm_without_predictplot <- var_gp_format(mm_without_predictplot) +
+    annotate("text", x = 0.7, y = 0.5, label = "paste(italic(R) ^ 2, \"marginal = .31\")", parse = TRUE) +
+    annotate("text", x = 0.7, y = 0.2, label = "paste(italic(R) ^ 2, \"conditional = .31\")", parse = TRUE))
 
 
 ```
