@@ -59,8 +59,8 @@ Make and plot simulated data with and wihout inter-subject variation.
 var_gp_format <- function(gg) {
   gg <- gg +
     ylim(0,3) +
-    ylab("Param") +
-    xlab("Pos") +
+    ylab("Feature") +
+    xlab("Location") +
     theme(axis.text = element_blank())
 }
 
@@ -116,8 +116,8 @@ Make revised version of mixed model figure. Requires that code in 'Props_mixed_m
 Make combined figure.
 ```{r warning=FALSE}
 pw <- 0.18
-ph <- 0.25
-dh <- 0.27
+ph <- 0.28
+dh <- 0.28
 dw <- 0.18
 
 rheo_predictplot_mod <- rheo_predictplot +
@@ -129,29 +129,35 @@ mm_rheo_predictplot_mod <- mm_rheo_predictplot +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
 
 resf_predictplot_mod <- resf_predictplot +
-    theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
+  theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5)) +
+  labs(x = "")
 
 mm_resf_predictplot_mod <- mm_resf_predictplot +
     annotate("text", x = 1, y = 3, label = "paste(italic(R) ^ 2, \"marginal = .49\")", parse = TRUE, size = 2) +
     annotate("text", x = 1, y = 1, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE, size = 2) +
-    theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
+    theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5)) +
+  labs(x = "")
 
 IS_figure_mod <- IS_figure + theme(legend.position = c(0.5, -0.1), plot.margin = margin(0, 0, 1, 0, "cm"), legend.direction = "horizontal")
+```
 
+Make the figure
+```{r}
 ggdraw() +
-  draw_plot(with_var_gp_gg, x = 0, y = .70, width = pw, height = ph) +
-  draw_plot(without_var_gp_gg, x = 0, y = 0.5, width = pw, height = ph) +
-  draw_plot(mm_with_predictplot, x = 0.2, y = .70, width = pw, height = ph) +
-  draw_plot(mm_without_predictplot, x = 0.2, y = 0.5, width = pw, height = ph) +
+  draw_plot(with_var_gp_gg, x = 0, y = .5, width = pw, height = ph) +
+  draw_plot(without_var_gp_gg, x = 0, y = 0.7, width = pw, height = ph) +
+  draw_plot(mm_with_predictplot, x = 0.2, y = .5, width = pw, height = ph) +
+  draw_plot(mm_without_predictplot, x = 0.2, y = 0.7, width = pw, height = ph)  +
+  draw_plot(resf_predictplot_mod, x = 0, y = .21, width = dw, height = dh) +
+  draw_plot(mm_resf_predictplot_mod, x = 0.2, y = .21, width = dw, height = dh) +
   draw_plot(rheo_predictplot_mod, x = 0, y = 0, width = dw, height = dh) +
   draw_plot(mm_rheo_predictplot_mod, x = 0.2, y = .0, width = dw, height = dh) +
-  draw_plot(resf_predictplot_mod, x = 0, y = .25, width = dw, height = dh) +
-  draw_plot(mm_resf_predictplot_mod, x = 0.2, y = .25, width = dw, height = dh) +
   draw_plot(IS_figure_mod, x = 0.42, y = 0, width = .58, height = 1) +
   draw_plot_label(label = c("A", "B", "C"), size = 15,
-                  x = c(0, 0, 0.4), y = c(1, 0.56, 1)) +
+                  x = c(0, 0, 0.4), y = c(1, 0.52, 1)) +
   draw_plot_label(label = c("Independent fits", "Mixed model fits"), size = 9,
-                  x = c(0, 0.2), y = c(0.98, 0.98))
+                  x = c(0, 0.18), y = c(0.98, 0.98)) +
+  draw_plot_label(label = c("Simulated without inter-animal variation", "Simulated with inter-animal variation", "Experimental"), x = c(0, 0.02, 0.1), y = c(0.95, 0.75, 0.52), size = 7)
   
   
 ```
@@ -160,3 +166,21 @@ Save the figure.
 ```{r Save plot of model fits}
 ggsave("Figures/I_S_figure.png", width = 220, height = 120, units = "mm")
 ```
+
+
+Try a different strategy to make the figure.
+```{r}
+examples <- plot_grid(without_var_gp_gg, mm_without_predictplot, with_var_gp_gg, mm_with_predictplot, resf_predictplot_mod, mm_resf_predictplot_mod, rheo_predictplot_mod, mm_rheo_predictplot_mod, labels = c("A", "", "", "", "B", "", "", "", ""), nrow = 4, ncol = 2, rel_widths = c(1,1,4))
+
+all_fits <- plot_grid(IS_figure_mod, labels = "C")
+
+plot_grid(examples, all_fits, rel_widths = c(2,4))
+```
+
+
+
+
+
+
+
+

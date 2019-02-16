@@ -214,6 +214,8 @@ coef_df_2_old <- function(model_name, gi) {
 Helper functions for chi-squared test to compare linear with mixed models.
 Performs chi-square test to compre models in two list-columns. Returns the dataframe with additional result columns appended.
 dev_mixed, dev_linear, devdiff, dev_mixed_df, dev_linear_df will be over-written if the function is used more than once on the samde dataframe.
+
+Analysis strategy modified from: https://web.stanford.edu/class/psych252/section/Mixed_models_tutorial.html
 ```{r}
 devcalc <- function(df){
   dev <- -2*logLik(df)
