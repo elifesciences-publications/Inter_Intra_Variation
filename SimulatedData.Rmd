@@ -108,18 +108,24 @@ mm_without_predictplot <- predict_plot_2(without_var_gp_data, without_var_gp_mm,
     annotate("text", x = 0.6, y = 0.6, label = "paste(italic(R) ^ 2, \"marginal = .31\")", parse = TRUE, size = 2) +
     annotate("text", x = 0.6, y = 0.2, label = "paste(italic(R) ^ 2, \"conditional = .31\")", parse = TRUE, size = 2)  +
     theme(axis.title = element_text(size = 9), axis.title.x = element_text(vjust = 2)))
-
 ```
 
 Make revised version of mixed model figure. Requires that code in 'Props_mixed_model.Rmd' has been run.
 
-Make combined figure.
-```{r warning=FALSE}
-pw <- 0.18
-ph <- 0.28
-dh <- 0.28
-dw <- 0.18
+Reformat plots of simulated data.
+```{r}
+without_var_gp_gg <- without_var_gp_gg +
+  labs(x = "") +
+  scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
 
+mm_without_predictplot <- mm_without_predictplot +
+  labs(x = "") +
+  scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
+```
+
+
+Reformat plots of fitted data.
+```{r warning=FALSE}
 rheo_predictplot_mod <- rheo_predictplot +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
 
@@ -130,24 +136,31 @@ mm_rheo_predictplot_mod <- mm_rheo_predictplot +
 
 resf_predictplot_mod <- resf_predictplot +
   theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5)) +
-  labs(x = "")
+  labs(x = "") +
+  scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
 
 mm_resf_predictplot_mod <- mm_resf_predictplot +
     annotate("text", x = 1, y = 3, label = "paste(italic(R) ^ 2, \"marginal = .49\")", parse = TRUE, size = 2) +
     annotate("text", x = 1, y = 1, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE, size = 2) +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5)) +
-  labs(x = "")
+  labs(x = "") +
+  scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
 
 IS_figure_mod <- IS_figure + theme(legend.position = c(0.5, -0.1), plot.margin = margin(0, 0, 1, 0, "cm"), legend.direction = "horizontal")
 ```
 
 Make the figure
 ```{r}
+pw <- 0.18
+ph <- 0.26
+dh <- 0.26
+dw <- 0.18
+
 ggdraw() +
-  draw_plot(with_var_gp_gg, x = 0, y = .5, width = pw, height = ph) +
-  draw_plot(without_var_gp_gg, x = 0, y = 0.7, width = pw, height = ph) +
-  draw_plot(mm_with_predictplot, x = 0.2, y = .5, width = pw, height = ph) +
-  draw_plot(mm_without_predictplot, x = 0.2, y = 0.7, width = pw, height = ph)  +
+  draw_plot(with_var_gp_gg, x = 0, y = .47, width = pw, height = ph) +
+  draw_plot(without_var_gp_gg, x = 0, y = 0.67, width = pw, height = ph) +
+  draw_plot(mm_with_predictplot, x = 0.2, y = .47, width = pw, height = ph) +
+  draw_plot(mm_without_predictplot, x = 0.2, y = 0.67, width = pw, height = ph)  +
   draw_plot(resf_predictplot_mod, x = 0, y = .21, width = dw, height = dh) +
   draw_plot(mm_resf_predictplot_mod, x = 0.2, y = .21, width = dw, height = dh) +
   draw_plot(rheo_predictplot_mod, x = 0, y = 0, width = dw, height = dh) +
@@ -157,7 +170,7 @@ ggdraw() +
                   x = c(0, 0, 0.4), y = c(1, 0.52, 1)) +
   draw_plot_label(label = c("Independent fits", "Mixed model fits"), size = 9,
                   x = c(0, 0.18), y = c(0.98, 0.98)) +
-  draw_plot_label(label = c("Simulated without inter-animal variation", "Simulated with inter-animal variation", "Experimental"), x = c(0, 0.02, 0.1), y = c(0.95, 0.75, 0.52), size = 7)
+  draw_plot_label(label = c("Simulated without inter-animal variation", "Simulated with inter-animal variation", "Experimental"), x = c(0, 0.02, 0.1), y = c(0.94, 0.74, 0.50), size = 7)
   
   
 ```
