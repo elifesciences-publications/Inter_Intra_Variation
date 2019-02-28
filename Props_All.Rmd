@@ -61,6 +61,14 @@ data.wfs_r <- mixedmod_extract(data.wfs_r, mm_vsris)
 data.wfs_r <- mixed_vs_linear_pchisqu(data.wfs_r, mm_vsris, linearmodel) 
 data.wfs_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.wfs_r$mm_vsris_vslinear_pdiff, method = "BH")
 
+# Look at linear model output
+select(data.wfs_r, property, linearmodel) %>%
+  mutate(glance = map(linearmodel, broom::glance),
+         adj.r2 = map(glance, ~.$adj.r.squared)) %>%
+  select(property, adj.r2) %>%
+  kableExtra::kable()
+
+# Look at comparison between the linear model and trhe mixed model.
 table_mixedvslinear(data.wfs_r, "mm_vsris_vslinear", "property")
 ```
 

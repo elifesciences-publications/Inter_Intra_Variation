@@ -598,6 +598,7 @@ gg_resf_format <- function(gg, ylim_min = 0, ylim_max = 12) {
 ```
 
 
+
 Make table to compare fit of mixed effect with linear model. This version requires that the models have already been generated.
 ```{r}
 table_mixedvslinear <- function(df, name, group_name = "property"){
