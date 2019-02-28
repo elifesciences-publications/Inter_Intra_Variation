@@ -1,0 +1,26 @@
+---
+title: "ModifiedGapStatistic"
+author: "Matt Nolan"
+date: "28/02/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Modified gap statistic
+
+Goal is to reimplement matlab code written by Hugh.
+
+Start with an example dataset.
+```{r}
+test_data <- select(data.sc_r$data[[1]], dvlocmm, value)
+
+# Partioning around mediods. Slower but more robust than k-means.
+pam1 = function(x, k){list(cluster = cluster::pam(x,k, cluster.only=TRUE))}
+clu_test <- cluster::clusGap(test_data, pam1, K.max = 6)
+# K means.
+clu_test <- cluster::clusGap(test_data, kmeans, K.max = 6)
+```
+
