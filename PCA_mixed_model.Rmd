@@ -283,7 +283,7 @@ ggdraw() +
 ```
 
 Save the figure.
-```{r Save plot of model fits}
+```{r Save plot of PCA model fits}
 ggsave("Figures/CondInd_PCA_figure.png", width = 220, height = 120, units = "mm")
 ```
 
