@@ -30,3 +30,18 @@ Set parameter variables.
 stajpeg <- 0
 ```
 
+Function for quick setup. Use this to avoid manually running these scripts. Note, source'd code is evaluated in the global environment by default, so results are available to work with.
+```{r}
+ksource <- function(x, ...) {
+  library(knitr)
+  source(purl(x, output = tempfile()), ...)
+}
+
+quick_setup <- function() {
+  ksource("Functions.Rmd", echo = TRUE)
+  ksource("LoadData.Rmd")
+  ksource("Props_mixed_model.Rmd")
+  }
+```
+
+
