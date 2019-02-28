@@ -149,6 +149,13 @@ data.sc_r <- data.sc_r %>%
 data.sc_r <- mixed_vs_linear_pchisqu(data.sc_r, mm_vsris, linearmodel) 
 data.sc_r$mm_vsris_vslinear_pdiff_adj <- p.adjust(data.sc_r$mm_vsris_vslinear_pdiff, method = "BH")
 
+# Look at linear model output
+select(data.sc_r, property, linearmodel) %>%
+  mutate(glance = map(linearmodel, broom::glance),
+         adj.r2 = map(glance, ~.$adj.r.squared)) %>%
+  select(property, adj.r2) %>%
+  kableExtra::kable()
+
 table_mixedvslinear(data.sc_r, "mm_vsris_vslinear", "property")
 ```
 
