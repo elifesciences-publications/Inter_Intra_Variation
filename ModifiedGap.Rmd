@@ -15,12 +15,79 @@ Goal is to reimplement matlab code written by Hugh.
 
 Start with an example dataset.
 ```{r}
-test_data <- select(data.sc_r$data[[1]], dvlocmm, value)
+test_data <- filter(data.sc_r$data[[1]], id == "mouse_20130416") %>%
+  select(dvlocmm, value)
+  
+ggplot(test_data, aes(dvlocmm, value)) +
+  geom_point()
+
+K.max <- 6
 
 # Partioning around mediods. Slower but more robust than k-means.
-pam1 = function(x, k){list(cluster = cluster::pam(x,k, cluster.only=TRUE))}
-clu_test <- cluster::clusGap(test_data, pam1, K.max = 6)
+#pam1 = function(x, k){list(cluster = cluster::pam(x,k, cluster.only=TRUE))}
+#clu_test <- cluster::clusGap(test_data, pam1, K.max = 6)
 # K means.
-clu_test <- cluster::clusGap(test_data, kmeans, K.max = 6)
+clu_test <- cluster::clusGap(as.matrix(test_data$value), kmeans, K.max = 6, B = 50, nstart = 25)
+clu_test <- as_tibble(clu_test[[1]])
+
+clu_test$clus_num <- c(1:K.max)
+clu_test <- mutate(clu_test,
+         gap_min = gap - SE.sim,
+         gap_max = gap + SE.sim)
+
+ggplot(clu_test, aes(clus_num, gap)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
+
+# factoextra package also uses cluster::clusGap. Used to check for anything odd.
+#factoextra::fviz_nbclust(as.matrix(test_data$value), kmeans, nstart = 25,  method = "gap_stat", nboot = 50) + labs(subtitle = "Gap statistic method")
+
+```
+
+Generate gap statistics for simulated uniform distributions.
+```{r}
+n_sim <- 20
+n_cells <- length(test_data$value)
+value_min <- min(test_data$value)
+value_max <- max(test_data$value)
+sim_data <- matrix(rep(runif(n_cells, value_min, value_max), n_sim), nrow = n_cells, ncol = n_sim)
+sim_gaps <- matrix(nrow = n_sim, ncol = K.max)
+
+sim_tib <- tibble(sim_num = c(1:n_sim), num_cells = n_cells, v_min = value_min, v_max = value_max)
+
+# Function to apply clusGap to each column in sim_data 
+clusFunc <- function(df) {
+  mat <- as.matrix(df)
+  out <- cluster::clusGap(mat, kmeans, K.max = 6, B = 50, nstart = 25)
+  as_tibble(out$Tab)
+}
+
+extract_gap <- function(df) {
+  df
+}
+
+# Make random numbers for each simulation, then calculate gap statistics for each set of random numbers, then calculate dela gap values.
+sim_tib <- mutate(sim_tib,
+                  data = pmap(list(num_cells, v_min, v_max), runif),
+                  gap_stats = map(data, clusFunc),
+                  gaps = map(gap_stats, ~.$gap),
+                  gap_delta = map(gaps, diff))
+```
+
+Extract delta gap values into a matrix with columns for each k
+```{r}
+delta_gap_mat <- matrix(nrow=n_sim, ncol = K.max-1)
+for(i in 1:(K.max-1)) {
+  delta_gap_mat[,i] <- sapply(sim_tib$gap_delta, function(x) x[[i]])
+}
+```
+
+Calculate percentile cut offs.
+```{r}
+cut_off <- 0.9
+cut_off_vals <- vector(length = K.max-1)
+for(i in 1:(K.max-1)) {
+  cut_off_vals[i] <- quantile(delta_gap_mat[,i], probs = (cut_off))
+}
 ```
 
