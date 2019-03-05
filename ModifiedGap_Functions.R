@@ -1,30 +1,37 @@
 # Functions for calculation of modified gap statistic.
 
+clusGap_Extra <- function(df, K_max = 6){
+  clu_df <- clusFunc(df, K_max = K.max)
+  
+  clu_df$clus_num <- c(1:K.max)
+  clu_df <- mutate(clu_df,
+                     gap_min = gap - SE.sim,
+                     gap_max = gap + SE.sim)
+}
+
+
 ## Generate gap statistics for simulated uniform distributions.
 
 # Function to apply clusGap to a dataframe and return output as a tibble.
 clusFunc <- function(df, K_max) {
+  df <- scale(df) # Center data. This shouldn't be necessary for 1d data.
   mat <- as.matrix(df)
   out <- cluster::clusGap(mat, kmeans, K.max = K_max, B = 50, nstart = 20, verbose = FALSE)
   as_tibble(out$Tab)
 }
 
 # Function to generate gap values for data simulated from a uniform reference distribution
-gap_uniform_sim <- function(n_cells = 20, K.max = 6, n_sim = 20, val_min = 0, val_max = 1){
+gap_uniform_sim <- function(n_cells = 20, K_max = 6, n_sim = 20, value_min = 0, value_max = 1){
   
-  sim_data <- matrix(rep(runif(n_cells, value_min, value_max), n_sim), nrow = n_cells, ncol = n_sim)
-  sim_gaps <- matrix(nrow = n_sim, ncol = K.max)
-  
-  sim_tib <- tibble(sim_num = c(1:n_sim), num_cells = n_cells, v_min = value_min, v_max = value_max)
-  
-  # Make random numbers for each simulation, then calculate gap statistics for each set of random numbers, then calculate dela gap values.
-  sim_tib <- mutate(sim_tib,
-                    data = pmap(list(num_cells, v_min, v_max), runif),
-                    gap_stats = map(data, clusFunc),
-                    gaps = map(gap_stats, ~.$gap),
-                    gap_delta = map(gaps, diff))
-}
-
+    sim_tib <- tibble(sim_num = c(1:n_sim), num_cells = n_cells, v_min = value_min, v_max = value_max)
+    
+    # Make random numbers for each simulation, then calculate gap statistics for each set of random numbers, then calculate dela gap values.
+    sim_tib <- mutate(sim_tib,
+                      data = pmap(list(num_cells, v_min, v_max), runif),
+                      gap_stats = map2(data, K_max, clusFunc),
+                      gaps = map(gap_stats, ~.$gap),
+                      gap_delta = map(gaps, diff))
+  }
 
 # Function to calculate percentile cut offs.
 # Extract delta gap values into a matrix with columns for each k. Then calculate cut offs.

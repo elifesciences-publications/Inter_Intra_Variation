@@ -18,22 +18,19 @@ Goal is to reimplement matlab code written by Hugh.
 Start with an example dataset. We use mouse_20140522. This is the mouse used in Figure 2.
 ```{r}
 test_data <- filter(data.sc, id == "mouse_20140522") %>%
-  select(dvlocmm, ir)
-colnames(test_data)[2] <- "value"
+  select(dvlocmm, rheo)
+K.max <- 9
 
-ggplot(test_data, aes(dvlocmm, value)) +
+ggplot(test_data, aes(dvlocmm, rheo)) +
   geom_point()
 
-K.max <- 6
+rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
 
-clu_test <- clusFunc(test_data$value, K_max = K.max)
+ggplot(rheo_gap) +
+  geom_point(aes(clus_num, logW), colour = "blue") +
+  geom_point(aes(clus_num, E.logW), colour = "red")
 
-clu_test$clus_num <- c(1:K.max)
-clu_test <- mutate(clu_test,
-         gap_min = gap - SE.sim,
-         gap_max = gap + SE.sim)
-
-ggplot(clu_test, aes(clus_num, gap)) +
+ggplot(rheo_gap, aes(clus_num, gap)) +
   geom_point() +
   geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
 ```
@@ -42,15 +39,11 @@ ggplot(clu_test, aes(clus_num, gap)) +
 Generate gap statistics for simulated uniform distributions.
 ```{r}
 # Parameters
-n_sim <- 500
-n_cells <- length(test_data$value)
-value_min <- min(test_data$value)
-value_max <- max(test_data$value)
-value_min <- 0
-value_max <- 1
+n_sim <- 20 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
+n_cells <- length(test_data$rheo)
 
 # Generate simulated gap data
-sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim, val_min, val_max)
+sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim)
 # Return cut off values from the data
 cut_off_vals <- calc_cutoffs(sim_tib$gap_delta)
 ```
@@ -58,47 +51,16 @@ cut_off_vals <- calc_cutoffs(sim_tib$gap_delta)
 
 Calculate delta gap for real and simulated data and then compare.
 ```{r}
-clu_diff = tibble(clus_num = c(1:(K.max-1)), gap_diff = diff(clu_test$gap))
+rheo_diff = tibble(clus_num = c(1:(K.max-1)), gap_diff = diff(rheo_gap$gap))
 
-clu_diff$gap_thresh <- cut_off_vals
+rheo_diff$gap_thresh <- cut_off_vals
 
-ggplot(clu_diff) +
+ggplot(rheo_diff) +
   geom_point(aes(clus_num, gap_diff), colour = "red") +
   geom_point(aes(clus_num, gap_thresh), colour = "blue")
 
 ```
 
-
-Function to carry out modified gap aanlysis for a given property in a given animal. Returns gap and delta_gap values as well. Plots can be generated separately from the outputs.
-```{r}
-id <- "mouse_20130416"
-property <- "ir"
-
-# Wrapper to calculate gap statistic from data ausing K means and return results as a tibble.
-clusGap_wrap <- function(df, K_max = 6){
-  clu_test <- cluster::clusGap(as.matrix(df), kmeans, K.max = K_max, B = 50, nstart = 25)
-  clu_test <- as_tibble(clu_test[[1]])
-  clu_test$clus_num <- c(1:K.max)
-  clu_test <- mutate(clu_test,
-         gap_min = gap - SE.sim,
-         gap_max = gap + SE.sim)
-}
-
-
-gap_analysis <- function(df = data.sc, name = "mouse_20130416", property = "ir", K_max = 6) {
-  prop_data <- filter(df, id == name) %>%
-  select(property)
-  
-  # Calculate gap statistic from the data ausing K means.
-  clu_gap <- clusGap_wrap(prop_data, K_max)
-
-  # Calculate delta gap values from the data.
-  out_frame <- tibble(gap = list(clu_gap), diff_gap = list(diff(clu_gap$gap)))
-  
-  # Check if delta gap threshold values from shuffled data have been calculated for the n used. If yes then load them, if not then calculate and save them.
-  
-}
-```
 
 
 
