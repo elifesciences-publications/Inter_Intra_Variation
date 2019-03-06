@@ -17,50 +17,62 @@ Goal is to reimplement matlab code written by Hugh.
 
 Start with an example dataset. We use mouse_20140522. This is the mouse used in Figure 2.
 ```{r}
-test_data <- filter(data.sc, id == "mouse_20140522") %>%
-  select(dvlocmm, rheo)
+test_data <- filter(data.sc, id == "mouse_20140522") 
 K.max <- 9
-
-ggplot(test_data, aes(dvlocmm, rheo)) +
-  geom_point()
-
-rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
-
-ggplot(rheo_gap) +
-  geom_point(aes(clus_num, logW), colour = "blue") +
-  geom_point(aes(clus_num, E.logW), colour = "red")
-
-ggplot(rheo_gap, aes(clus_num, gap)) +
-  geom_point() +
-  geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
 ```
 
-
-Generate gap statistics for simulated uniform distributions.
+Generate gap statistics and threshold for simulated uniform distributions.
 ```{r}
 # Parameters
 n_sim <- 20 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
-n_cells <- length(test_data$rheo)
+n_cells <- length(test_data$id) # Number of cells in the dataset.
 
-# Generate simulated gap data
+# Generate simulated gap data. If n_sim is high this will take a long time to run.
 sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim)
 # Return cut off values from the data
-cut_off_vals <- calc_cutoffs(sim_tib$gap_delta)
+threshold_vals <- calc_thresholds(sim_tib$gap_delta, cut_off = 0.9)
+```
+
+Plot data, calculate gap statistic up to K.max and plot.
+```{r}
+(rheo_plot <- ggplot(test_data, aes(dvlocmm, rheo)) +
+  geom_point())
+
+rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
+
+(rheo_logW_plot <- logW_plot(rheo_gap))
+
+(rheo_gap_plot <- gap_plot(rheo_gap))
 ```
 
 
 Calculate delta gap for real and simulated data and then compare.
 ```{r}
-rheo_diff = tibble(clus_num = c(1:(K.max-1)), gap_diff = diff(rheo_gap$gap))
+rheo_diff = tibble(clus_num = c(2:(K.max)), gap_diff = diff(rheo_gap$gap))
 
-rheo_diff$gap_thresh <- cut_off_vals
+rheo_diff$gap_thresh <- threshold_vals
 
-ggplot(rheo_diff) +
-  geom_point(aes(clus_num, gap_diff), colour = "red") +
-  geom_point(aes(clus_num, gap_thresh), colour = "blue")
-
+(rheo_diff_plot <- diff_plot(rheo_diff))
 ```
 
+Repeat analyses for resonance frequency.
+Plot data, calculate gap statistic up to K.max and plot.
+```{r}
+(resf_plot <- ggplot(test_data, aes(dvlocmm, resf)) +
+  geom_point())
 
+resf_gap <- clusGap_Extra(test_data$resf, K_max = K.max)
 
+(resf_logW_plot <- logW_plot(resf_gap))
 
+(resf_gap_plot <- gap_plot(resf_gap))
+```
+
+Calculate delta gap for real and simulated data and then compare.
+```{r}
+resf_diff = tibble(clus_num = c(2:(K.max)), gap_diff = diff(resf_gap$gap))
+
+resf_diff$gap_thresh <- threshold_vals
+
+(resf_diff_plot <- diff_plot(resf_diff))
+```

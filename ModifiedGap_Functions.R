@@ -36,7 +36,7 @@ gap_uniform_sim <- function(n_cells = 20, K_max = 6, n_sim = 20, value_min = 0, 
 # Function to calculate percentile cut offs.
 # Extract delta gap values into a matrix with columns for each k. Then calculate cut offs.
 # df should be a frame containing delta gap outputs, e.g. sim_tib$gap_delta
-calc_cutoffs <- function(df, cut_off = 0.9){
+calc_thresholds <- function(df, cut_off = 0.9){
   n_sim = length(df)
   n_col = length(df[[1]])
   
@@ -46,10 +46,33 @@ calc_cutoffs <- function(df, cut_off = 0.9){
       x[[i]])
   }
   
-  cut_off_vals <- vector(length = n_col)
+  threshold_vals <- vector(length = n_col)
   for (i in 1:n_col) {
-    cut_off_vals[i] <- quantile(delta_gap_mat[, i], probs = (cut_off))
+    threshold_vals[i] <- quantile(delta_gap_mat[, i], probs = (cut_off))
   }
   
   cut_off_vals
+}
+
+
+# Function to plot LogW, ELogW versus cluster number.
+logW_plot <- function(df) {
+  ggplot(df) +
+    geom_point(aes(clus_num, logW), colour = "blue") +
+    geom_point(aes(clus_num, E.logW), colour = "red")
+}
+
+
+# Function to plot gap statistic versus cluster number.
+gap_plot <- function(df) {
+  ggplot(df, aes(clus_num, gap)) +
+    geom_point() +
+    geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
+}
+
+# Function to plot delta gap as a function of cluster number.
+diff_plot <- function(df){
+  ggplot(df) +
+    geom_point(aes(clus_num, gap_diff), colour = "red") +
+    geom_point(aes(clus_num, gap_thresh), colour = "blue")
 }
