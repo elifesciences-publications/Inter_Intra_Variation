@@ -18,17 +18,22 @@ Goal is to reimplement matlab code written by Hugh.
 Start with an example dataset. We use mouse_20140522. This is the mouse used in Figure 2.
 ```{r}
 test_data <- filter(data.sc, id == "mouse_20140522") 
-K.max <- 9
+K.max <- 8
 ```
 
 Generate gap statistics and threshold for simulated uniform distributions.
 ```{r}
 # Parameters
-n_sim <- 20 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
+n_sim <- 500 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
 n_cells <- length(test_data$id) # Number of cells in the dataset.
 
 # Generate simulated gap data. If n_sim is high this will take a long time to run.
-sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim)
+if(exists("sim_tib")){
+  print("sim_tib already generated, remove it if you want to rebuild it")
+  } else {
+  sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim)
+  }
+        
 # Return cut off values from the data
 threshold_vals <- calc_thresholds(sim_tib$gap_delta, cut_off = 0.9)
 ```
