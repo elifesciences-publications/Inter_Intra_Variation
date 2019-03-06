@@ -24,7 +24,7 @@ K.max <- 8
 Generate gap statistics and threshold for simulated uniform distributions.
 ```{r}
 # Parameters
-n_sim <- 500 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
+n_sim <- 1000 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
 n_cells <- length(test_data$id) # Number of cells in the dataset.
 
 # Generate simulated gap data. If n_sim is high this will take a long time to run.

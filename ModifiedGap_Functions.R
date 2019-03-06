@@ -46,12 +46,12 @@ calc_thresholds <- function(df, cut_off = 0.9){
       x[[i]])
   }
   
-  threshold_vals <- vector(length = n_col)
+  thresh_vals <- vector(length = n_col)
   for (i in 1:n_col) {
-    threshold_vals[i] <- quantile(delta_gap_mat[, i], probs = (cut_off))
+    thresh_vals[i] <- quantile(delta_gap_mat[, i], probs = (cut_off))
   }
   
-  cut_off_vals
+  thresh_vals
 }
 
 
