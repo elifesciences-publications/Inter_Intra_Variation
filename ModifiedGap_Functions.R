@@ -76,3 +76,29 @@ diff_plot <- function(df){
     geom_point(aes(clus_num, gap_diff), colour = "red") +
     geom_point(aes(clus_num, gap_thresh), colour = "blue")
 }
+
+# Helper function for accessing clusGap using purr::map.
+clusGap_Extra_helper <- function(df, K.max){
+  df <- na.omit(df) # remove Nas
+  clusGap_Extra(df$value, K_max = K.max) # Cluster only the value of the property
+}
+
+# Function for calculating gap differences.
+# df should be test_data_r$gap
+diff_calc <- function(df, K.max, tvs){
+  gd <- tibble(clus_num = c(2:(K.max)), gap_diff = diff(df$gap))
+  gd$gap_threshold <- tvs
+  gd
+}
+
+# Function for calculating K_est.
+# df is test_data_r$gap_diff
+calc_K_est <- function(df){
+  comp <- which(df$gap_diff > df$gap_threshold)
+  if (sum(comp)> 0) {
+    K_est <- min(comp)
+  } else {
+    K_est <- 1
+  }
+  K_est
+}

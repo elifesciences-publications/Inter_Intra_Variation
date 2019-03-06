@@ -21,7 +21,7 @@ test_data <- filter(data.sc, id == "mouse_20140522")
 K.max <- 8
 ```
 
-Generate gap statistics and threshold for simulated uniform distributions.
+Generate gap statistics and calculate significance threshold for simulated uniform distributions.
 ```{r}
 # Parameters
 n_sim <- 1000 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
@@ -38,49 +38,15 @@ if(exists("sim_tib")){
 threshold_vals <- calc_thresholds(sim_tib$gap_delta, cut_off = 0.95)
 ```
 
-Calculate gap statistics for all features.
+Calculate gap statistics, gap differences and K_est for all features.
 ```{r}
-clusGap_Extra_helper <- function(df, K.max){
-  df <- na.omit(df) # remove Nas
-  clusGap_Extra(df$value, K_max = K.max) # Cluster only the value of the property
-}
-
 test_data_r <- select(test_data, vm:dvloc) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest() %>%
-  mutate(gap = map2(data, K.max, clusGap_Extra_helper))
-```
-
-Calculate delta gap for all features
-```{r}
-# df should be test_data_r$gap
-diff_calc_helper <- function(df, K.max, tvs){
-  gd <- tibble(clus_num = c(2:(K.max)), gap_diff = diff(df$gap))
-  gd$gap_threshold <- tvs
-  gd
-}
-
-test_data_r <- mutate(test_data_r,
-                      gap_diff = pmap(list(gap, K.max, list(threshold_vals)), diff_calc_helper))
-```
-
-Calculate K_est for all features
-```{r}
-# df is test_data_r$gap_diff
-calc_K_est <- function(df){
-  comp <- which(df$gap_diff > df$gap_threshold)
-  if (sum(comp)> 0) {
-    K_est <- min(comp)
-  } else {
-    K_est <- 1
-  }
-  K_est
-}
-
-test_data_r <- mutate(test_data_r,
-                      K_est = map_dbl(gap_diff, calc_K_est))
-
+  mutate(gap = map2(data, K.max, clusGap_Extra_helper),
+         gap_diff = pmap(list(gap, K.max, list(threshold_vals)), diff_calc),
+         K_est = map_dbl(gap_diff, calc_K_est))
 ```
 
 
