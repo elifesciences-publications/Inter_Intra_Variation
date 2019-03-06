@@ -27,18 +27,34 @@ Generate gap statistics and calculate significance threshold for simulated unifo
 n_sim <- 1000 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
 n_cells <- length(test_data$id) # Number of cells in the dataset.
 
+# Find all unique dataset lengths ≥ 30.
+exp_numbers <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id) %>% unique()
+
 # Generate simulated gap data. If n_sim is high this will take a long time to run.
+# Will look for a loaded version of sim_tib, then for a saved verion.
+# If it finds neither then will build sim_tib.
 if(exists("sim_tib")){
-  print("sim_tib already generated, remove it if you want to rebuild it")
+  print("sim_tib already generated, remove it if you want to rebuild or reload it")
   } else {
-  sim_tib <- gap_uniform_sim(n_cells, K.max, n_sim)
+    if (file.exists("sim_distributions.Rda")) {
+      load("sim_distributions.Rda")
+      } else {
+        sim_tib <- tibble(cell_count = exp_numbers[[1]]) %>%
+          mutate(sims = pmap(list(cell_count, K.max, n_sim), gap_uniform_sim))
+      }
   }
-        
-# Return cut off values from the data
-threshold_vals <- calc_thresholds(sim_tib$gap_delta, cut_off = 0.95)
+
+
+# Write sim_tib to file.
+save(sim_tib, file = "sim_distributions.Rda")
+
+# Calculate cut off values from the data
+sim_tib <- mutate(sim_tib,
+                  threshold_vals = map2(sims, 0.95, calc_thresholds)
+                  )
 ```
 
-Calculate gap statistics, gap differences and K_est for all features.
+Calculate gap statistics, gap differences and K_est for all features for all animals.
 ```{r}
 test_data_r <- select(test_data, vm:dvloc) %>%
   gather("property", "value", vm:fi) %>%
@@ -47,8 +63,32 @@ test_data_r <- select(test_data, vm:dvloc) %>%
   mutate(gap = map2(data, K.max, clusGap_Extra_helper),
          gap_diff = pmap(list(gap, K.max, list(threshold_vals)), diff_calc),
          K_est = map_dbl(gap_diff, calc_K_est))
+
+# df should be all_data_r$data[[n]]
+clusGap_AllData <- function(df, K_max = 8) {
+  df <- select(df, vm:fi) %>%
+    gather("property", "value", vm:fi) %>%
+    group_by(property) %>%
+    nest() %>%
+    mutate(gap = map2(data, K_max, clusGap_Extra_helper),
+           gap_diff = pmap(list(gap, K_max, list(threshold_vals)), diff_calc),
+           K_est = map_dbl(gap_diff, calc_K_est)) %>%
+    select(-data)
+}
+
+# restrict to data with n ≥ 30.
+all_data_r <- data.sc %>%
+  group_by(id) %>%
+  nest()
+
+all_data_r$n <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id)
+
+all_data_r <- filter(all_data_r, n >= 40) %>%
+  mutate(clusGap = map2(data, K.max, clusGap_AllData))
 ```
 
+Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.
+    
 
 Plot data, calculate gap statistic up to K.max and plot.
 ```{r}

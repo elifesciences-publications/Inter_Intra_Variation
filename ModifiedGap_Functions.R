@@ -35,14 +35,15 @@ gap_uniform_sim <- function(n_cells = 20, K_max = 6, n_sim = 20, value_min = 0, 
 
 # Function to calculate percentile cut offs.
 # Extract delta gap values into a matrix with columns for each k. Then calculate cut offs.
-# df should be a frame containing delta gap outputs, e.g. sim_tib$gap_delta
+# gap_delta a frame containing delta gap outputs found within df, e.g. sim_tib$sims[[n]]$gap_delta
 calc_thresholds <- function(df, cut_off = 0.9){
-  n_sim = length(df)
-  n_col = length(df[[1]])
+  df_gd <- df$gap_delta
+  n_sim = length(df_gd)
+  n_col = length(df_gd[[1]])
   
   delta_gap_mat <- matrix(nrow = n_sim, ncol = n_col)
   for (i in 1:n_col) {
-    delta_gap_mat[, i] <- sapply(df, function(x)
+    delta_gap_mat[, i] <- sapply(df_gd, function(x)
       x[[i]])
   }
   
@@ -52,6 +53,13 @@ calc_thresholds <- function(df, cut_off = 0.9){
   }
   
   thresh_vals
+}
+
+# Function to plot data for a given feature and if K_est>1 to add cluster colouring
+data_plot <- function(df, feature_name){
+  data_to_plot <- filter(df, property == feature_name)
+  ggplot(data_to_plot, aes(dvloc, value)) +
+    geom_point()
 }
 
 
