@@ -86,10 +86,19 @@ kableExtra::kable(K_est_all_animals) %>% kableExtra::kable_styling(bootstrap_opt
 Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.
     
 
-Plot data, calculate gap statistic up to K.max and plot.
+Plot data and gap statistic analyses for a given cell and feature.
 ```{r}
 (rheo_plot <- ggplot(test_data, aes(dvlocmm, rheo)) +
   geom_point())
+
+# To do: add colour coded clusters.
+data_plot <- function(df, mouse, feature){
+  data_to_plot <- filter(df, id == mouse) %>% select(data)
+  ggplot(data_to_plot$data[[1]], aes(dvloc, !! rlang::sym(feature))) +
+    geom_point()
+}
+
+(rheo_plot <- data_plot(all_data_r, "mouse_20140522", "rheo"))
 
 rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
 
