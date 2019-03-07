@@ -64,29 +64,15 @@ test_data_r <- select(test_data, vm:dvloc) %>%
          gap_diff = pmap(list(gap, K.max, list(threshold_vals)), diff_calc),
          K_est = map_dbl(gap_diff, calc_K_est))
 
-# df should be all_data_r$data[[n]]
-clusGap_AllData <- function(df, sims, K_max = 8) {
-  sims <- sims$threshold_vals
-  df <- select(df, vm:fi) %>%
-    gather("property", "value", vm:fi) %>%
-    group_by(property) %>%
-    nest() %>%
-    mutate(gap = map2(data, K_max, clusGap_Extra_helper),
-           gap_diff = pmap(list(gap, K_max, sims), diff_calc),
-           K_est = map_dbl(gap_diff, calc_K_est)) %>%
-    select(-data)
-}
 
-# clusGap_AllData(all_data_r$data[[1]], all_data_r$sim_vals[[1]], 8)
-
-# restrict to data with n ≥ 30.
+# Re-organise all-data by id
 all_data_r <- data.sc %>%
   group_by(id) %>%
   nest()
 
-# Re-organise all-data by id
+# add column with numbers of observations for each group
 all_data_r$n <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id)
-
+all_data_r <- filter(all_data_r, n >= 30)
 
 # Function to return gap thresholds for a given n
 return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
@@ -99,9 +85,19 @@ for (i in 1:length(all_data_r$id)) {
   all_data_r$sim_vals[[i]] <- filter(sim_tib, cell_count == as.numeric(all_data_r$n[i,]))
 }
 
-# Calculate gap statistics
-all_data_r <- filter(all_data_r, n >= 40) %>%
+# Calculate gap statistics. Restricts analyses to n ≥ 30.
+all_data_r <- filter(all_data_r, n >= 30) %>%
   mutate(clusGap = pmap(list(data, sim_vals, K.max), clusGap_AllData))
+
+# Extract k_est values for each mouse into a higher level column.
+all_data_r <- mutate(all_data_r, K_est = map(clusGap, function(x) x[[4]]))
+
+
+K_est_all_animals <- unnest(select(all_data_r, id, K_est))
+K_est_all_animals$feature <- all_data_r$clusGap[[1]]$property
+K_est_all_animals <- spread(K_est_all_animals, feature, K_est)
+
+kableExtra::kable(K_est_all_animals)
 ```
 
 Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.

@@ -55,6 +55,22 @@ calc_thresholds <- function(df, cut_off = 0.9){
   thresh_vals
 }
 
+# Function to apply clusGap to the complete dataset.
+# df should be all_data_r$data[[n]]
+clusGap_AllData <- function(df, sims, K_max = 8) {
+  sims <- sims$threshold_vals
+  df <- select(df, vm:fi) %>%
+    gather("property", "value", vm:fi) %>%
+    group_by(property) %>%
+    nest() %>%
+    mutate(gap = map2(data, K_max, clusGap_Extra_helper),
+           gap_diff = pmap(list(gap, K_max, sims), diff_calc),
+           K_est = map_dbl(gap_diff, calc_K_est)) %>%
+    select(-data)
+}
+
+
+
 # Function to plot data for a given feature and if K_est>1 to add cluster colouring
 data_plot <- function(df, feature_name){
   data_to_plot <- filter(df, property == feature_name)
