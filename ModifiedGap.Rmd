@@ -100,9 +100,11 @@ data_plot <- function(df, mouse, feature){
 
 (rheo_plot <- data_plot(all_data_r, "mouse_20140522", "rheo"))
 
-rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
+#rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
 
-(rheo_logW_plot <- logW_plot(rheo_gap))
+
+
+(rheo_logW_plot <- logW_plot(all_data_r, "mouse_20140522", "rheo"))
 
 (rheo_gap_plot <- gap_plot(rheo_gap))
 ```

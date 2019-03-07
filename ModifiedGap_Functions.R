@@ -83,8 +83,10 @@ data_plot <- function(df, feature_name){
 
 
 # Function to plot LogW, ELogW versus cluster number.
-logW_plot <- function(df) {
-  ggplot(df) +
+logW_plot <- function(df, mouse, feature) {
+  data_to_plot <- filter(df, id == mouse) %>% select(clusGap) %>% unlist(recursive = FALSE)
+  data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap) %>% unlist(recursive = FALSE)
+  ggplot(data_to_plot[[1]]) +
     geom_point(aes(clus_num, logW), colour = "blue") +
     geom_point(aes(clus_num, E.logW), colour = "red")
 }
