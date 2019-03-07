@@ -15,13 +15,11 @@ source("ModifiedGap_Functions.R")
 
 Goal is to reimplement matlab code written by Hugh.
 
-Start with an example dataset. We use mouse_20140522. This is the mouse used in Figure 2.
 ```{r}
-test_data <- filter(data.sc, id == "mouse_20140522") 
 K.max <- 8
 ```
 
-Generate gap statistics and calculate significance threshold for simulated uniform distributions.
+Generate gap statistics and calculate significance threshold for simulated uniform distributions. Use these simulated data to calculate threshold values for detection of 'signficant' modes.
 ```{r}
 # Parameters
 n_sim <- 1000 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
@@ -44,7 +42,6 @@ if(exists("sim_tib")){
       }
   }
 
-
 # Write sim_tib to file.
 save(sim_tib, file = "sim_distributions.Rda")
 
@@ -56,15 +53,6 @@ sim_tib <- mutate(sim_tib,
 
 Calculate gap statistics, gap differences and K_est for all features for all animals.
 ```{r}
-test_data_r <- select(test_data, vm:dvloc) %>%
-  gather("property", "value", vm:fi) %>%
-  group_by(property) %>%
-  nest() %>%
-  mutate(gap = map2(data, K.max, clusGap_Extra_helper),
-         gap_diff = pmap(list(gap, K.max, list(threshold_vals)), diff_calc),
-         K_est = map_dbl(gap_diff, calc_K_est))
-
-
 # Re-organise all-data by id
 all_data_r <- data.sc %>%
   group_by(id) %>%
@@ -74,12 +62,7 @@ all_data_r <- data.sc %>%
 all_data_r$n <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id)
 all_data_r <- filter(all_data_r, n >= 30)
 
-# Function to return gap thresholds for a given n
-return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
-  filter(thresh_ref_df, cell_count == n_cells)
-}
-
-# Add correct thresholds
+# Add thresholds to all_data_r.
 all_data_r$sim_vals = list("")
 for (i in 1:length(all_data_r$id)) {
   all_data_r$sim_vals[[i]] <- filter(sim_tib, cell_count == as.numeric(all_data_r$n[i,]))
@@ -97,7 +80,7 @@ K_est_all_animals <- unnest(select(all_data_r, id, K_est))
 K_est_all_animals$feature <- all_data_r$clusGap[[1]]$property
 K_est_all_animals <- spread(K_est_all_animals, feature, K_est)
 
-kableExtra::kable(K_est_all_animals)
+kableExtra::kable(K_est_all_animals) %>% kableExtra::kable_styling(bootstrap_options = "striped")
 ```
 
 Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.

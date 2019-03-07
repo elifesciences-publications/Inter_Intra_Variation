@@ -69,7 +69,10 @@ clusGap_AllData <- function(df, sims, K_max = 8) {
     select(-data)
 }
 
-
+# Function to return gap thresholds for a given n
+return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
+  filter(thresh_ref_df, cell_count == n_cells)
+}
 
 # Function to plot data for a given feature and if K_est>1 to add cluster colouring
 data_plot <- function(df, feature_name){
