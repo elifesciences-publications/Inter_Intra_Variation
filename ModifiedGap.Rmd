@@ -65,26 +65,43 @@ test_data_r <- select(test_data, vm:dvloc) %>%
          K_est = map_dbl(gap_diff, calc_K_est))
 
 # df should be all_data_r$data[[n]]
-clusGap_AllData <- function(df, K_max = 8) {
+clusGap_AllData <- function(df, sims, K_max = 8) {
+  sims <- sims$threshold_vals
   df <- select(df, vm:fi) %>%
     gather("property", "value", vm:fi) %>%
     group_by(property) %>%
     nest() %>%
     mutate(gap = map2(data, K_max, clusGap_Extra_helper),
-           gap_diff = pmap(list(gap, K_max, list(threshold_vals)), diff_calc),
+           gap_diff = pmap(list(gap, K_max, sims), diff_calc),
            K_est = map_dbl(gap_diff, calc_K_est)) %>%
     select(-data)
 }
+
+# clusGap_AllData(all_data_r$data[[1]], all_data_r$sim_vals[[1]], 8)
 
 # restrict to data with n ≥ 30.
 all_data_r <- data.sc %>%
   group_by(id) %>%
   nest()
 
+# Re-organise all-data by id
 all_data_r$n <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id)
 
+
+# Function to return gap thresholds for a given n
+return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
+  filter(thresh_ref_df, cell_count == n_cells)
+}
+
+# Add correct thresholds
+all_data_r$sim_vals = list("")
+for (i in 1:length(all_data_r$id)) {
+  all_data_r$sim_vals[[i]] <- filter(sim_tib, cell_count == as.numeric(all_data_r$n[i,]))
+}
+
+# Calculate gap statistics
 all_data_r <- filter(all_data_r, n >= 40) %>%
-  mutate(clusGap = map2(data, K.max, clusGap_AllData))
+  mutate(clusGap = pmap(list(data, sim_vals, K.max), clusGap_AllData))
 ```
 
 Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.
