@@ -105,7 +105,8 @@ data_plot <- function(df, mouse, feature){
   }
   
   ggplot(data_to_plot, aes(dvloc,!!rlang::sym(feature)), colour = cluster) +
-    geom_point(aes(colour = cluster))
+    geom_point(aes(colour = cluster)) +
+    geom_rug(size = 0.2)
 }
 
 
@@ -113,9 +114,12 @@ data_plot <- function(df, mouse, feature){
 logW_plot <- function(df, mouse, feature) {
   data_to_plot <- filter(df, id == mouse) %>% select(clusGap) %>% unlist(recursive = FALSE)
   data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap) %>% unlist(recursive = FALSE)
-  ggplot(data_to_plot[[1]]) +
-    geom_point(aes(clus_num, logW), colour = "blue") +
-    geom_point(aes(clus_num, E.logW), colour = "red")
+  data_to_plot <- select(data_to_plot[[1]], clus_num, logW, E.logW) %>%
+    gather("Group", "logW", 2:3)
+  ggplot(data_to_plot) +
+    geom_point(aes(clus_num, logW, colour = Group)) +
+    labs(x = "K", y = "logW") +
+    theme(legend.title = element_blank())
 }
 
 # Function to plot gap statistic versus cluster number.
@@ -124,16 +128,20 @@ gap_plot <- function(df, mouse, feature) {
   data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap) %>% unlist(recursive = FALSE)
   ggplot(data_to_plot[[1]], aes(clus_num, gap)) +
     geom_point() +
-    geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
+    geom_errorbar(aes(ymin = gap_min, ymax = gap_max)) +
+    labs(x = "K", y = "Gap")
 }
 
 # Function to plot delta gap as a function of cluster number.
 diff_plot <- function(df, mouse, feature){
   data_to_plot <- filter(df, id == mouse) %>% select(clusGap) %>% unlist(recursive = FALSE)
   data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap_diff) %>% unlist(recursive = FALSE)
-  ggplot(data_to_plot[[1]]) +
-    geom_point(aes(clus_num, gap_diff), colour = "red") +
-    geom_point(aes(clus_num, gap_threshold), colour = "blue")
+  data_to_plot <- select(data_to_plot[[1]], clus_num, gap_diff, gap_threshold) %>%
+    gather("Group", "Gap_Diff", 2:3)
+  ggplot(data_to_plot) +
+    geom_point(aes(clus_num, Gap_Diff, colour = Group))  +
+    labs(x = "K", y = "Gap diff.") +
+    theme(legend.title = element_blank())
 }
 
 # Helper function for accessing clusGap using purr::map.

@@ -122,6 +122,8 @@ Plot data,  gap statistic up to K.max .
 (ir_gap_plot <- gap_plot(all_data_r, "mouse_20140522", "ir"))
 
 (ir_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "ir"))
+
+cowplot::plot_grid(ir_plot, ir_logW_plot, ir_gap_plot, ir_diff_plot)
 ```
 
 
