@@ -150,7 +150,7 @@ diff_calc <- function(df, K.max, tvs){
 calc_K_est <- function(df){
   comp <- which(df$gap_diff > df$gap_threshold)
   if (sum(comp)> 0) {
-    K_est <- min(comp)
+    K_est <- min(comp) + 1
   } else {
     K_est <- 1
   }
