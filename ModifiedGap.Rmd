@@ -79,7 +79,9 @@ K_est_all_animals <- unnest(select(all_data_r, id, K_est))
 K_est_all_animals$feature <- all_data_r$clusGap[[1]]$property
 K_est_all_animals <- spread(K_est_all_animals, feature, K_est)
 
-kableExtra::kable(K_est_all_animals) %>% kableExtra::kable_styling(bootstrap_options = "striped")
+kableExtra::kable(K_est_all_animals) %>%
+  kableExtra::kable_styling(bootstrap_options = "striped") %>%
+  kableExtra::save_kable("Tables/K_est.html")
 ```
 
 Check where clusGap is finding the thresholds. Seems like this needs to be passed to it.
@@ -87,13 +89,6 @@ Check where clusGap is finding the thresholds. Seems like this needs to be passe
 
 Plot data and gap statistic analyses for a given cell and feature.
 ```{r}
-# To do: add colour coded clusters.
-data_plot <- function(df, mouse, feature){
-  data_to_plot <- filter(df, id == mouse) %>% select(data)
-  ggplot(data_to_plot$data[[1]], aes(dvloc, !! rlang::sym(feature))) +
-    geom_point()
-}
-
 (rheo_plot <- data_plot(all_data_r, "mouse_20140522", "rheo"))
 
 (rheo_logW_plot <- logW_plot(all_data_r, "mouse_20140522", "rheo"))
@@ -115,4 +110,16 @@ Plot data,  gap statistic up to K.max .
 (resf_gap_plot <- gap_plot(all_data_r, "mouse_20140522", "resf"))
 
 (resf_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "resf"))
+```
+
+Plots for input resistance.
+Plot data,  gap statistic up to K.max .
+```{r}
+(ir_plot <- data_plot(all_data_r, "mouse_20140522", "ir"))
+
+(ir_logW_plot <- logW_plot(all_data_r, "mouse_20140522", "ir"))
+
+(ir_gap_plot <- gap_plot(all_data_r, "mouse_20140522", "ir"))
+
+(ir_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "ir"))
 ```

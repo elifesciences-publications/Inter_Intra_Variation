@@ -74,11 +74,33 @@ return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
   filter(thresh_ref_df, cell_count == n_cells)
 }
 
-# Function to plot data for a given feature and if K_est>1 to add cluster colouring
-data_plot <- function(df, feature_name){
-  data_to_plot <- filter(df, property == feature_name)
-  ggplot(data_to_plot, aes(dvloc, value)) +
-    geom_point()
+# Function to plot data for a given feature and if K_est>1 to add colours to indicate cluster identity.
+data_plot <- function(df, mouse, feature){
+  # Extract data to plot into a data frame.
+  data_to_plot <- filter(df, id == mouse) %>% select(data) %>% unlist(recursive = FALSE)
+  data_to_plot <- data_to_plot$data
+  
+  # Extract K_est.
+  K_est <- filter(df, id == mouse) %>%
+    select(clusGap)
+  K_est <- filter(K_est[[1]][[1]], property == feature) %>%
+    select(K_est) %>%
+    unlist()
+
+  
+  # If K_est > 1, assign clusters and colour code
+  if (K_est > 1) {
+    data_to_cluster <- data_to_plot %>% select(!! rlang::sym(feature))
+    # Need to repeat K means clustering with  settings used by clusGap::cluster.
+    # Possible caveate here is that clusters may still be different.
+    km <- kmeans(as.matrix(data_to_cluster), centers = K_est, nstart = 20)
+    data_to_plot$cluster <- as.factor(km$cluster)
+  } else {
+    data_to_plot$cluster <- 1
+  }
+  
+  ggplot(data_to_plot, aes(dvloc,!!rlang::sym(feature)), colour = cluster) +
+    geom_point(aes(colour = cluster))
 }
 
 
