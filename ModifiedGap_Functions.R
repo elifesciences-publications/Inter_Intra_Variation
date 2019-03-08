@@ -91,19 +91,22 @@ logW_plot <- function(df, mouse, feature) {
     geom_point(aes(clus_num, E.logW), colour = "red")
 }
 
-
 # Function to plot gap statistic versus cluster number.
-gap_plot <- function(df) {
-  ggplot(df, aes(clus_num, gap)) +
+gap_plot <- function(df, mouse, feature) {
+  data_to_plot <- filter(df, id == mouse) %>% select(clusGap) %>% unlist(recursive = FALSE)
+  data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap) %>% unlist(recursive = FALSE)
+  ggplot(data_to_plot[[1]], aes(clus_num, gap)) +
     geom_point() +
     geom_errorbar(aes(ymin = gap_min, ymax = gap_max))
 }
 
 # Function to plot delta gap as a function of cluster number.
-diff_plot <- function(df){
-  ggplot(df) +
+diff_plot <- function(df, mouse, feature){
+  data_to_plot <- filter(df, id == mouse) %>% select(clusGap) %>% unlist(recursive = FALSE)
+  data_to_plot <- filter(data_to_plot[[1]], property == feature) %>% select(gap_diff) %>% unlist(recursive = FALSE)
+  ggplot(data_to_plot[[1]]) +
     geom_point(aes(clus_num, gap_diff), colour = "red") +
-    geom_point(aes(clus_num, gap_thresh), colour = "blue")
+    geom_point(aes(clus_num, gap_threshold), colour = "blue")
 }
 
 # Helper function for accessing clusGap using purr::map.

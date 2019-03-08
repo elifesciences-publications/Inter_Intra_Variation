@@ -23,7 +23,6 @@ Generate gap statistics and calculate significance threshold for simulated unifo
 ```{r}
 # Parameters
 n_sim <- 1000 # Use ≤ 20 for testing code. Use ≥ 500 for analyses.
-n_cells <- length(test_data$id) # Number of cells in the dataset.
 
 # Find all unique dataset lengths ≥ 30.
 exp_numbers <- data.sc %>% group_by(id) %>% summarise(n()) %>% select(-id) %>% unique()
@@ -88,9 +87,6 @@ Check where clusGap is finding the thresholds. Seems like this needs to be passe
 
 Plot data and gap statistic analyses for a given cell and feature.
 ```{r}
-(rheo_plot <- ggplot(test_data, aes(dvlocmm, rheo)) +
-  geom_point())
-
 # To do: add colour coded clusters.
 data_plot <- function(df, mouse, feature){
   data_to_plot <- filter(df, id == mouse) %>% select(data)
@@ -100,43 +96,23 @@ data_plot <- function(df, mouse, feature){
 
 (rheo_plot <- data_plot(all_data_r, "mouse_20140522", "rheo"))
 
-#rheo_gap <- clusGap_Extra(test_data$rheo, K_max = K.max)
-
-
-
 (rheo_logW_plot <- logW_plot(all_data_r, "mouse_20140522", "rheo"))
 
-(rheo_gap_plot <- gap_plot(rheo_gap))
+(rheo_gap_plot <- gap_plot(all_data_r, "mouse_20140522", "rheo"))
+
+(rheo_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "rheo"))
 ```
 
 
-Calculate delta gap for real and simulated data and then compare.
+
+Plots for resonance frequency.
+Plot data,  gap statistic up to K.max .
 ```{r}
-rheo_diff = tibble(clus_num = c(2:(K.max)), gap_diff = diff(rheo_gap$gap))
+(resf_plot <- data_plot(all_data_r, "mouse_20140522", "resf"))
 
-rheo_diff$gap_thresh <- threshold_vals
+(resf_logW_plot <- logW_plot(all_data_r, "mouse_20140522", "resf"))
 
-(rheo_diff_plot <- diff_plot(rheo_diff))
-```
+(resf_gap_plot <- gap_plot(all_data_r, "mouse_20140522", "resf"))
 
-Repeat analyses for resonance frequency.
-Plot data, calculate gap statistic up to K.max and plot.
-```{r}
-(resf_plot <- ggplot(test_data, aes(dvlocmm, resf)) +
-  geom_point())
-
-resf_gap <- clusGap_Extra(test_data$resf, K_max = K.max)
-
-(resf_logW_plot <- logW_plot(resf_gap))
-
-(resf_gap_plot <- gap_plot(resf_gap))
-```
-
-Calculate delta gap for real and simulated data and then compare.
-```{r}
-resf_diff = tibble(clus_num = c(2:(K.max)), gap_diff = diff(resf_gap$gap))
-
-resf_diff$gap_thresh <- threshold_vals
-
-(resf_diff_plot <- diff_plot(resf_diff))
+(resf_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "resf"))
 ```
