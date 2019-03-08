@@ -74,6 +74,11 @@ return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
   filter(thresh_ref_df, cell_count == n_cells)
 }
 
+return_data <- function(df, mouse, feature){
+  data_to_return <- filter(df, id == mouse) %>% select(data) %>% unlist(recursive = FALSE)
+  data_to_return <- data_to_return$data
+}
+
 # Function to plot data for a given feature and if K_est>1 to add colours to indicate cluster identity.
 data_plot <- function(df, mouse, feature){
   # Extract data to plot into a data frame.

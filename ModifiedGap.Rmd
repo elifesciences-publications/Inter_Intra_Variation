@@ -123,3 +123,23 @@ Plot data,  gap statistic up to K.max .
 
 (ir_diff_plot <- diff_plot(all_data_r, "mouse_20140522", "ir"))
 ```
+
+
+
+
+Test clustMapDP????
+```{r}
+example_data <- return_data(all_data_r, "mouse_20140522", "rheo")
+example_data <- as.matrix(example_data$ir)
+D = 1
+N = length(example_data)
+X <- matrix(example_data,D,N);
+# Set up Normal-Wishart MAP-DP prior parameters
+N0 <- 1;                           # Prior count (concentration parameter)
+m0 <- rowMeans(X);                     # Normal-Wishart prior mean
+a0 <- 10;                            # Normal-Wishart prior scale
+c0 <- 10/N;                          # Normal-Wishart prior degrees of freedom
+B0 <- diag(1./(0.05*rowVars(X)));    # Normal-Wishart prior precision
+r <- clustMapDP(example_data,N0,m0,a0,c0,B0)
+```
+
