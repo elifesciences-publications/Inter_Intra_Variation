@@ -13,7 +13,7 @@ clusGap_Extra <- function(df, K_max = 6){
 ## Generate gap statistics for simulated uniform distributions.
 
 # Function to apply clusGap to a dataframe and return output as a tibble.
-clusFunc <- function(df, K_max) {
+clusFunc <- function(df, K_max = 8) {
   df <- scale(df) # Center data. This shouldn't be necessary for 1d data.
   mat <- as.matrix(df)
   out <- cluster::clusGap(mat, kmeans, K.max = K_max, B = 50, nstart = 20, verbose = FALSE)
@@ -36,7 +36,7 @@ gap_uniform_sim <- function(n_cells = 20, K_max = 6, n_sim = 20, value_min = 0, 
 # Function to calculate percentile cut offs.
 # Extract delta gap values into a matrix with columns for each k. Then calculate cut offs.
 # gap_delta a frame containing delta gap outputs found within df, e.g. sim_tib$sims[[n]]$gap_delta
-calc_thresholds <- function(df, cut_off = 0.9){
+calc_thresholds <- function(df, cut_off = 0.99){
   df_gd <- df$gap_delta
   n_sim = length(df_gd)
   n_col = length(df_gd[[1]])
@@ -65,7 +65,8 @@ clusGap_AllData <- function(df, sims, K_max = 8) {
     nest() %>%
     mutate(gap = map2(data, K_max, clusGap_Extra_helper),
            gap_diff = pmap(list(gap, K_max, sims), diff_calc),
-           K_est = map_dbl(gap_diff, calc_K_est)) %>%
+           K_est = map_dbl(gap_diff, calc_K_est),
+           Gap_best = map_dbl(gap, calc_K_gap)) %>%
     select(-data)
 }
 
@@ -74,7 +75,7 @@ return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
   filter(thresh_ref_df, cell_count == n_cells)
 }
 
-return_data <- function(df, mouse, feature){
+return_data <- function(df, mouse){
   data_to_return <- filter(df, id == mouse) %>% select(data) %>% unlist(recursive = FALSE)
   data_to_return <- data_to_return$data
 }
@@ -159,7 +160,7 @@ diff_calc <- function(df, K.max, tvs){
 }
 
 # Function for calculating K_est.
-# df is test_data_r$gap_diff
+# df is test_data_r$gap_diff, etc.
 calc_K_est <- function(df){
   comp <- which(df$gap_diff > df$gap_threshold)
   if (sum(comp)> 0) {
@@ -168,4 +169,11 @@ calc_K_est <- function(df){
     K_est <- 1
   }
   K_est
+}
+
+# Returns K identified with the conventional gap statistic procedure.
+# df is all_data_r$clusGap[[1]]$gap[[1]], etc.
+calc_K_gap <- function(df) {
+  comp <- which.max(df$gap)
+  df$clus_num[[comp]]
 }

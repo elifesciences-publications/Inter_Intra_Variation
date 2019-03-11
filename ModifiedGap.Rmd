@@ -128,11 +128,28 @@ cowplot::plot_grid(ir_plot, ir_logW_plot, ir_gap_plot, ir_diff_plot)
 ```
 
 
+Calculate Gap statistic for data clustered on all features.
+```{r}
+example_data <- return_data(all_data_r, "mouse_20140522", "rheo")
+
+clus_out <- clusGap_Extra(select(example_data, vm:ahp))
+all_k_plot <- ggplot(clus_out, aes(clus_num, gap)) +
+                       geom_point()
+
+tsne_all_k <- tsne::tsne(X = as.matrix(select(example_data, vm:ahp)))
+colnames(tsne_all_k) <- c("R1", "R2")
+tsne_all_k <- as_tibble(tsne_all_k)
+kmeans_out <- kmeans(select(example_data, vm:ahp), centers = 7)
+tsne_all_k$cluster_id <- as.factor(kmeans_out$cluster)
+ggplot(tsne_all_k, aes(R1, R2, colour = cluster_id)) +
+  geom_point()
+```
+
 
 
 Test clustMapDP????
 ```{r}
-example_data <- return_data(all_data_r, "mouse_20140522", "rheo")
+example_data <- return_data(all_data_r, "mouse_20140522")
 example_data <- as.matrix(example_data$ir)
 D = 1
 N = length(example_data)
@@ -142,7 +159,7 @@ N0 <- 1;                           # Prior count (concentration parameter)
 m0 <- rowMeans(X);                     # Normal-Wishart prior mean
 a0 <- 10;                            # Normal-Wishart prior scale
 c0 <- 10/N;                          # Normal-Wishart prior degrees of freedom
-B0 <- diag(1./(0.05*rowVars(X)));    # Normal-Wishart prior precision
+#B0 <- diag(1./(0.05*rowVars(X)));    # Normal-Wishart prior precision
 # r <- clustMapDP(example_data,N0,m0,a0,c0,B0)
 ```
 
