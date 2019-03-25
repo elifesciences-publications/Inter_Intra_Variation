@@ -70,6 +70,19 @@ clusGap_AllData <- function(df, sims, K_max = 8) {
     select(-data)
 }
 
+
+# Function to apply clusGap to a simulated dataset.
+# df should be sim_data$data[[n]]
+clusGap_SimData <- function(df, sims, K_max = 8) {
+  sims <- sims$threshold_vals
+  df <- select(df, x2) %>%
+    mutate(gap = map2(data, K_max, clusGap_Extra_helper),
+           gap_diff = pmap(list(gap, K_max, sims), diff_calc),
+           K_est = map_dbl(gap_diff, calc_K_est),
+           Gap_best = map_dbl(gap, calc_K_gap)) %>%
+    select(-data)
+}
+
 # Function to return gap thresholds for a given n
 return_gap_thresholds <- function(n_cells, thresh_ref_df = sim_tib) {
   filter(thresh_ref_df, cell_count == n_cells)

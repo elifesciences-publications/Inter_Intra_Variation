@@ -127,10 +127,39 @@ Plot data,  gap statistic up to K.max .
 cowplot::plot_grid(ir_plot, ir_logW_plot, ir_gap_plot, ir_diff_plot)
 ```
 
+Gap analysis for simulated bimodal data with n = 30. 
+
+```{r}
+n = 30
+N = 10
+bimod <- function(n) {
+  bimod <- tibble(y1 = rnorm(n, 0, 1),  y2 = rnorm(n, 5, 1), w = rbinom(n, 1, .5), x2 = w*y1 + (1-w)*y2)
+}
+
+bimod_examples <- tibble(n = rep(30, N)) %>%
+  mutate(data = map(n, bimod)) 
+
+# Add thresholds to bimod_examples.
+bimod_examples$sim_vals = list("")
+for (i in 1:N) {
+  bimod_examples$sim_vals[[i]] <- filter(sim_tib, cell_count == as.numeric(all_data_r$n[i,]))
+}
+
+bimod_examples <- mutate(bimod_examples, clusGap = pmap(list(data, sim_vals, K.max), clusGap_SimData))
+ 
+
+
+ ggplot(bimod, aes(x2)) +
+   geom_histogram(bins = 10)
+```
+
+
+
+
 
 Calculate Gap statistic for data clustered on all features.
 ```{r}
-example_data <- return_data(all_data_r, "mouse_20140522", "rheo")
+example_data <- return_data(all_data_r, "mouse_20140522")
 
 clus_out <- clusGap_Extra(select(example_data, vm:ahp))
 all_k_plot <- ggplot(clus_out, aes(clus_num, gap)) +
