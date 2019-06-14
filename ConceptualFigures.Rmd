@@ -142,11 +142,11 @@ Combine models for intra-animal variation and make plots using facets.
 ```{r plot_intraanimal_variation}
 ModularFeatures$scheme <- "modular"
 OrthogOffsetFeatures$scheme <- "orthog"
-LinearOffsetFeatures$scheme <- "linear"
+LinearOffsetFeatures$scheme <- "offset"
 IntraAnimal <- bind_rows(ModularFeatures, OrthogOffsetFeatures, LinearOffsetFeatures)
 IntraAnimal$scheme <- as.factor(IntraAnimal$scheme)
-IntraAnimal$scheme = factor(IntraAnimal$scheme, c("modular", "orthog","linear"))
-labels_schemes <- c(modular = "Modular", orthog = "Orthogonal", linear = "Linear")
+IntraAnimal$scheme = factor(IntraAnimal$scheme, c("modular", "orthog","offset"))
+labels_schemes <- c(modular = "Modular", orthog = "Orthogonal", offset = "Offset")
 
 IntraAnimalPlot <- ggplot(IntraAnimal, aes(x, y, alpha = animal)) +
   geom_point(colour = cbPalette[2]) +
