@@ -194,7 +194,7 @@ resf_example <- resf_example +
 mm_with_predictplot <- mm_with_predictplot +
   labs(y = "")
 
-mm_without_predictplot <- mm_with_predictplot +
+mm_without_predictplot <- mm_without_predictplot +
   labs(x = "", y = "")
 
 mm_rheo_predictplot_mod <- mm_rheo_predictplot_mod +
