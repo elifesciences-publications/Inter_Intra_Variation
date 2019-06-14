@@ -123,6 +123,12 @@ mm_without_predictplot <- mm_without_predictplot +
   scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
 ```
 
+Get conditional and marginal R2 values for mixed model fits to data.
+```{r}
+r.squaredGLMM(filter(data.sc_r, property == "rheo")$mm_vsris[[1]])
+r.squaredGLMM(filter(data.sc_r, property == "resf")$mm_vsris[[1]])
+```
+
 
 Reformat plots of fitted data.
 ```{r warning=FALSE}
@@ -130,8 +136,8 @@ rheo_predictplot_mod <- rheo_predictplot +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
 
 mm_rheo_predictplot_mod <- mm_rheo_predictplot +
-    annotate("text", x = 1, y = 130, label = "paste(italic(R) ^ 2, \"marginal = .49\")", parse = TRUE, size = 2) +
-    annotate("text", x = 1, y = 50, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE, size = 2) +
+    annotate("text", x = 1, y = 130, label = "paste(italic(R) ^ 2, \"marginal = .38\")", parse = TRUE, size = 2) +
+    annotate("text", x = 1, y = 50, label = "paste(italic(R) ^ 2, \"conditional = .65\")", parse = TRUE, size = 2) +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5))
 
 resf_predictplot_mod <- resf_predictplot +
@@ -140,8 +146,8 @@ resf_predictplot_mod <- resf_predictplot +
   scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
 
 mm_resf_predictplot_mod <- mm_resf_predictplot +
-    annotate("text", x = 1, y = 3, label = "paste(italic(R) ^ 2, \"marginal = .49\")", parse = TRUE, size = 2) +
-    annotate("text", x = 1, y = 1, label = "paste(italic(R) ^ 2, \"conditional = .73\")", parse = TRUE, size = 2) +
+    annotate("text", x = 1, y = 3, label = "paste(italic(R) ^ 2, \"marginal = .12\")", parse = TRUE, size = 2) +
+    annotate("text", x = 1, y = 1, label = "paste(italic(R) ^ 2, \"conditional = .55\")", parse = TRUE, size = 2) +
     theme(axis.title = element_text(size = 9), axis.text = element_text(size = 7), axis.title.x = element_text(vjust = 2.5)) +
   labs(x = "") +
   scale_x_continuous(labels = function(breaks) {rep_along(breaks, "")})
