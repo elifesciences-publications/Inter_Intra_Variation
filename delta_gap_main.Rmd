@@ -433,8 +433,8 @@ Use different combinations of k, n and standard deviation separation between clu
 if(exists("k_estimates_mm")){
   print("k_estimates_mm already exists, remove it if you want to rebuild or reload it")
   } else {
-    if (file.exists("k_estimates_mm.Rda")) {
-      load("k_estimates_mm.Rda")
+    if (file.exists("ModifiedGap/k_estimates_mm.Rda")) {
+      load("ModifiedGap/k_estimates_mm.Rda")
       print("Loaded multimodal data k estimates. Delete file if you want to rebuild")
       } else {
         # Evaluate k_est for each combination of factors

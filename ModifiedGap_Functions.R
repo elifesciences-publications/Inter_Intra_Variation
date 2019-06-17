@@ -16,7 +16,14 @@ clusGap_Extra <- function(df, K_max = 6){
 clusFunc <- function(df, K_max = 8) {
   df <- scale(df) # Center data. This shouldn't be necessary for 1d data.
   mat <- as.matrix(df)
-  out <- cluster::clusGap(mat, kmeans, K.max = K_max, B = 50, nstart = 20, verbose = FALSE)
+  out <- cluster::clusGap(mat,
+                          kmeans,
+                          K.max = K_max,
+                          B = 50,
+                          d.power = 2,
+                          spaceH0 = "original",
+                          nstart = 20,
+                          verbose = FALSE)
   as_tibble(out$Tab)
 }
 
