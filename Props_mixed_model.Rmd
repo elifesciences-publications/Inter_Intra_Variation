@@ -81,7 +81,7 @@ In general vsris and vscris have similar AIC (compare columns in data.sc_r). We 
 Plot example animals
 ```{r}
 (rheo_example <- ggplot(filter(data.sc, id == "mouse_20131106" | id == "mouse_20140113"), aes(dvloc, rheo)) +
-  geom_point(aes(colour = id)) +
+  geom_point(aes(colour = id), shape = 3) +
   labs(x = "Location (µm)", y = "Rheobase (pA)", colour = "Mouse")) +
   scale_colour_manual(labels = c("20131106", "20140113"), values = c("red", "blue"))
 (resf_example <- ggplot(filter(data.sc, id == "mouse_20131106" | id == "mouse_20140113"), aes(dvloc, resf)) +
