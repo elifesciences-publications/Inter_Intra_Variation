@@ -26,7 +26,7 @@ order_names <- c("vm", "ir", "sag", "tau", "resf", "resmag", "rheo", "fi", "ahp"
 
 Q_neurons <- Q_neurons[match(order_names, rownames(Q_neurons)), match(order_names, colnames(Q_neurons))]
 
-new_names <- c("Vm", "IR", "Sag", "Tm", "ResF", "ResM", "Rheo", "F-I", "AHP", "Smax", "Sthr", "Shlf")
+new_names <- c("Vm", "IR", "Sag", "Tm", "ResF", "ResM", "Rheo", "F-I", "AHP", "Smax", "Sthr", "SHW")
 
 colnames(Q_neurons) <- new_names
 rownames(Q_neurons) <- new_names
@@ -91,8 +91,9 @@ prop.var.df$components <- 1:12
   ylab("Proportion of variance") +
     theme(title = element_text(size = 9), axis.text = element_text(size = 9)))
 
-(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation), fontsize = 2, order_names = order_names) +
-    theme(text = element_text(size = 9)))
+(all.pca.biplot <- pca_biplot(as.data.frame(all.pca$rotation), fontsize = 2, order_names = order_names, new_names = c("Vm", "IR", "Sag", "Tm", "Res. F", "Res. Mag.", "Rheo", "FI", "AHPmax", "Spk. max", "Spk. thr", "Spk. HW")) +
+    theme(text = element_text(size = 9)) +
+    xlim(-0.5, 0.55))
 ```
 
 
@@ -261,7 +262,7 @@ IS_figure_PCA_1_5 <- ggplot(subset(combined_intercepts_slopes_PCA, component %in
   facet_wrap(~component_factors, ncol = 5) +
   theme_classic() +
   hist_theme +
-  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank()) +
+  theme(axis.line.x = element_blank(), axis.ticks.x = element_blank(), axis.text.x = element_text(angle = 90)) +
   theme(legend.position="none")
 
 IS_figure_PCA_1_11
