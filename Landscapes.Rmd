@@ -1,0 +1,69 @@
+---
+title: "Landscapes"
+author: "Matt Nolan"
+date: "26/03/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+```{r}
+landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -1, cell = rbinom(n = length(x), size = 1, prob = y^2))
+(landscape_plot <- ggplot(landscape, aes(x,y)) +
+  geom_line() +
+  geom_point(aes(size = ifelse(cell==0, NA, cell))) +
+  theme_void() +
+  theme(legend.position="none"))
+```
+
+
+```{r}
+landscapes <- tibble(x = seq(0, 30, length=3000),
+                     y1 = dnorm(x, mean=10, sd=3) * -1,
+                     cell1 = rbinom(n = length(x), size = 1, prob = y1^2),
+                     y2 = dnorm(x, mean=20, sd=3) * -1,
+                     cell2 = rbinom(n = length(x), size = 1, prob = y2^2))
+(landscapes_plot <- ggplot(landscapes) +
+  geom_line(aes(x, y1)) +
+  geom_point(aes(x, y1, size = ifelse(cell1==0, NA, cell1)), colour = "blue") +
+  geom_line(aes(x,y2)) +
+  geom_point(aes(x, y2, size = ifelse(cell2==0, NA, cell2)), colour = "red") +
+  theme_void() +
+  theme(legend.position="none"))
+```
+
+```{r}
+ggdraw() +
+  draw_plot(landscape_plot, 0.05, 0, 0.4, 0.9) +
+  draw_plot(landscapes_plot, 0.55, 0, 0.4, 0.9) +
+  draw_plot_label(c("A", "B"), c(0, 0.5), c(1,1), size = 24) +
+  draw_plot_label(c("Single-animal", "Multiple animals"), c(0.05, 0.5), c(0.98,0.98), size = 18)
+```
+
+```{r, warning=FALSE}
+num_cells <- 4
+length_plot <- 6000
+landscapes_4  <- tibble(x = rep(seq(0, 60, length=length_plot), num_cells),
+                        setpoint_pos = c(rep(10, length_plot), rep(20, length_plot), rep(25, length_plot), rep(50, length_plot)),
+                        y = dnorm(x, mean=setpoint_pos, sd=3) * -1,
+                        cell_prob = rbinom(n = length(x), size = 1, prob = y^2))
+
+ggplot(landscapes_4) + geom_line(aes(x, y, colour = as.factor(setpoint_pos))) +
+  geom_point(aes(x, y, size = ifelse(cell_prob==0, NA, cell_prob), colour = as.factor(setpoint_pos))) +
+  theme_void() +
+  theme(legend.position="none")
+
+```
+
+
+
+
+```{r}
+ggsave("Figures/Landscape_figure.png", width = 220, height = 80, units = "mm")
+```
+
