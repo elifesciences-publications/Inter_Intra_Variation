@@ -21,8 +21,10 @@ landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -
   theme_void() +
   theme(legend.position="none"))
 
-landscape_plot_2 <- landscape_plot +
-  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches")))
+(landscape_plot_2 <- landscape_plot +
+  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
+  draw_label("Fixed set point", 5, 0.01) +
+  ylim(-0.16,0.02))
 ```
 
 
@@ -34,15 +36,17 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
                      cell2 = rbinom(n = length(x), size = 1, prob = y2^2))
 (landscapes_plot <- ggplot(landscapes) +
   geom_line(aes(x, y1)) +
-  geom_point(aes(x, y1, size = ifelse(cell1==0, NA, cell1)), colour = "blue") +
+  geom_point(aes(x, y1, size = ifelse(cell1==0, NA, cell1)), shape = 5) +
   geom_line(aes(x,y2)) +
-  geom_point(aes(x, y2, size = ifelse(cell2==0, NA, cell2)), colour = "red") +
+  geom_point(aes(x, y2, size = ifelse(cell2==0, NA, cell2)), shape = 6) +
   theme_void() +
   theme(legend.position="none"))
 
-landscapes_plot_2 <- landscapes_plot +
+(landscapes_plot_2 <- landscapes_plot +
   geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
-  geom_segment(aes(x = 20,y = -0.15,xend = 20,yend = -0.14), arrow = arrow(length = unit(0.1, "inches")))
+  geom_segment(aes(x = 20,y = -0.15,xend = 20,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
+  draw_label("Variable set point", 10, 0.01) +
+  ylim(-0.16,0.02))
   
 ```
 
@@ -56,10 +60,9 @@ ggdraw() +
 
 ```{r, warning=FALSE}
 ggdraw() +
-  draw_plot(landscape_plot_2, 0.05, 0, 0.4, 0.9) +
-  draw_plot(landscapes_plot_2, 0.55, 0, 0.4, 0.9) +
-  draw_plot_label(c("A", "B"), c(0, 0.5), c(1,1), size = 24) +
-  draw_plot_label(c("Fixed set point", "Variable set points"), c(0.05, 0.5), c(0.98,0.98), size = 18)
+  draw_plot(landscape_plot_2, 0.05, 0, 0.4, 1) +
+  draw_plot(landscapes_plot_2, 0.55, 0, 0.4, 1) +
+  draw_plot_label(c("A", "B"), c(0, 0.5), c(0.97,0.97), size = 24)
 ```
 
 
@@ -79,38 +82,58 @@ ggplot(landscapes_4) + geom_line(aes(x, y, colour = as.factor(setpoint_pos))) +
 ```
 
 ```{r}
-slope_lines <- tibble(x = c(0,0,0), y = c(1,1,1), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
-
-ggplot(slope_lines) +
+dvplot <- function(tb, ylabel = "Gradient factor", line_palette = "Reds") {
+  ggplot(tb) +
   geom_segment(aes(x = x, y = y, xend = xend, yend = yend, colour = group)) +
   xlim(0,1) +
   ylim(0,1) +
-  xlab("Dorsoventral position") +
-  ylab ("Gradient factor") +
+  xlab("Location") +
+  ylab (ylabel) +
   theme(axis.text=element_blank(),
-        axis.ticks=element_blank())  +
-  scale_colour_brewer(type = "seq", palette = "Reds")
+        axis.ticks=element_blank(),
+        legend.position = "none")  +
+  scale_colour_brewer(type = "seq", palette = line_palette)
+}
 
-h_lines <- tibble(x = c(0,0,0), y = c(0.2, 0.4, 0.6), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
 
-ggplot(h_lines) +
-  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = group)) +
-  xlim(0,1) +
-  ylim(0,1) +
-  xlab("Dorsoventral position") +
-  ylab ("Uniform factor") +
-  theme(axis.text=element_blank(),
-        axis.ticks=element_blank()) +
-  scale_colour_brewer(type = "seq", palette = "Blues")
+num_cases <- 15
+slope_lines <- tibble(x = rep(0,num_cases),
+                      y = rep(1,num_cases),
+                      xend = rep(1,num_cases),
+                      yend = seq(0.2, 0.8, length.out = num_cases),
+                      group = as.factor(1:num_cases))
+(sl_plot <- dvplot(slope_lines))
 
-setpoint <- tibble(x = c(0,0,0), y = c(0.2, 0.4, 0.6), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
+h_lines <- tibble(x = rep(0,num_cases),
+                  y = seq(0.2, 0.6, length.out = num_cases),
+                  xend = rep(1,num_cases),
+                  yend = seq(0.2, 0.6, length.out = num_cases),
+                  group = as.factor(1:num_cases))
+(h_plot <- dvplot(h_lines, "Unifrom factor", "Blues"))
+
+setpoint <- tibble(x = rep(0,num_cases),
+                   y = runif(num_cases, 0.6, 1),
+                   xend = rep(1,num_cases),
+                   yend = runif(num_cases, 0.2, 0.6),
+                   group = as.factor(1:num_cases))
+(sp_plot <- dvplot(setpoint, "Set point", "Greens"))
+
+```
+
+```{r}
+ggdraw() +
+  draw_plot(landscape_plot_2, 0.05, 0.5, 0.3, 0.5) +
+  draw_plot(landscapes_plot_2, 0.05, 0, 0.3, 0.5) +
+  draw_plot(sl_plot, 0.45, 0.5, 0.25, 0.4) +
+  draw_plot(h_plot, 0.45, 0, 0.25, 0.4) +
+  draw_plot(sp_plot, 0.75, 0.25, 0.25, 0.4) +
+  draw_plot_label(c("A", "B" ,"C", "X"), c(0, 0, 0.42, 0.7), c(1,0.5, 1, 0.5), size = c(24,24,24,18))
 
 ```
 
 
 
-
 ```{r}
-ggsave("Figures/Landscape_figure.png", width = 220, height = 80, units = "mm")
+ggsave("Figures/Landscape_figure.png", width = 220, height = 140, units = "mm")
 ```
 
