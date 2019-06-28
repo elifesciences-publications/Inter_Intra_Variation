@@ -7,6 +7,7 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+set.seed(1)
 ```
 
 
@@ -19,10 +20,13 @@ landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -
   geom_point(aes(size = ifelse(cell==0, NA, cell))) +
   theme_void() +
   theme(legend.position="none"))
+
+landscape_plot_2 <- landscape_plot +
+  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches")))
 ```
 
 
-```{r}
+```{r, warning=FALSE}
 landscapes <- tibble(x = seq(0, 30, length=3000),
                      y1 = dnorm(x, mean=10, sd=3) * -1,
                      cell1 = rbinom(n = length(x), size = 1, prob = y1^2),
@@ -35,15 +39,29 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
   geom_point(aes(x, y2, size = ifelse(cell2==0, NA, cell2)), colour = "red") +
   theme_void() +
   theme(legend.position="none"))
+
+landscapes_plot_2 <- landscapes_plot +
+  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
+  geom_segment(aes(x = 20,y = -0.15,xend = 20,yend = -0.14), arrow = arrow(length = unit(0.1, "inches")))
+  
 ```
 
-```{r}
+```{r, warning=FALSE}
 ggdraw() +
   draw_plot(landscape_plot, 0.05, 0, 0.4, 0.9) +
   draw_plot(landscapes_plot, 0.55, 0, 0.4, 0.9) +
   draw_plot_label(c("A", "B"), c(0, 0.5), c(1,1), size = 24) +
-  draw_plot_label(c("Single-animal", "Multiple animals"), c(0.05, 0.5), c(0.98,0.98), size = 18)
+  draw_plot_label(c("Fixed set point", "Variable set point"), c(0.05, 0.5), c(0.98,0.98), size = 18)
 ```
+
+```{r, warning=FALSE}
+ggdraw() +
+  draw_plot(landscape_plot_2, 0.05, 0, 0.4, 0.9) +
+  draw_plot(landscapes_plot_2, 0.55, 0, 0.4, 0.9) +
+  draw_plot_label(c("A", "B"), c(0, 0.5), c(1,1), size = 24) +
+  draw_plot_label(c("Fixed set point", "Variable set points"), c(0.05, 0.5), c(0.98,0.98), size = 18)
+```
+
 
 ```{r, warning=FALSE}
 num_cells <- 4
@@ -57,6 +75,35 @@ ggplot(landscapes_4) + geom_line(aes(x, y, colour = as.factor(setpoint_pos))) +
   geom_point(aes(x, y, size = ifelse(cell_prob==0, NA, cell_prob), colour = as.factor(setpoint_pos))) +
   theme_void() +
   theme(legend.position="none")
+
+```
+
+```{r}
+slope_lines <- tibble(x = c(0,0,0), y = c(1,1,1), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
+
+ggplot(slope_lines) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, colour = group)) +
+  xlim(0,1) +
+  ylim(0,1) +
+  xlab("Dorsoventral position") +
+  ylab ("Gradient factor") +
+  theme(axis.text=element_blank(),
+        axis.ticks=element_blank())  +
+  scale_colour_brewer(type = "seq", palette = "Reds")
+
+h_lines <- tibble(x = c(0,0,0), y = c(0.2, 0.4, 0.6), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
+
+ggplot(h_lines) +
+  geom_segment(aes(x = x, y = y, xend = xend, yend = yend, color = group)) +
+  xlim(0,1) +
+  ylim(0,1) +
+  xlab("Dorsoventral position") +
+  ylab ("Uniform factor") +
+  theme(axis.text=element_blank(),
+        axis.ticks=element_blank()) +
+  scale_colour_brewer(type = "seq", palette = "Blues")
+
+setpoint <- tibble(x = c(0,0,0), y = c(0.2, 0.4, 0.6), xend = c(1,1,1), yend = c(0.2,0.4,0.6), group = as.factor(c(1,2,3)))
 
 ```
 
