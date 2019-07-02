@@ -13,8 +13,8 @@ set.seed(1)
 
 
 
-```{r}
-landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -1, cell = rbinom(n = length(x), size = 1, prob = y^2))
+```{r, warning=FALSE}
+landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -1, cell = rbinom(n = length(x), size = 1, prob = (y^8/min(y)^8)/25))
 (landscape_plot <- ggplot(landscape, aes(x,y)) +
   geom_line() +
   geom_point(aes(size = ifelse(cell==0, NA, cell))) +
@@ -22,7 +22,7 @@ landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -
   theme(legend.position="none"))
 
 (landscape_plot_2 <- landscape_plot +
-  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
+  geom_segment(aes(x = 10,y = -0.152,xend = 10,yend = -0.142), arrow = arrow(length = unit(0.1, "inches"))) +
   draw_label("Fixed set point", 5, 0.01) +
   ylim(-0.16,0.02))
 ```
@@ -31,9 +31,9 @@ landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -
 ```{r, warning=FALSE}
 landscapes <- tibble(x = seq(0, 30, length=3000),
                      y1 = dnorm(x, mean=10, sd=3) * -1,
-                     cell1 = rbinom(n = length(x), size = 1, prob = y1^2),
+                     cell1 = rbinom(n = length(x), size = 1, prob = (y1^8/min(y1)^8)/25),
                      y2 = dnorm(x, mean=20, sd=3) * -1,
-                     cell2 = rbinom(n = length(x), size = 1, prob = y2^2))
+                     cell2 = rbinom(n = length(x), size = 1, prob = (y2^8/min(y2)^8)/25))
 (landscapes_plot <- ggplot(landscapes) +
   geom_line(aes(x, y1)) +
   geom_point(aes(x, y1, size = ifelse(cell1==0, NA, cell1)), shape = 5) +
@@ -43,8 +43,8 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
   theme(legend.position="none"))
 
 (landscapes_plot_2 <- landscapes_plot +
-  geom_segment(aes(x = 10,y = -0.15,xend = 10,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
-  geom_segment(aes(x = 20,y = -0.15,xend = 20,yend = -0.14), arrow = arrow(length = unit(0.1, "inches"))) +
+  geom_segment(aes(x = 10,y = -0.152,xend = 10,yend = -0.142), arrow = arrow(length = unit(0.1, "inches"))) +
+  geom_segment(aes(x = 20,y = -0.152,xend = 20,yend = -0.142), arrow = arrow(length = unit(0.1, "inches"))) +
   draw_label("Variable set point", 10, 0.01) +
   ylim(-0.16,0.02))
   
