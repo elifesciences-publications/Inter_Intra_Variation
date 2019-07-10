@@ -25,6 +25,10 @@ landscape <- tibble(x = seq(0, 20, length=1000), y = dnorm(x, mean=10, sd=3) * -
   geom_segment(aes(x = 10,y = -0.152,xend = 10,yend = -0.142), arrow = arrow(length = unit(0.1, "inches"))) +
   draw_label("Fixed set point", 5, 0.01) +
   ylim(-0.16,0.02))
+
+(landscape_plot_3 <- landscape_plot +
+  geom_segment(aes(x = 10, y = -0.162,xend = 10,yend = -0.147), arrow = arrow(length = unit(0.1, "inches"))) +
+  ylim(-0.18,0.02))
 ```
 
 
@@ -47,6 +51,12 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
   geom_segment(aes(x = 20,y = -0.152,xend = 20,yend = -0.142), arrow = arrow(length = unit(0.1, "inches"))) +
   draw_label("Variable set point", 10, 0.01) +
   ylim(-0.16,0.02))
+
+(landscapes_plot_3 <- landscapes_plot +
+  geom_segment(aes(x = 10,y = -0.167,xend = 10,yend = -0.152), arrow = arrow(length = unit(0.1, "inches"))) +
+  geom_segment(aes(x = 20,y = -0.167,xend = 20,yend = -0.152), arrow = arrow(length = unit(0.1, "inches"))) +
+  draw_label("Variable", 10, 0.02) +
+  ylim(-0.18,0.02))
   
 ```
 

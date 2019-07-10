@@ -187,6 +187,26 @@ ggsave("Figures/Concept_figure.png", plot = ConceptFigure, width = 160, height =
 ```
 
 
+Make a version of this figure that includes illustration of set points. This requires that scripts in 'Landscapes.Rmd' have been run to generate 'landscape_plot_2' and 'landscapes_plot_2'.
+```{r plot_concept_fig}
+ConceptFigure_v2 <- ggdraw() +
+  draw_plot(CF_plot, x =0.02, y = 0, width = 0.3, height = 1) +
+  draw_plot(IntraAnimalPlot, x = 0.65, y = 0, width = 0.3, height = 1) +
+  draw_plot(landscape_plot_3, x = 0.37, y =0.5, width = 0.25, height = 0.4) +
+  draw_plot(landscapes_plot_3, x = 0.37, y =0.15, width = 0.25, height = 0.4) +
+  draw_plot_label(label = c("A", "B", "C"), size = 15,
+                  x = c(0, 0.34, 0.63), y = c(1, 1, 1)) +
+  draw_plot_label(label = c("Set points"), size = 14, fontface = "plain", x = c(0.35), y = c(1))
+
+ConceptFigure_v2
+```
+
+Save the figure.
+```{r Save concept figure}
+ggsave("Figures/Concept_figure.png", plot = ConceptFigure_v2, width = 160, height = 100, units = "mm")
+```
+
+
 
 Figure to summmarise results of mixed effects analyses.
 
