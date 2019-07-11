@@ -193,9 +193,9 @@ ConceptFigure_v2 <- ggdraw() +
   draw_plot(CF_plot, x =0.02, y = 0, width = 0.3, height = 1) +
   draw_plot(IntraAnimalPlot, x = 0.65, y = 0, width = 0.3, height = 1) +
   draw_plot(landscape_plot_3, x = 0.37, y =0.5, width = 0.25, height = 0.4) +
-  draw_plot(landscapes_plot_3, x = 0.37, y =0.15, width = 0.25, height = 0.4) +
-  draw_plot_label(label = c("A", "B", "C"), size = 15,
-                  x = c(0, 0.34, 0.63), y = c(1, 1, 1)) +
+  draw_plot(landscapes_m_plot_2, x = 0.37, y =0.1, width = 0.25, height = 0.4) +
+  draw_plot_label(label = c("A", "B", "C", "D"), size = 15,
+                  x = c(0, 0.34, 0.34, 0.63), y = c(1, 1, 0.5, 1)) +
   draw_plot_label(label = c("Set points"), size = 14, fontface = "plain", x = c(0.35), y = c(1))
 
 ConceptFigure_v2

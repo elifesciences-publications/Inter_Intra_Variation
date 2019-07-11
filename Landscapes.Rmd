@@ -38,6 +38,7 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
                      cell1 = rbinom(n = length(x), size = 1, prob = (y1^8/min(y1)^8)/25),
                      y2 = dnorm(x, mean=20, sd=3) * -1,
                      cell2 = rbinom(n = length(x), size = 1, prob = (y2^8/min(y2)^8)/25))
+
 (landscapes_plot <- ggplot(landscapes) +
   geom_line(aes(x, y1)) +
   geom_point(aes(x, y1, size = ifelse(cell1==0, NA, cell1)), shape = 5) +
@@ -57,7 +58,28 @@ landscapes <- tibble(x = seq(0, 30, length=3000),
   geom_segment(aes(x = 20,y = -0.167,xend = 20,yend = -0.152), arrow = arrow(length = unit(0.1, "inches"))) +
   draw_label("Variable", 10, 0.02) +
   ylim(-0.18,0.02))
-  
+
+num_reps = 10
+seq_length = 3000
+landscapes_multiple <- tibble(x = rep(seq(0, 30, length=seq_length), num_reps),
+                              reps =  rep(1:num_reps, each = seq_length),
+                              reps_fac = as.factor(reps),
+                              y = dnorm(x, mean=9 + reps, sd=3) * -1,
+                              cell = rbinom(n = seq_length * num_reps, size = 1, prob = (y^8/min(y)^8)/25))
+
+(landscapes_m_plot <- ggplot() +
+  geom_line(data = landscapes_multiple, aes(x,y, colour = reps_fac)) +
+    #scale_colour_brewer(direction = -1)
+    scale_colour_hue(h = c(180,270))
+)
+
+arrow_coords <- tibble(x = c(9 + 1:num_reps), y = c(rep(-0.152, num_reps)), xend = c(9 + 1:num_reps), yend = c(rep(-0.137, num_reps)))
+
+(landscapes_m_plot_2 <- landscapes_m_plot +
+  geom_segment(data = arrow_coords, aes(x = x, y = y, xend = xend, yend = yend), arrow = arrow(length = unit(0.1, "inches"))) +
+  theme_void() +
+  theme(legend.position="none") +
+  ylim(-0.18,0.02))
 ```
 
 ```{r, warning=FALSE}
