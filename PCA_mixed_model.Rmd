@@ -31,9 +31,7 @@ new_names <- c("Vm", "IR", "Sag", "Tm", "ResF", "ResM", "Rheo", "F-I", "AHP", "S
 colnames(Q_neurons) <- new_names
 rownames(Q_neurons) <- new_names
 
-
-(Q_neurons_plot <- ggcorr(Q_neurons, geom = "circle", legend.size = 7, size = 2))
-
+(Q_neurons_plot <- ggcorr(data = NULL, cor_matrix = Q_neurons, geom = "circle", min_size = 0, max_size = 5, legend.size = 7, size = 2))
 ```
 
 
@@ -59,7 +57,7 @@ Q_intercepts <- Q_intercepts[match(order_names, rownames(Q_intercepts)), match(o
 colnames(Q_intercepts) <- new_names
 rownames(Q_intercepts) <- new_names
 
-(Q_intercepts_plot <- ggcorr(Q_intercepts, geom = "circle", legend.size = 7, size = 2))
+(Q_intercepts_plot <- ggcorr(data = NULL, cor_matrix = Q_intercepts, geom = "circle", min_size = 0, max_size = 5, legend.size = 7, size = 2))
 ```
 
 
@@ -269,7 +267,7 @@ IS_figure_PCA_1_11
 IS_figure_PCA_1_5
 ```
 
-## Make figure with conditional indepnendence and PCA analyses.
+## Make figure with conditional independence and PCA analyses.
 ```{r}
 ggdraw() +
   draw_plot(IS_figure_PCA_1_5, x = 0.57, y = 0.05, width = 0.4, height = 0.4) +
