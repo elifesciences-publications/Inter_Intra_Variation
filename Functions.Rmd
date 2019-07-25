@@ -83,6 +83,11 @@ model_vsris_age_con <- function(df) {
   lme4::lmer(value ~ dvlocmm + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
 }
 
+# Model for uncorrelated random intercept and slope including sex as a fixed effect
+model_vsris_sex <- function(df) {
+  df_na_remove <- filter(df, !is.na(sex))
+  lme4::lmer(value ~ dvlocmm * sex + (dvlocmm||id), data = df_na_remove, REML = FALSE, na.action = na.exclude)
+}
 
 # Model for uncorrelated random intercept and slope for all possible random effects.
 model_vsris_all_lmerTest <- function(df) {

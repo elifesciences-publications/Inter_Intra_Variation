@@ -55,7 +55,7 @@ plotFE_sd(filter(data.sc_r, property == "resmag")$mm_age[[1]]) +
 Look at age including only animals above P32.
 ```{r}
 data.sc_r_f <- filter(data.sc, age > 32) %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>% 
   nest()
@@ -89,7 +89,7 @@ plotFE_sd(filter(data.sc_r_f, property == "resf")$mm_vsris_age[[1]]) +
 Look at age including only animals above P32 and below P45.
 ```{r}
 data.sc_r_f2 <- filter(data.sc, age > 32 & age < 45) %>%
-  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
   nest()
@@ -236,6 +236,21 @@ table_path <- paste0(getwd(), "/Tables/mm_vsris_housing_vslinear.html")
 mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
+Look at effects of housing using only male animals.
+```{r}
+data.sc_r_f2_male <- filter(data.sc, age > 32 & age < 45 & sex == "M") %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+data.sc_r_f2_male <- data.sc_r_f2_male %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
+
+(housing_table_male <- FE_table(data.sc_r_f2_male, "housing"))
+```
 
 
 
@@ -451,6 +466,52 @@ plotFE_sd(filter(data.sc_r_f2, property == "tau")$mm_vsris_rect[[1]]) +
 plotFE_sd(filter(data.sc_r_f2, property == "spkhlf")$mm_vsris_rect[[1]]) +
   ggtitle("Fixed effects for spike half-width")
 ```
+
+
+## Does sex have any effect?
+```{r}
+data.sc_r_f2 <- data.sc_r_f2 %>%
+  mutate(mm_vsris_sex = map(data, model_vsris_sex)) %>%
+  summary_2fixedeffects(mm_vsris_sex, "sex") %>%
+  FE2_p.adjust("sex")
+
+(sex_table <- FE_table(data.sc_r_f2, "sex"))
+
+if (stajpeg == 1) {
+  table_path <- paste0(getwd(), "/Tables/FE_sex.jpg")
+   sex_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+} 
+
+table_path <- paste0(getwd(), "/Tables/FE_sex.html")
+sex_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+Next look at effects of sex only in the large cage environment
+```{r}
+data.sc_r_f3 <- filter(data.sc, age > 32 & age < 45 & housing == "Large") %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest()
+
+data.sc_r_f3 <- data.sc_r_f3 %>%
+  mutate(mm_vsris_sex = map(data, model_vsris_sex)) %>%
+  summary_2fixedeffects(mm_vsris_sex, "sex") %>%
+  FE2_p.adjust("sex")
+
+(sex_table_LargeHousing <- FE_table(data.sc_r_f3, "sex"))
+
+if (stajpeg == 1) {
+  table_path <- paste0(getwd(), "/Tables/FE_sex.jpg")
+   sex_table_LargeHousing %>% kableExtra::save_kable(file = table_path, self_contained = T)
+} 
+
+table_path <- paste0(getwd(), "/Tables/FE_sex.html")
+sex_table_LargeHousing %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
+
+
 
 ## Do random effects remain significant in a model with additional fixed effects included?
 

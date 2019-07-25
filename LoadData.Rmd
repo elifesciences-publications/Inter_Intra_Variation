@@ -15,7 +15,7 @@ To load and preprocess data used for other analyses.
 
 Import stellate cell data.
 ```{r import data, message = FALSE}
-fname.sc <- "Data/datatable.txt"
+fname.sc <- "Data/datatable_sc.txt"
 data.import.sc <- read_tsv(fname.sc)
 
 # Strip out rows from data where locations are unknown (are NaN)
