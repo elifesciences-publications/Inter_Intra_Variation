@@ -306,6 +306,46 @@ if (stajpeg == 1) {
 } else  {housing_table_PCA %>% kableExtra::save_kable(file = paste0(table_path, ".html"), self_contained = T)}
 ```
 
+Evaluate housing in datset containing only male mice.
+
+Prepare data
+```{r}
+data.pca_male <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime) %>%
+  filter(age > 32 & age <45 & expr == "HP" & sex == "M")
+
+all_male.pca <- prcomp(drop_na(data.pca_male[1:12], fi),
+                  retx = TRUE,
+                  centre = TRUE,
+                  scale = TRUE)
+
+plot(all_male.pca)
+summary(all_male.pca)
+
+all.pca_male.x <- bind_cols(as_tibble(all_male.pca$x), drop_na(data.pca_male, fi))
+
+out.pca.x_male_g <- all.pca_male.x %>%
+  gather("component", "value", 1:12) %>%
+  group_by(component) %>%
+  nest()
+```
+
+Do analysis
+```{r}
+out.pca.x_male_g <- out.pca.x_male_g %>%
+  mutate(mm_vsris_housing = map(data, model_vsris_housing)) %>%
+  summary_2fixedeffects(mm_vsris_housing, "housing") %>%
+  FE2_p.adjust("housing")
+
+(housing_male_table_PCA <- FE_table(out.pca.x_male_g, "housing", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_housing_male")
+
+if (stajpeg == 1) {
+  save_kable_jpg_html(housing_male_table_PCA, table_path)
+} else  {housing_male_table_PCA %>% kableExtra::save_kable(file = paste0(table_path, ".html"), self_contained = T)}
+```
+
+
 Evaluate whether interanimal differences remain in models that account for housing.
 
 ```{r}
