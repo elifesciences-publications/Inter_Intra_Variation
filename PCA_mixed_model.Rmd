@@ -367,6 +367,19 @@ table_path <- paste0(getwd(), "/Tables/PCA_mm_vsris_housing_vslinear.html")
 PCA_mix_vs_linear_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 ```
 
+Sex
+```{r}
+out.pca.x_g <- out.pca.x_g %>%
+  mutate(mm_vsris_sex = map(data, model_vsris_sex)) %>%
+  summary_2fixedeffects(mm_vsris_sex, "sex") %>%
+  FE2_p.adjust("sex")
+
+(sex_table_PCA <- FE_table(out.pca.x_g, "sex", "component"))
+
+table_path <- paste0(getwd(), "/Tables/PCA_FE_sex.html")
+sex_table_PCA %>% kableExtra::save_kable(file = table_path, self_contained = T)
+```
+
 
 
 Mediolateral position
