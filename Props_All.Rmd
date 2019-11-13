@@ -165,16 +165,6 @@ ggplot(plot_all_raw_data_wfs, aes(dvlocmm,value)) +
 
 The problem with this plot is that apparent differences could be due to differential sampling of dorsal and ventral locations.
 ```{r}
-data.sc_ml_plot <- filter(data.sc, mlpos != "NA") %>%
-  gather("property", "value", vm:fi)
-
-(ml_boxplots <- ggplot(data.sc_ml_plot, aes(mlpos, value)) +
-  geom_boxplot() +
-  facet_wrap(vars(property), scales = "free"))
-```
-
-Plot properties as a function of dorsoventral location but colour code for ML position.
-```{r}
 props_labels <- c(
   ahp = "AHP (mV)",
   fi = "F-I (Hz / pA)",
@@ -190,17 +180,36 @@ props_labels <- c(
   vm = "Vm (mV)"
 )
 
+data.sc_ml_plot <- filter(data.sc, mlpos != "NA") %>%
+  gather("property", "value", vm:fi)
+
+data.sc_ml_plot <- transform(data.sc_ml_plot, property = factor(property, levels = c("vm", "ir", "sag", "tau", "resf", "resmag", "spkthr", "spkmax", "spkhlf", "rheo", "ahp", "fi")))
+
+(ml_boxplots <- ggplot(data.sc_ml_plot, aes(mlpos, value)) +
+  geom_boxplot() +
+    scale_y_continuous(name="") +
+    scale_x_discrete(name="") +
+  facet_wrap(vars(property), scales = "free", labeller = labeller(property = props_labels)) +
+    theme(strip.text.x = element_text(size = 8),
+          axis.text = element_text(size = 9)))
+```
+
+Plot properties as a function of dorsoventral location but colour code for ML position.
+```{r}
 (ml_dv_plot <- ggplot(data.sc_ml_plot, aes(dvloc, value)) +
   geom_point(aes(colour = mlpos)) +
   scale_x_continuous(name="DV location (µm)", limits=c(0, 2500), breaks = c(0, 1000, 2000)) +
   scale_y_continuous(name="") +
   labs(colour = "") +
   facet_wrap(vars(property), scales = "free", labeller = labeller(property = props_labels)) +
-  theme(strip.text.x = element_text(size = 8)))
+  theme(text = element_text(size=9),
+        strip.text.x = element_text(size = 8),
+        axis.text = element_text(size = 9)))
 ```
 
+Save the figure
 ```{r}
-plot_grid(ml_boxplots, ml_dv_plot, rel_widths = c(1,2), labels = c("A", "B"), label_size = 12)
+ggsave("Figures/mlpos.png", height = 150, width = 180, units = "mm")
 ```
 
 
