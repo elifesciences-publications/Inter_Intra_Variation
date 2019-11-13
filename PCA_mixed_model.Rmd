@@ -69,7 +69,7 @@ Goal is to reduce the dimensionality of the dataset and then explore how dorsove
 
 Carry out PCA. The fi measurements are absent from a lot of cells. For a first analysis include all columns but remove cells without fi measurments. Focus analysis on ages above P32 and below P45, and on data collected by HP.
 ```{r}
-data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime) %>%
+data.pca <- dplyr::select(data.sc, vm:fi, dvlocmm, id, housing, id, mlpos, hemi, sex, age, housing, expr, patchdir, rectime) %>%
   filter(age > 32 & age <45 & expr == "HP")
 
 all.pca <- prcomp(drop_na(data.pca[1:12], fi),
