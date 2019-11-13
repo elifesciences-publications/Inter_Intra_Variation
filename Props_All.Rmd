@@ -168,9 +168,9 @@ The problem with this plot is that apparent differences could be due to differen
 data.sc_ml_plot <- filter(data.sc, mlpos != "NA") %>%
   gather("property", "value", vm:fi)
 
-ggplot(data.sc_ml_plot, aes(mlpos, value)) +
+(ml_boxplots <- ggplot(data.sc_ml_plot, aes(mlpos, value)) +
   geom_boxplot() +
-  facet_wrap(vars(property), scales = "free")
+  facet_wrap(vars(property), scales = "free"))
 ```
 
 Plot properties as a function of dorsoventral location but colour code for ML position.
@@ -190,11 +190,17 @@ props_labels <- c(
   vm = "Vm (mV)"
 )
 
-ggplot(data.sc_ml_plot, aes(dvloc, value)) +
+(ml_dv_plot <- ggplot(data.sc_ml_plot, aes(dvloc, value)) +
   geom_point(aes(colour = mlpos)) +
   scale_x_continuous(name="DV location (µm)", limits=c(0, 2500), breaks = c(0, 1000, 2000)) +
   scale_y_continuous(name="") +
-  facet_wrap(vars(property), scales = "free", labeller = labeller(property = props_labels))
+  labs(colour = "") +
+  facet_wrap(vars(property), scales = "free", labeller = labeller(property = props_labels)) +
+  theme(strip.text.x = element_text(size = 8)))
+```
+
+```{r}
+plot_grid(ml_boxplots, ml_dv_plot, rel_widths = c(1,2), labels = c("A", "B"), label_size = 12)
 ```
 
 
