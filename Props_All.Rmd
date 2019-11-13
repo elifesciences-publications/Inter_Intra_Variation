@@ -20,7 +20,7 @@ library(MuMIn)
 This analysis is currently elsewhere.
 
 
-## Plot of stellate cell and pyramidal cell properties as a function of location
+## Plot of stellate cell and pyramidal cell properties as a function of dorsoventral location
 
 Gather variables into a single tidy data frame.
 ```{r}
@@ -159,6 +159,44 @@ ggplot(plot_all_raw_data_wfs, aes(dvlocmm,value)) +
   theme(legend.position = "bottom")
 
 ```
+
+
+## Plot of SC properties as a function of mediolateral position
+
+The problem with this plot is that apparent differences could be due to differential sampling of dorsal and ventral locations.
+```{r}
+data.sc_ml_plot <- filter(data.sc, mlpos != "NA") %>%
+  gather("property", "value", vm:fi)
+
+ggplot(data.sc_ml_plot, aes(mlpos, value)) +
+  geom_boxplot() +
+  facet_wrap(vars(property), scales = "free")
+```
+
+Plot properties as a function of dorsoventral location but colour code for ML position.
+```{r}
+props_labels <- c(
+  ahp = "AHP (mV)",
+  fi = "F-I (Hz / pA)",
+  ir = "IR (MΩ)",
+  resf = "Res F (Hz)",
+  resmag = "Res mag",
+  rheo = "Rheobase (pA)",
+  sag = "Sag",
+  spkhlf = "Spike HW (ms)",
+  spkmax = "Spike max (mV)",
+  spkthr = "Spike threshold (pA)",
+  tau = "Tm (ms)",
+  vm = "Vm (mV)"
+)
+
+ggplot(data.sc_ml_plot, aes(dvloc, value)) +
+  geom_point(aes(colour = mlpos)) +
+  scale_x_continuous(name="DV location (µm)", limits=c(0, 2500), breaks = c(0, 1000, 2000)) +
+  scale_y_continuous(name="") +
+  facet_wrap(vars(property), scales = "free", labeller = labeller(property = props_labels))
+```
+
 
 ```{r}
 remove(list = c("plot_all_raw_data", "plot_all_raw_data_wfs", "plot_wfs", "plot_sc_wfs"))
