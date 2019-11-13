@@ -1,5 +1,5 @@
 ---
-title: "R Notebook"
+title: "Mixed effect model analyses"
 output: html_notebook
 ---
 
@@ -509,7 +509,7 @@ ggplot(filter(randoms_TP_unnest_1, term == "dvlocmm1"), aes(x = groupID, y = mea
 
 Tidy up enviornment by removing unneeded data frames.
 ```{r}
-rm(data.sc_TP, data.sc_TP_r, randoms_unnest, randoms_TP_unnest, randoms_TP_unnest_1, resid_plot_data, resid_plot_data_TP, resid_plot_data_TP_1)
+rm(randoms_unnest, randoms_TP_unnest, randoms_TP_unnest_1, resid_plot_data, resid_plot_data_TP, resid_plot_data_TP_1)
 ```
 
 

@@ -67,7 +67,7 @@ Add new columns containing copula transformed data. Make a new data frame _TP to
 trans.properties <- apply(apply(data.sc %>% dplyr::select(vm:fi), 2, edf), 2, qnorm )
 trans.dvlocmm <- apply(apply(data.sc %>% dplyr::select(dvlocmm), 2, edf), 2, qnorm )
 data.sc_TP <- bind_cols(as.data.frame(trans.properties), dplyr::select(data.sc,-(vm:fi)), as.data.frame(trans.dvlocmm)) %>%
-  as.tibble()
+  as_tibble()
 ```
 
 
