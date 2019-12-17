@@ -240,7 +240,7 @@ props_table_unnest
 Parameters from fitting models directly to the experimentally obtained properties.
 ```{r Table_mixed_model_properties}
 props_for_table <- c("property", "anova_p_val", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_vslinear_pdiff", "mm_vsris_vslinear_pdiff_adj", "mm_vsris_gradient_slopes", "mm_vsris_slope_min", "mm_vsris_slope_max")
-props_table_unnest <- unnest(data.sc_r[props_for_table])
+props_table_unnest <- unnest(data.sc_r[props_for_table], cols = c())
 
 props_table_unnest %>%
   knitr::kable(
@@ -254,15 +254,22 @@ write_csv(props_table_unnest, "results_model_table.csv")
 
 # reduced version for the manuscript
 props_man_table <- c("property", "mm_vsris_gradient_slopes", "anova_p_val_adj", "mm_vsris_marginal.r2", "mm_vsris_conditional.r2", "mm_vsris_slope_min", "mm_vsris_slope_max", "mm_vsris_vslinear_pdiff_adj")
-man_table <- unnest(data.sc_r[props_man_table])
+man_table <- unnest(data.sc_r[props_man_table], cols = c())
+
+man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA)")
+
+man_table <- man_table %>%
+  rownames_to_column() %>%
+  arrange(desc(mm_vsris_marginal.r2)) %>%
+  column_to_rownames() %>%
+  as_tibble()
 
 man_table$anova_p_val_adj <- format(man_table$anova_p_val_adj, digits = 3)
 man_table$mm_vsris_vslinear_pdiff_adj <- format(man_table$mm_vsris_vslinear_pdiff_adj, digits = 3)
-man_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA")
 
 (man_table <- man_table %>%
   knitr::kable(
-    digits = 4,
+    digits = 3,
     col.names = c("Feature", "Slope", "p (slope)", "Marginal R2", "Conditional R2", "Slope (min)", "Slope (max)", "p (vs linear)")
 ) %>%
   kableExtra::kable_styling(bootstrap_options = c("striped", "hover")))
@@ -333,7 +340,9 @@ labels_intercepts <- c(ahp = "AHP min. (mV)", fi = "F-I (Hz / pA)", ir = "IR (M�
 
 IS_figure <- ggplot(combined_intercepts_slopes, aes(x = measure, y = value_1, colour = housing)) +
   geom_line(aes(group = id)) +
-  geom_jitter(aes(y = value_2), width = 0.2) +
+  geom_jitter(aes(y = value_2), width = 0.2, alpha = 0.5) +
+  #geom_boxplot(aes(y = value_2), alpha = 0.1) +
+  stat_summary(aes(y = value_2), fun.y = "mean", fun.ymin = "mean", fun.ymax = "mean", size = 0.2, geom = "crossbar") +
   scale_x_discrete(limits = c("ind_intercept", "ind_intercept_slope", "global_intercept", "global_intercept_slope"), label = c("I", "I + S", "", "")) +
   facet_wrap(~property_factors, scales = "free",  labeller = labeller(property_factors = labels_intercepts)) +
   theme_classic() +

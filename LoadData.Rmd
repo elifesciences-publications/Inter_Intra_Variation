@@ -85,13 +85,15 @@ data.sc_r <- data.sc %>%
   dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
-  nest()
+  nest %>%
+  ungroup
 
 data.sc_TP_r <- data.sc_TP %>%
   dplyr::select(vm:fi, dvlocmm, dvlocmm1, id, housing, id, mlpos, hemi, age, housing, expr, patchdir, rectime, counts) %>%
   gather("property", "value", vm:fi) %>%
   group_by(property) %>%
-  nest()
+  nest %>%
+  ungroup
 
 ```
 
