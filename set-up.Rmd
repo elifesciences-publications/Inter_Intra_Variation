@@ -6,10 +6,13 @@ output: html_document
 ---
 
 ```{r, include=FALSE}
+#install.packages(c("tidyverse", "ggthemes", "optimx",lme4", "MuMIn", "cowplot", "GGally", "kableExtra", "lmertest", "merTools", "car", "corpcor", "merTools"))
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # R Markdown {-}
+
+
 
 Load packages needed by other scripts.
 
