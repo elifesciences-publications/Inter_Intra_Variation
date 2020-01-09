@@ -505,6 +505,8 @@ FE_table <- function(df, name, group_name = property) {
   
   df[col_list] <- lapply(df[col_list], format, digits = 2)
   
+  df$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA)")
+
   kableExtra::kable(select(df,
                            !! group_name,
                            !! ngrps,

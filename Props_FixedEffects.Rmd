@@ -149,6 +149,9 @@ df_age_table <- cbind(select(data.sc_r,
 
 df_age_table <- format(df_age_table, digits = 3)
 
+df_age_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA)")
+
+
 (df_age_table <- kableExtra::kable(df_age_table,  col.names = c("property", rep(c("dvloc", "age", "dvloc:age", "N", "n"), 3)), digits = c(NA, rep(6,15))) %>%
   kableExtra::add_header_above(c(" " = 1, "All ages" = 5, "P32 < age" = 5, "P32 < age < P45" = 5)) %>%
   kableExtra::kable_styling(bootstrap_options = "striped")) 
