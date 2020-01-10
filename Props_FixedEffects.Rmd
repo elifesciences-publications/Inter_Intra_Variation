@@ -228,6 +228,8 @@ data.sc_r_f2 <- mixed_vs_linear_pchisqu(data.sc_r_f2,
                                          lm_vsris_housing)
 
 data.sc_r_f2$mm_vsris_housing_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2$mm_vsris_housing_vslinear_pdiff, method = "BH")
+data.sc_r_f2$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA)")
+
 (mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2, "mm_vsris_housing_vslinear"))
 
 if (stajpeg == 1) {
@@ -260,12 +262,16 @@ data.sc_r_f2_male <- data.sc_r_f2_male %>%
 
 ## Mediolateral position.
 ```{r}
-data.sc_r_f2 <- data.sc_r_f2 %>%
+data.sc_r_ml_filter <- filter(data.sc, age > 32 & age < 45 & mlpos != "NA") %>%
+  dplyr::select(vm:fi, dvlocmm, id, housing, id, mlpos, hemi, age, sex, housing, expr, patchdir, rectime, counts) %>%
+  gather("property", "value", vm:fi) %>%
+  group_by(property) %>%
+  nest() %>%
   mutate(mm_vsris_ml = map(data, model_vsris_ml)) %>%
   summary_2fixedeffects(mm_vsris_ml, "ml") %>%
   FE2_p.adjust("ml")
 
-(ml_table <- FE_table(data.sc_r_f2, "ml"))
+(ml_table <- FE_table(data.sc_r_ml_filter, "ml"))
 
 if (stajpeg == 1) {
   table_path <- paste0(getwd(), "/Tables/FE_mlpos.jpg")
@@ -559,6 +565,8 @@ FE_Full_table <-data.sc_r_f2_all %>%
   mutate(full_dvlocmm_mlpos = map_dbl(ANOVA, ~.['Pr(>F)']["dvlocmm:mlpos",])) %>%
   select(-ANOVA)
 
+FE_Full_table$property <- c("Vm (mV)", "IR (MΩ)", "Sag", "Tm (ms)", "Res. frequency (Hz)", "Res. magnitude", "Spike thresold (mV)", "Spike maximum (mV)", "Spike width (ms)", "Rheobase (pA)", "Spike AHP (mV)", "I-F slope (Hz/pA)")
+
 names_in <- c("full_dvlocmm", "full_expr", "full_housing", "full_mlpos", "full_patchdir", "full_dvlocmm_housing", "full_dvlocmm_expr", "full_dvlocmm_patchdir", "full_dvlocmm_mlpos")
 
 names_adj <- paste0(names_in, "_adj")
@@ -584,6 +592,9 @@ FE_Full_table %>% kableExtra::save_kable(file = table_path, self_contained = T)
 Make table to summarise comparison of the full mixed with the equivalent linear model.
 ```{r}
 data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff_adj <- p.adjust(data.sc_r_f2_all$mm_full_fixed_vslinear_pdiff, method = "BH")
+data.sc_r_f2_all$property <- c("Vm", "IR", "Sag", "Tm", "Res. frequency", "Res. magnitude", "Spike thresold", "Spike maximum", "Spike width", "Rheobase", "Spike AHP", "I-F slope")
+
+
 (mix_vs_linear_table <- table_mixedvslinear(data.sc_r_f2_all, "mm_full_fixed_vslinear"))
 
 if (stajpeg == 1) {
@@ -715,6 +726,10 @@ counts_select <- function(df,
 table_low_n <- counts_select(data.sc_r_f2, 0,35)
                        
 table_high_n <- counts_select(data.sc_r_f2, 35,100)
+
+table_high_n$property <- c("Vm", "IR", "Sag", "Tm", "Res. frequency", "Res. magnitude", "Spike thresold", "Spike maximum", "Spike width", "Rheobase", "Spike AHP", "I-F slope")
+
+table_high_n <- table_high_n[,c(6,1,2,3,4,5)]
 
 (table_high_n <- kableExtra::kable(table_high_n) %>%
   kableExtra::kable_styling(bootstrap_options = "striped"))
