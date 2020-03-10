@@ -1,4 +1,4 @@
-This repository contains analysis code used in Pastoll et al.
+This repository contains analysis code used in Pastoll et al., 2020. Inter- and intra-animal variation in the integrative properties of stellate cells in the medial entorhinal cortex, eLife, https://doi.org/10.7554/eLife.52258
 
 We recommend using RStudio (https://www.rstudio.com/) for running and viewing code.
 
